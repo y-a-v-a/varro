@@ -1,0 +1,66 @@
+# ---------------------------------------------------------------------------
+# Corpus data — NEVER committed.
+#
+# Everything under data/ is a build artifact, reproducible from
+# manifest/sources.yaml via `python src/fetch.py`. Committing it would bloat
+# the repo and, worse, break the licence audit trail: the manifest + lockfile
+# are the authoritative record of what is in the corpus and under what terms.
+# ---------------------------------------------------------------------------
+data/*
+!data/.gitkeep
+!data/raw/
+data/raw/*
+!data/raw/.gitkeep
+!data/interim/
+data/interim/*
+!data/interim/.gitkeep
+!data/processed/
+data/processed/*
+!data/processed/.gitkeep
+
+# Fetch lockfile IS committed (it pins source versions) — see manifest/
+# but the fetch log is machine-local noise.
+*.fetch.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Models / training output (large, regenerable)
+checkpoints/
+runs/
+*.safetensors
+*.gguf
+tokenizer/*.model
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*~

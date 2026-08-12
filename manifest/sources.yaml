@@ -1,0 +1,343 @@
+# ===========================================================================
+# Open Latin Corpus — source manifest
+# ===========================================================================
+#
+# This file is the authoritative record of what enters the corpus and under
+# what licence. `src/fetch.py` consumes it; `manifest/fetch.lock.json` records
+# what was actually retrieved (resolved commit SHAs, checksums, timestamps).
+#
+# PATH A is in force (see feasibility.md §3): everything that ships must be
+# redistributable. Sources with tier `amber` are documented here for the audit
+# trail and are NEVER fetched into a published build. They are listed rather
+# than deleted so that "why isn't X in the corpus?" has an answer in-repo.
+#
+# tier:
+#   green  — public domain or free-culture licence. Ships.
+#   amber  — NC / unclear / custom licence. Excluded from published builds.
+#   eval   — held-out evaluation data. NEVER mixed into pretraining.
+#
+# period:   CLASSICAL | LATE | MEDIEVAL | NEOLATIN | MIXED | DOCUMENTARY
+# est_words are rough planning figures, not measurements. Step 3 of the
+# First Milestone (plan.md) replaces them with real counts.
+# ===========================================================================
+
+version: 1
+normalization_target: v1
+
+sources:
+
+  # -------------------------------------------------------------------------
+  # GREEN — literary backbone
+  # -------------------------------------------------------------------------
+
+  - id: perseus-canonical-latinLit
+    name: Perseus Digital Library — canonical Latin literature
+    url: https://github.com/PerseusDL/canonical-latinLit
+    method: git
+    pin: null              # resolved and recorded in fetch.lock.json on first fetch
+    license: CC-BY-SA-4.0
+    tier: green
+    include: true
+    format: tei-xml
+    period: CLASSICAL
+    lang_filter: lat       # repo also ships English translations — filter on @xml:lang
+    est_words: 6000000
+    notes: >
+      Primary backbone. Best-curated free classical set, CTS/CapiTainS structure.
+      Contains English translation files in the same tree; extraction MUST filter
+      on the TEI @xml:lang attribute, not on file path.
+
+  - id: latin-library
+    name: The Latin Library (CLTK mirror)
+    url: https://github.com/cltk/lat_text_latin_library
+    method: git
+    pin: null
+    license: public-domain
+    tier: green
+    include: true
+    format: txt
+    period: MIXED
+    lang_filter: lat
+    est_words: 15000000
+    notes: >
+      Volume fill, ~108 MB. Spans archaic to modern — must be filtered to the
+      target window by author. No critical apparatus; known transcription errors.
+      Inline structural noise (section numbers, headers) needs stripping.
+      Heavily overlaps Perseus: dedupe is mandatory, not optional.
+
+  - id: gutenberg-latin
+    name: Project Gutenberg — Latin
+    url: https://www.gutenberg.org/browse/languages/la
+    method: manual
+    pin: null
+    license: public-domain
+    tier: green
+    include: true
+    format: txt
+    period: MIXED
+    lang_filter: lat
+    est_words: 500000
+    notes: >
+      Cleanest licence in the project — US public domain, no attribution or
+      ShareAlike obligation. Human-proofread rather than OCR'd, so preferable
+      wherever it overlaps a text that would otherwise need OCR.
+      MANUAL: the `la` language tag also catches English translations, bilingual
+      editions and English-language grammars. Requires per-title triage.
+      Strip PG header/footer boilerplate (modern English) before ingestion.
+
+  # -------------------------------------------------------------------------
+  # GREEN — late antique (in scope for Latin-2 historical corpus only)
+  # -------------------------------------------------------------------------
+
+  - id: digiliblt
+    name: DigilibLT — Digital Library of Late-Antique Latin Texts
+    url: https://github.com/CIRCSE/digilibLT
+    method: git
+    pin: null
+    license: CC-BY-SA-4.0
+    tier: green
+    include: true
+    format: tei-xml
+    period: LATE
+    lang_filter: lat
+    est_words: 4000000
+    notes: >
+      ~400 secular Latin prose texts, 2nd-7th c. AD. The 2nd-century material
+      overlaps the tail of the classical window; the rest is Latin-2 Phase 1
+      (Latinitas) data. Upstream site requires a free account; this CIRCSE
+      mirror does not.
+
+  - id: opengreekandlatin-csel
+    name: Corpus Scriptorum Ecclesiasticorum Latinorum (Open Greek and Latin)
+    url: https://github.com/OpenGreekAndLatin/csel-dev
+    method: git
+    pin: null
+    license: CC-BY-SA-4.0
+    tier: green
+    include: true
+    format: tei-xml
+    period: LATE
+    lang_filter: lat
+    est_words: 5000000
+    notes: >
+      Machine-corrected OCR of public-domain CSEL volumes (Latin Church Fathers).
+      Outside strict classical scope; Latin-2 Phase 1 only. OCR quality varies —
+      worth a spot-check pass before trusting it.
+
+  # -------------------------------------------------------------------------
+  # GREEN — documentary and epigraphic
+  # (register diversity no literary corpus has: military records, letters,
+  #  tombstones, graffiti, legal formulae)
+  # -------------------------------------------------------------------------
+
+  - id: edh
+    name: Epigraphic Database Heidelberg
+    url: https://github.com/epigraphic-database-heidelberg/data
+    method: git
+    pin: null
+    license: CC-BY-SA-4.0
+    tier: green
+    include: true
+    format: epidoc-xml
+    period: DOCUMENTARY
+    lang_filter: lat
+    est_words: 2000000
+    notes: >
+      Latin and Latin-Greek inscriptions of the Roman Empire. Bilingual entries
+      need the Greek stripped or tagged (see feasibility.md §4.3).
+      Heavy abbreviation and editorial restoration brackets — decide a policy for
+      expanded vs. unexpanded forms before ingestion.
+
+  - id: edcs-sdam
+    name: EDCS Latin inscriptions — cleaned dataset (SDAM, Aarhus)
+    url: https://zenodo.org/records/7072337
+    method: zenodo
+    pin: "7072337"
+    license: CC-BY-4.0
+    tier: green
+    include: true
+    format: json
+    period: DOCUMENTARY
+    lang_filter: lat
+    est_words: 3000000
+    notes: >
+      537,262 inscriptions, cleaned and streamlined from the Epigraphik-Datenbank
+      Clauss/Slaby. This Zenodo dump is the licence-clean route to EDCS content —
+      do NOT scrape the live database. Substantial overlap with EDH; dedupe.
+
+  - id: papyri-idp
+    name: Papyri.info / Duke Databank of Documentary Papyri
+    url: https://github.com/papyri/idp.data
+    method: git
+    pin: null
+    license: CC-BY-3.0
+    tier: green
+    include: true
+    format: epidoc-xml
+    period: DOCUMENTARY
+    lang_filter: lat
+    est_words: 500000
+    notes: >
+      LARGE repository (multi-GB) and predominantly Greek — the Latin subset is
+      small but valuable, being genuine documentary prose. Fetch uses a partial
+      clone; extraction must filter hard on language before anything else.
+
+  # -------------------------------------------------------------------------
+  # GREEN — free-text corpora
+  # -------------------------------------------------------------------------
+
+  - id: vicifons
+    name: Latin Wikisource (Vicifons)
+    url: https://dumps.wikimedia.org/lawikisource/latest/lawikisource-latest-pages-articles.xml.bz2
+    method: http
+    pin: latest            # set to a dated dump path for full reproducibility
+    license: CC-BY-SA-4.0
+    tier: green
+    include: true
+    format: mediawiki-xml
+    period: MIXED
+    lang_filter: lat
+    est_words: 3000000
+    notes: >
+      Indexed by century, which makes period assignment easy. MediaWiki markup,
+      templates and transclusions must be stripped. `pin: latest` is NOT
+      reproducible — replace with a dated dump directory before a published build.
+
+  - id: latinise
+    name: LatinISE (lemmatised Latin corpus)
+    url: https://lindat.mff.cuni.cz/repository/xmlui/handle/11234/1-2506
+    method: manual
+    pin: null
+    license: CC-BY-SA-4.0
+    tier: green
+    include: false
+    format: txt
+    period: MIXED
+    lang_filter: lat
+    est_words: 9900000
+    notes: >
+      MANUAL download from LINDAT. include:false by default because it is
+      substantially DERIVED from LacusCurtius, IntraText and Musisque Deoque —
+      ingesting it alongside the backbone risks duplicating texts under a
+      different surface form. Useful mainly as a lemmatised reference for
+      evaluating our own normalisation. Enable only after dedup is proven.
+
+  # -------------------------------------------------------------------------
+  # EVAL — never mixed into pretraining
+  # -------------------------------------------------------------------------
+
+  - id: ud-latin-perseus
+    name: Universal Dependencies — Latin-Perseus treebank
+    url: https://github.com/UniversalDependencies/UD_Latin-Perseus
+    method: git
+    pin: null
+    license: CC-BY-NC-SA-4.0
+    tier: eval
+    include: false
+    format: conllu
+    period: CLASSICAL
+    lang_filter: lat
+    est_words: 30000
+    notes: >
+      Gold-standard syntactic annotation, for probing only. NC licence is
+      acceptable here because evaluation data is not redistributed as part of
+      the corpus. CRITICAL: its underlying text overlaps Perseus — exclude those
+      passages from training or the probe is meaningless.
+
+  - id: ud-latin-proiel
+    name: Universal Dependencies — Latin-PROIEL treebank
+    url: https://github.com/UniversalDependencies/UD_Latin-PROIEL
+    method: git
+    pin: null
+    license: CC-BY-NC-SA-3.0
+    tier: eval
+    include: false
+    format: conllu
+    period: CLASSICAL
+    lang_filter: lat
+    est_words: 200000
+    notes: >
+      Caesar, Cicero's letters, Palladius, Vulgate NT. Same overlap caveat as
+      ud-latin-perseus. Verify the exact licence in the repo before use.
+
+  # -------------------------------------------------------------------------
+  # AMBER — EXCLUDED from published builds (Path A). Documented, not fetched.
+  # -------------------------------------------------------------------------
+
+  - id: corpus-corporum
+    name: Corpus Corporum (University of Zurich)
+    url: https://www.mlat.uzh.ch/
+    method: manual
+    pin: null
+    license: NonCommercial
+    tier: amber
+    include: false
+    format: tei-xml
+    period: MIXED
+    est_words: 226000000
+    exclude_reason: >
+      Non-commercial use only, and rights vary per constituent corpus
+      ("heterogeneous origin"). By far the largest Latin collection in existence
+      and the single biggest thing Path A gives up — 226M words. Excluded because
+      nothing in a published build may depend on it.
+
+  - id: lasla
+    name: LASLA / Opera Latina
+    url: https://www.lasla.uliege.be/
+    method: manual
+    pin: null
+    license: CC-BY-NC-SA-4.0
+    tier: amber
+    include: false
+    format: txt
+    period: CLASSICAL
+    est_words: 1630825
+    exclude_reason: >
+      CC BY-NC-SA 4.0. The highest-quality manually-verified annotated classical
+      Latin that exists (154 works, 19 authors). Painful exclusion. May be usable
+      as an evaluation reference under tier `eval` — decide separately.
+
+  - id: intratext
+    name: IntraText — Bibliotheca Latina
+    url: https://www.intratext.com/LAT/
+    method: manual
+    pin: null
+    license: CC-BY-NC-SA-3.0
+    tier: amber
+    include: false
+    format: html
+    period: MIXED
+    est_words: 10000000
+    exclude_reason: NonCommercial clause.
+
+  - id: tesserae
+    name: Tesserae Latin corpus
+    url: https://github.com/cltk/lat_text_tesserae
+    method: git
+    pin: null
+    license: UB-Public-License-1.0
+    tier: amber
+    include: false
+    format: txt
+    period: MIXED
+    est_words: 8000000
+    exclude_reason: >
+      Custom university licence (unreviewed), and the corpus is largely DERIVED
+      from Perseus / Latin Library / DigilibLT / OGL — so it adds little beyond
+      the backbone while adding licence ambiguity.
+
+  - id: musisque-deoque
+    name: Musisque Deoque — Latin poetry with critical apparatus
+    url: https://www.mqdq.it/
+    method: manual
+    pin: null
+    license: unclear
+    tier: amber
+    include: false
+    format: tei-xml
+    period: CLASSICAL
+    est_words: 4000000
+    exclude_reason: >
+      Open access but no explicit free-culture licence stated. Complete corpus of
+      ancient Latin poetry — worth writing to the project to request explicit
+      permission. Until then, excluded.

@@ -1,0 +1,16 @@
+{
+  "generated": "2026-08-12T21:20:39+00:00",
+  "note": "Resolved versions of fetched sources. Commit this file \u2014 it is what makes the corpus reproducible and the licence trail auditable.",
+  "sources": {
+    "perseus-canonical-latinLit": {
+      "bytes": 174711532,
+      "fetched": "2026-08-12T21:20:39+00:00",
+      "license": "CC-BY-SA-4.0",
+      "method": "git",
+      "n_files": 1361,
+      "resolved_pin": "4620cf8ab32865b127dce42a61e80c58b4c06de9",
+      "tier": "green",
+      "url": "https://github.com/PerseusDL/canonical-latinLit"
+    }
+  }
+}
