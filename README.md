@@ -49,8 +49,8 @@ manifest/
   sources.yaml        # authoritative: what may enter the corpus, under what licence
   fetch.lock.json     # resolved commit SHAs + checksums — committed, makes builds reproducible
 src/
-  fetch.py            # manifest -> data/raw/           [done]
-  extract.py          # TEI/MediaWiki/EpiDoc -> text + metadata   [next]
+  fetch.py            # manifest -> data/raw/                     [done]
+  extract.py          # TEI -> data/interim/<source>.jsonl        [done, Perseus]
   normalize.py        # u/v, i/j, macrons, ae/æ, punctuation      [next]
   filter_lang.py      # strip embedded Greek and English translations
   dedupe.py           # edition-aware; sources overlap heavily
@@ -97,17 +97,56 @@ can change without rebuilding the corpus.
 3. `python src/fetch.py --only <id>`.
 4. Commit the updated `fetch.lock.json`.
 
+## First measurement
+
+Perseus `canonical-latinLit`, extracted:
+
+```
+324 works        5,596,816 words        mean 17,274 words/work
+```
+
+Against a manifest estimate of 6,000,000 — so the planning figures in
+`feasibility.md` are sound to within ~7% for this source.
+
+Editorial interventions on that run, all counted and reported by `extract.py`:
+
+| | |
+|---|---|
+| `<note>` dropped | 115,202 |
+| `<choice>` resolved to `<corr>` over `<sic>` | 5,587 |
+| `<choice>` resolved to `<reg>` over `<orig>` | 110 |
+| Greek passages dropped | 4,638 |
+| `<del>` / `<gap>` / `<bibl>` dropped | 2,808 / 1,317 / 3,294 |
+| English editorial matter removed | 20 tagged elements + 38 paragraphs |
+
+Largest works: Livy *Ab urbe condita* 515,204 · Pliny *Naturalis Historia*
+401,353 · Quintilian *Institutio Oratoria* 172,362.
+
+## Known limitations
+
+**Apparatus criticus in the Perseus source.** Four records (Pliny NH, three
+*Scriptores Historiae Augustae* lives) carry fragments of apparatus as *bare text
+in the body*, with no markup to key on — e.g. `uiri et P; uirtute Peter,
+following Bernhardy`. Measured at 9 occurrences in 5.6M words, so it is left
+alone rather than engineered around; a QA pass in `normalize.py` should flag it.
+
+**Period is per-source, not per-work.** Every Perseus record is currently tagged
+`CLASSICAL` from the manifest. `canonical-latinLit` contains later material
+(Ammianus, the SHA), so this needs an author-date authority list — as does
+`approximate_date`, which is null throughout.
+
 ## Status
 
 - [x] Source survey, licence-checked (`sources.md`)
 - [x] Feasibility assessment and parameter ladder (`feasibility.md`)
 - [x] Machine-readable manifest with Path A guardrails
 - [x] `fetch.py` — git / http / zenodo / manual, with lockfile
-- [ ] `extract.py` — TEI → text + metadata
+- [x] `extract.py` — Perseus TEI → JSONL, 5.6M words
+- [ ] `extract.py` — DigilibLT TEI, EDH EpiDoc, Vicifons MediaWiki, Latin Library plaintext
+- [ ] Author-date authority list → real `period` and `approximate_date`
 - [ ] Orthographic normalization (see `feasibility.md` §4.1 — matters more than tokenizer vocab size)
 - [ ] Deduplication (Latin Library ↔ Perseus overlap is large)
-- [ ] Embedded-Greek policy (Cicero's letters code-switch constantly)
-- [ ] **Measure the real token count** — every parameter estimate depends on it
+- [ ] **Token count** — words are measured; tokens need the tokenizer
 - [ ] Evaluation suite, built *before* training Latin-0
 - [ ] Latin-0 (~5M params)
 
