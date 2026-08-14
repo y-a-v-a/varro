@@ -57,7 +57,7 @@ src/
                       #    exists at extraction time.
   enrich.py           # authorities.yaml -> date + period         [done]
   normalize.py        # u/v, i/j, macrons, ae/æ, hyphenation      [next]
-  dedupe.py           # edition-aware; sources overlap heavily
+  dedupe.py           # content-based near-dup detection           [done]
   build.py            # -> data/processed/corpus.jsonl
 configs/
 data/                 # gitignored — a build artifact, not source
@@ -170,6 +170,47 @@ So the corpus available for Latin-0 / Latin-1 is **4.9M classical words**, of
 which 4.66M are high-confidence dated. The remaining 13.3M is Latin-2 Phase 1
 (*Latinitas*) material.
 
+## Deduplication
+
+`src/dedupe.py` finds works repeated across and within sources — Tertullian's
+*Adversus Marcionem* is in both Perseus and CSEL, Boethius' *Consolatio* in
+three places, Celsus' *De Medicina* three times inside Perseus alone.
+
+```bash
+python src/dedupe.py --report    # clusters and what would be dropped
+python src/dedupe.py             # mark is_duplicate / duplicate_of
+python src/dedupe.py --verify    # verbatim-check every existing mark
+```
+
+Detection is **content-based, not title-based** — titles vary across projects
+(*Epitoma de Tito Liuio* / *Epitome Rerum Romanorum*), and conversely the same
+title can hide different texts. Text is folded for comparison only (lowercased,
+u/v and i/j merged); without that, Perseus's `uiri` and CSEL's `viri` look like
+different words. Documents reduce to bottom-k sketches of 5-gram hashes;
+Jaccard is estimated from sketch overlap and containment derived from it.
+
+**60 records, 887,619 words (4.9%) marked as duplicates. Surviving corpus:
+908 records, 17,271,153 words — of which 4,638,175 are CLASSICAL.**
+
+Two relationships hide in the clusters and need opposite rules:
+
+- **equivalence** — same work, several sources, near-identical length. Source
+  priority decides, since what differs is text quality.
+- **containment** — one record is part of a fuller one. The *larger* must win
+  regardless of source. Getting this backwards kept Perseus's 43k-word
+  selection of Jerome's letters and discarded CSEL's complete 290k-word corpus.
+
+`--verify` is the guard against trusting an estimate: it samples 40 random
+8-word spans from each duplicate and tests literal membership in its keeper.
+Cross-edition duplicates score 50–90%, part-of-collection duplicates 100%.
+**Currently 0 of 60 fall below the 15% floor.** It earned its place — the
+*Excerpta Valesiana* looked like a false positive when probed on its opening
+alone, and verifies at 70% across 40 probes (Perseus uses Rolfe's Loeb, whose
+third volume prints the *Excerpta* as an appendix to Ammianus).
+
+Duplicates are **marked, never deleted**, so the decision stays auditable and
+the policy can change without re-extracting.
+
 ## Known limitations
 
 **Apparatus criticus in the Perseus source.** Four records (Pliny NH, three
@@ -210,7 +251,7 @@ revisiting this.
 - [ ] `extract.py` — EDH/Papyri EpiDoc, Vicifons MediaWiki, Latin Library + Gutenberg plaintext
 - [x] Author-date authority list → per-work `period` and `approximate_date`
 - [ ] Orthographic normalization (see `feasibility.md` §4.1 — matters more than tokenizer vocab size)
-- [ ] Deduplication (Latin Library ↔ Perseus overlap is large)
+- [x] Deduplication — content-based, verbatim-verified, 0 false positives
 - [ ] **Token count** — words are measured; tokens need the tokenizer
 - [ ] Evaluation suite, built *before* training Latin-0
 - [ ] Latin-0 (~5M params)
