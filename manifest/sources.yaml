@@ -97,15 +97,27 @@ sources:
     license: CC-BY-SA-4.0
     tier: green
     include: true
-    format: tei-xml
+    format: conllu
     period: LATE
     lang_filter: lat
     est_words: 4000000
     notes: >
-      ~400 secular Latin prose texts, 2nd-7th c. AD. The 2nd-century material
+      373 secular Latin prose texts, 2nd-7th c. AD. The 2nd-century material
       overlaps the tail of the classical window; the rest is Latin-2 Phase 1
       (Latinitas) data. Upstream site requires a free account; this CIRCSE
       mirror does not.
+
+      FORMAT: this mirror is NOT the TEI source. It holds UDPipe-annotated
+      CoNLL-U (in conllu/*.tar.gz) and LiLa RDF (ttl/). The running text is
+      recoverable from the `# text =` header lines.
+
+      LICENCE, resolved: the CIRCSE README is self-contradictory — its CC badge
+      image links to BY-NC-SA 3.0 while the anchor text states the texts are
+      CC BY-SA 4.0. The upstream DigilibLT project confirms CC BY-SA 4.0 for the
+      TEXTS; the NC 3.0 applies to site chrome / the annotation layer.
+      Accordingly the extractor takes ONLY the text layer and never the LiLa
+      lemma/POS/URI annotations, which keeps this source unambiguously CC BY-SA 4.0.
+      Do not start ingesting the annotation columns without revisiting this.
 
   - id: opengreekandlatin-csel
     name: Corpus Scriptorum Ecclesiasticorum Latinorum (Open Greek and Latin)

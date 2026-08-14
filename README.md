@@ -50,9 +50,11 @@ manifest/
   fetch.lock.json     # resolved commit SHAs + checksums — committed, makes builds reproducible
 src/
   fetch.py            # manifest -> data/raw/                     [done]
-  extract.py          # TEI -> data/interim/<source>.jsonl        [done, Perseus]
-  normalize.py        # u/v, i/j, macrons, ae/æ, punctuation      [next]
-  filter_lang.py      # strip embedded Greek and English translations
+  extract.py          # -> data/interim/<source>.jsonl            [done: 3 of 9 sources]
+                      #    Greek + English filtering live here, not in a
+                      #    separate pass — they need the markup, which only
+                      #    exists at extraction time.
+  normalize.py        # u/v, i/j, macrons, ae/æ, hyphenation      [next]
   dedupe.py           # edition-aware; sources overlap heavily
   build.py            # -> data/processed/corpus.jsonl
 configs/
@@ -97,30 +99,38 @@ can change without rebuilding the corpus.
 3. `python src/fetch.py --only <id>`.
 4. Commit the updated `fetch.lock.json`.
 
-## First measurement
+## Corpus as measured
 
-Perseus `canonical-latinLit`, extracted:
+Three of nine green sources extracted:
 
-```
-324 works        5,596,816 words        mean 17,274 words/work
-```
+| Source | Period | Records | Words | vs. estimate |
+|---|---|---:|---:|---|
+| perseus-canonical-latinLit | CLASSICAL | 324 | 5,596,757 | 6.0M |
+| digiliblt | LATE | 373 | 6,522,099 | 4.0M |
+| opengreekandlatin-csel | LATE | 271 | 6,039,916 | 5.0M |
+| **total** | | **968** | **18,158,772** | 15.0M |
 
-Against a manifest estimate of 6,000,000 — so the planning figures in
-`feasibility.md` are sound to within ~7% for this source.
+Running ~21% ahead of the manifest's planning figures. Residual contamination
+after filtering: **0 Greek characters**, 43 English function-word hits across
+18.2M words (all verified as false positives — Latin syllables under
+grammatical discussion, hyphenation artifacts, citation abbreviations).
 
-Editorial interventions on that run, all counted and reported by `extract.py`:
+Editorial interventions, counted and reported by every run:
 
-| | |
-|---|---|
-| `<note>` dropped | 115,202 |
-| `<choice>` resolved to `<corr>` over `<sic>` | 5,587 |
-| `<choice>` resolved to `<reg>` over `<orig>` | 110 |
-| Greek passages dropped | 4,638 |
-| `<del>` / `<gap>` / `<bibl>` dropped | 2,808 / 1,317 / 3,294 |
-| English editorial matter removed | 20 tagged elements + 38 paragraphs |
+| | Perseus | DigilibLT | CSEL |
+|---|---:|---:|---:|
+| `<note>` dropped | 115,202 | — | 75,125 |
+| `<choice>` → `<corr>` / `<reg>` | 5,587 / 110 | — | — |
+| Greek passages | 4,638 | 5,366 | 3,371 |
+| Greek inline runs stripped | 59w | 12,572w | 471w |
+| English paragraphs dropped | 38 | 39 | 16 |
 
 Largest works: Livy *Ab urbe condita* 515,204 · Pliny *Naturalis Historia*
 401,353 · Quintilian *Institutio Oratoria* 172,362.
+
+Note the period balance: only Perseus is classical. **5.6M of 18.2M words are
+CLASSICAL**, the rest LATE — which is the Latin-2 Phase 1 (*Latinitas*) corpus,
+not Latin-0/Latin-1 material.
 
 ## Known limitations
 
@@ -135,14 +145,31 @@ alone rather than engineered around; a QA pass in `normalize.py` should flag it.
 (Ammianus, the SHA), so this needs an author-date authority list — as does
 `approximate_date`, which is null throughout.
 
+**CSEL is machine-corrected OCR, and it shows.** Two artifacts found by
+inspection, both localised rather than systemic:
+hyphenated line breaks are not rejoined (`de the- sauro` for *thesauro*), and
+some Greek passages were OCR'd into Latin-letter gibberish
+(`tv trjc tov Ixatvov`) which script-based Greek detection cannot see.
+A vowel-ratio check (Latin sits at 0.454–0.465; garbled text falls well below)
+found **no record under 0.38 in any source**, so no volume is wholesale junk —
+but `normalize.py` should rejoin hyphenation and flag low-vowel-ratio
+paragraphs.
+
+**DigilibLT licence.** The CIRCSE mirror's README contradicts itself: the CC
+badge links to BY-NC-SA 3.0, the anchor text says BY-SA 4.0. Upstream DigilibLT
+confirms **CC BY-SA 4.0 for the texts**; NC applies to site chrome and the LiLa
+annotation layer. The extractor therefore reads only the `# text =` layer and
+never the lemma/POS/URI columns. Do not start using the annotations without
+revisiting this.
+
 ## Status
 
 - [x] Source survey, licence-checked (`sources.md`)
 - [x] Feasibility assessment and parameter ladder (`feasibility.md`)
 - [x] Machine-readable manifest with Path A guardrails
 - [x] `fetch.py` — git / http / zenodo / manual, with lockfile
-- [x] `extract.py` — Perseus TEI → JSONL, 5.6M words
-- [ ] `extract.py` — DigilibLT TEI, EDH EpiDoc, Vicifons MediaWiki, Latin Library plaintext
+- [x] `extract.py` — Perseus + CSEL (CTS/TEI) and DigilibLT (CoNLL-U), 18.2M words
+- [ ] `extract.py` — EDH/Papyri EpiDoc, Vicifons MediaWiki, Latin Library + Gutenberg plaintext
 - [ ] Author-date authority list → real `period` and `approximate_date`
 - [ ] Orthographic normalization (see `feasibility.md` §4.1 — matters more than tokenizer vocab size)
 - [ ] Deduplication (Latin Library ↔ Perseus overlap is large)

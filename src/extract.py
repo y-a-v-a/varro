@@ -4,9 +4,15 @@
 Reads data/raw/<source>/, writes data/interim/<source>.jsonl — one JSON record
 per work, in the schema documented in README.md.
 
-Currently implements the Perseus CapiTainS/CTS layout. Other sources
-(DigilibLT TEI, EDH EpiDoc, Vicifons MediaWiki) get their own extractors;
-the record schema and the TEI walker are shared.
+Implemented sources:
+
+  perseus-canonical-latinLit   CapiTainS/CTS + TEI
+  opengreekandlatin-csel       CapiTainS/CTS + TEI (same walker; ignores Volumes/)
+  digiliblt                    CoNLL-U in tarballs, text layer only
+
+Remaining (EDH/Papyri EpiDoc, Vicifons MediaWiki, Latin Library and Gutenberg
+plaintext) get their own readers; the record schema, the TEI walker, and the
+Greek/English filters are shared.
 
 Editorial policy applied here (each is a real decision, not a default):
 
@@ -191,6 +197,36 @@ def drop_english_paragraphs(text: str, stats: Stats) -> str:
     return "\n\n".join(kept)
 
 
+GREEK_SCRIPT_RANGE = "Ͱ-Ͽἀ-῿"
+# A run of one or more whitespace-separated tokens, each containing Greek script.
+GREEK_RUN = re.compile(
+    rf"\S*[{GREEK_SCRIPT_RANGE}]\S*(?:[ \t]+\S*[{GREEK_SCRIPT_RANGE}]\S*)*"
+)
+
+
+def strip_inline_greek(text: str, stats: Stats, greek: str) -> str:
+    """Apply the Greek policy to Greek embedded *inside* Latin sentences.
+
+    Markup catches whole Greek passages and the sentence-level ratio test
+    catches whole Greek sentences, but neither touches the systematic case:
+    grammarians and commentators — Priscian, Charisius, Servius, Macrobius —
+    quoting Greek technical vocabulary inline, e.g.
+    `quid sit, περὶ τῆς οὐσίας, id est de substantia`.
+    Measured at 12,572 tokens (0.19%) of DigilibLT, concentrated in 163 of
+    373 works, so it is systematic rather than incidental.
+    """
+    if greek == "keep":
+        return text
+
+    def replace(match: re.Match) -> str:
+        stats["greek_inline_runs"] += 1
+        if greek == "drop":
+            return ""
+        return f"<GRAECUM> {match.group(0)} </GRAECUM>"
+
+    return GREEK_RUN.sub(replace, text)
+
+
 WS_INLINE = re.compile(r"[ \t\r\f\v]+")
 WS_BLANK = re.compile(r"\n{3,}")
 WS_AROUND = re.compile(r"[ \t]*\n[ \t]*")
@@ -241,8 +277,18 @@ def resolve_edition_lang(edition: ET.Element, work_root: ET.Element,
     return match.group(1).lower() if match else None
 
 
-def perseus_works(source_dir: Path) -> Iterator[Dict[str, Any]]:
-    """Yield one descriptor per Latin *edition* (not translation) in the repo."""
+def capitains_works(source_dir: Path) -> Iterator[Dict[str, Any]]:
+    """Yield one descriptor per Latin *edition* (not translation) in a CTS repo.
+
+    Shared by Perseus canonical-latinLit and OpenGreekAndLatin csel-dev, which
+    use the same CapiTainS layout: data/<textgroup>/<work>/__cts__.xml plus one
+    XML file per edition, named for the tail of its urn. CSEL differs only in
+    cosmetics — group names carry xml:lang="eng" and urn stems read `opp-lat1`
+    rather than `perseus-lat2` — both of which the existing fallbacks absorb.
+
+    CSEL also ships whole-volume files under Volumes/; those duplicate this
+    per-work tree and are deliberately ignored.
+    """
     data_dir = source_dir / "data"
     if not data_dir.is_dir():
         raise RuntimeError(f"expected {data_dir} — is the source fetched?")
@@ -315,7 +361,7 @@ def extract_tei_body(path: Path, stats: Stats, greek: str) -> Tuple[str, Optiona
     if body is None:
         return "", body_lang
 
-    text = tidy(_walk(body, stats, greek))
+    text = strip_inline_greek(tidy(_walk(body, stats, greek)), stats, greek)
     return drop_english_paragraphs(text, stats), body_lang
 
 
@@ -344,14 +390,14 @@ def load_lock_entry(source_id: str) -> Dict[str, Any]:
         return json.load(fh).get("sources", {}).get(source_id, {})
 
 
-def extract_perseus(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
+def extract_capitains(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
     entry = load_manifest_entry(source_id)
     lock = load_lock_entry(source_id)
     source_dir = RAW / source_id
     stats = Stats()
     records: List[Dict[str, Any]] = []
 
-    for i, work in enumerate(perseus_works(source_dir)):
+    for i, work in enumerate(capitains_works(source_dir)):
         if limit is not None and i >= limit:
             break
         text, body_lang = extract_tei_body(work["path"], stats, greek)
@@ -391,7 +437,160 @@ def extract_perseus(source_id: str, greek: str, limit: Optional[int]) -> Tuple[L
     return records, stats
 
 
-EXTRACTORS = {"perseus-canonical-latinLit": extract_perseus}
+# ---------------------------------------------------------------------------
+# DigilibLT — CoNLL-U inside tarballs
+# ---------------------------------------------------------------------------
+
+GREEK_SCRIPT = re.compile(r"[Ͱ-Ͽἀ-῿]")
+PARAGRAPHUS = re.compile(r"Paragraphus_(\d+)")
+
+
+def _greek_ratio(text: str) -> float:
+    letters = [c for c in text if c.isalpha()]
+    if not letters:
+        return 0.0
+    return len(GREEK_SCRIPT.findall(text)) / len(letters)
+
+
+def parse_conllu(lines: Iterator[str]) -> Tuple[Dict[str, str], List[Tuple[Optional[int], str]]]:
+    """Return (document metadata, [(paragraph_no, sentence_text)]).
+
+    Only the `# text =` layer is read. The token/lemma/POS/LiLa-URI columns are
+    deliberately ignored — see the licence note on this source in
+    manifest/sources.yaml.
+    """
+    meta: Dict[str, str] = {}
+    sentences: List[Tuple[Optional[int], str]] = []
+    in_sentences = False
+    text: Optional[str] = None
+    para: Optional[int] = None
+
+    for line in lines:
+        line = line.rstrip("\n")
+        if line.startswith("#"):
+            body = line[1:].strip()
+            if body.startswith("sent_id"):
+                in_sentences, para = True, None
+            elif body.startswith("text ="):
+                text = body.split("=", 1)[1].strip()
+            elif not in_sentences and "=" in body:
+                key, value = body.split("=", 1)
+                meta[key.strip()] = value.strip()
+            continue
+        if not line.strip():
+            if text is not None:
+                sentences.append((para, text))
+                text = None
+            continue
+        if para is None:
+            found = PARAGRAPHUS.search(line)
+            if found:
+                para = int(found.group(1))
+
+    if text is not None:
+        sentences.append((para, text))
+    return meta, sentences
+
+
+def assemble(sentences: List[Tuple[Optional[int], str]], stats: Stats,
+             greek: str) -> str:
+    """Join sentences into paragraphs, applying the Greek policy per sentence."""
+    paragraphs: List[List[str]] = []
+    current: Optional[int] = object()  # sentinel distinct from any int or None
+
+    for para, sentence in sentences:
+        if _greek_ratio(sentence) > 0.3:
+            stats["greek_passages"] += 1
+            if greek == "drop":
+                continue
+            if greek == "tag":
+                sentence = f"<GRAECUM> {sentence} </GRAECUM>"
+        if para != current or not paragraphs:
+            paragraphs.append([])
+            current = para
+        paragraphs[-1].append(sentence)
+
+    return "\n\n".join(" ".join(p) for p in paragraphs if p)
+
+
+def extract_digiliblt(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
+    import tarfile
+
+    entry = load_manifest_entry(source_id)
+    lock = load_lock_entry(source_id)
+    stats = Stats()
+    records: List[Dict[str, Any]] = []
+    seen: set = set()
+
+    tarballs = sorted((RAW / source_id / "conllu").glob("*.tar.gz"))
+    if not tarballs:
+        raise RuntimeError(f"no conllu tarballs under {RAW / source_id} — fetched?")
+
+    for tarball in tarballs:
+        with tarfile.open(tarball, "r:gz") as archive:
+            for member in archive:
+                if not member.isfile() or not member.name.endswith(".conllu"):
+                    continue
+                if limit is not None and len(records) >= limit:
+                    break
+                handle = archive.extractfile(member)
+                if handle is None:
+                    continue
+                raw = handle.read().decode("utf-8", errors="replace")
+                meta, sentences = parse_conllu(iter(raw.splitlines()))
+                stats["works_seen"] += 1
+
+                doc_id = meta.get("docId") or Path(member.name).stem
+                if doc_id in seen:          # parts overlap across tarballs
+                    stats["duplicate_docids"] += 1
+                    continue
+                seen.add(doc_id)
+
+                text = strip_inline_greek(
+                    tidy(assemble(sentences, stats, greek)), stats, greek)
+                text = drop_english_paragraphs(text, stats)
+                if not text:
+                    stats["empty_after_extraction"] += 1
+                    continue
+
+                description = meta.get("description")
+                year = None
+                if description:
+                    found = EDITION_YEAR.findall(description)
+                    if found:
+                        year = int(found[-1])
+
+                n_words = len(text.split())
+                stats["words"] += n_words
+                records.append({
+                    "id": f"{source_id}/{doc_id}",
+                    "text": text,
+                    "author": meta.get("docAuthor"),
+                    "work": meta.get("docTitle"),
+                    "approximate_date": None,
+                    "period": entry.get("period"),
+                    "genre": None,
+                    "source": source_id,
+                    "source_url": entry.get("url"),
+                    "source_version": lock.get("resolved_pin"),
+                    "license": entry.get("license"),
+                    "edition": description,
+                    "edition_year": year,
+                    "urn": meta.get("corpusRef"),
+                    "language_variant": "lat",
+                    "normalization": None,
+                    "n_words": n_words,
+                })
+                stats["records"] += 1
+
+    return records, stats
+
+
+EXTRACTORS = {
+    "perseus-canonical-latinLit": extract_capitains,
+    "opengreekandlatin-csel": extract_capitains,
+    "digiliblt": extract_digiliblt,
+}
 
 
 def main() -> int:
@@ -417,7 +616,8 @@ def main() -> int:
     print()
     for key in sorted(k for k in stats if k.startswith(("dropped:", "choice:"))):
         print(f"  {key:<34} {stats[key]:>9,}")
-    for key in ("greek_passages", "empty_after_extraction", "rejected_body_lang",
+    for key in ("greek_passages", "greek_inline_runs", "dropped_english_words",
+                "duplicate_docids", "empty_after_extraction", "rejected_body_lang",
                 "parse_errors"):
         if stats[key]:
             print(f"  {key:<34} {stats[key]:>9,}")

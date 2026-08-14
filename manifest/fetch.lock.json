@@ -1,7 +1,27 @@
 {
-  "generated": "2026-08-12T21:20:39+00:00",
+  "generated": "2026-08-14T15:23:17+00:00",
   "note": "Resolved versions of fetched sources. Commit this file \u2014 it is what makes the corpus reproducible and the licence trail auditable.",
   "sources": {
+    "digiliblt": {
+      "bytes": 339778448,
+      "fetched": "2026-08-14T15:22:34+00:00",
+      "license": "CC-BY-SA-4.0",
+      "method": "git",
+      "n_files": 11,
+      "resolved_pin": "6a847a9f274d1ca033b03f3e5a44151e7d512208",
+      "tier": "green",
+      "url": "https://github.com/CIRCSE/digilibLT"
+    },
+    "opengreekandlatin-csel": {
+      "bytes": 416494171,
+      "fetched": "2026-08-14T15:23:17+00:00",
+      "license": "CC-BY-SA-4.0",
+      "method": "git",
+      "n_files": 1111,
+      "resolved_pin": "2813e3a52b4206df0324299e5110e5bd0d95cee4",
+      "tier": "green",
+      "url": "https://github.com/OpenGreekAndLatin/csel-dev"
+    },
     "perseus-canonical-latinLit": {
       "bytes": 174711532,
       "fetched": "2026-08-12T21:20:39+00:00",
