@@ -1,0 +1,283 @@
+# ===========================================================================
+# Author and work date authority
+# ===========================================================================
+#
+# Assigns `approximate_date` and `period` per WORK rather than per source.
+# Without this, every Perseus record is tagged CLASSICAL — which is wrong for
+# 14.7% of it (822,468 words): Tertullian, Jerome, Ammianus, Boethius, Claudian,
+# Prudentius, Ausonius, Minucius Felix and the Historia Augusta are late antique.
+# It also cuts the other way: Gaius and Festus arrive via DigilibLT, whose prior
+# is LATE, but are 2nd c. and therefore CLASSICAL.
+#
+# METHOD AND ITS LIMITS
+#   `floruit` is a single integer year, negative for BC, chosen as a mid-career
+#   anchor rather than a birth or death date. It exists to place an author on
+#   one side of a period boundary, NOT to be cited as a scholarly date. Where
+#   the floruit is genuinely disputed the entry carries confidence: low and a
+#   note; those cases should be reviewed by someone with the reference works to
+#   hand before the corpus is published.
+#
+#   `period` is DERIVED from floruit via the boundaries below, so the two can
+#   never disagree. An entry may set `period` explicitly only when no floruit
+#   can responsibly be given (corporate authors, undatable anonymous material).
+#
+# MATCHING
+#   `aliases` are matched against the exact author strings the extractors emit,
+#   case-insensitively. Exact matching is deliberate: fuzzy matching on names
+#   like "Florus" vs "Florus, Lucius Annaeus" or "Boethius" vs "Boethius
+#   (Anicius Manlius Seuerinus Boethius)" silently merges distinct people.
+#
+# PSEUDONYMOUS WORKS
+#   Ps.-X is not X. Pseudonymous works are later than their claimed author,
+#   usually by centuries, and are dated separately — never by inheritance.
+# ===========================================================================
+
+version: 1
+
+# Period boundaries, by floruit. CLASSICAL ends at AD 200 to match the PHI
+# scope used throughout plan.md and feasibility.md.
+periods:
+  CLASSICAL: {max: 200}
+  LATE:      {min: 201, max: 600}
+  MEDIEVAL:  {min: 601, max: 1400}
+  NEOLATIN:  {min: 1401}
+
+# Applied only where no author or work entry matches. Marked `inferred` in the
+# output so its share stays visible and auditable.
+source_priors:
+  perseus-canonical-latinLit: null    # deliberately none: Perseus is mixed,
+                                      # and guessing here is the bug this file exists to fix
+  digiliblt: LATE                     # project scope is 2nd-7th c. AD
+  opengreekandlatin-csel: LATE        # patristic, 2nd-7th c.
+
+# ---------------------------------------------------------------------------
+# Authors
+# ---------------------------------------------------------------------------
+authors:
+
+  # --- Republic and Augustan -----------------------------------------------
+  - {aliases: ["Plautus, Titus Maccius"], canonical: Plautus, floruit: -200, confidence: high}
+  - {aliases: ["Terence"], canonical: Terentius, floruit: -165, confidence: high}
+  - {aliases: ["Lucretius"], canonical: Lucretius, floruit: -55, confidence: high}
+  - {aliases: ["Catullus, C. Valerius"], canonical: Catullus, floruit: -55, confidence: high}
+  - {aliases: ["Cicero, Marcus Tullius"], canonical: Cicero, floruit: -60, confidence: high}
+  - {aliases: ["Quintus Tullius Cicero"], canonical: Quintus Cicero, floruit: -55, confidence: high}
+  - {aliases: ["Julius Caesar"], canonical: Caesar, floruit: -50, confidence: high}
+  - {aliases: ["Pseudo-Caesar"], canonical: Ps.-Caesar, floruit: -45, confidence: medium,
+     note: "Bellum Alexandrinum / Africum / Hispaniense; Caesarian-period continuators."}
+  - {aliases: ["Sallust"], canonical: Sallustius, floruit: -42, confidence: high}
+  - {aliases: ["Nepos, Cornelius"], canonical: Nepos, floruit: -40, confidence: high}
+  - {aliases: ["Vitruvius Pollio"], canonical: Vitruvius, floruit: -25, confidence: high}
+  - {aliases: ["Horace"], canonical: Horatius, floruit: -25, confidence: high}
+  - {aliases: ["Tibullus"], canonical: Tibullus, floruit: -25, confidence: high}
+  - {aliases: ["Propertius, Sextus"], canonical: Propertius, floruit: -20, confidence: high}
+  - {aliases: ["P. Vergilius Maro (Virgil)"], canonical: Vergilius, floruit: -30, confidence: high}
+  - {aliases: ["Titus Livius (Livy)"], canonical: Livius, floruit: -10, confidence: high}
+  - {aliases: ["Ovid"], canonical: Ovidius, floruit: 0, confidence: high}
+
+  # --- Early Empire --------------------------------------------------------
+  - {aliases: ["Seneca the Elder"], canonical: Seneca Maior, floruit: 20, confidence: high}
+  - {aliases: ["Celsus, Aulus Cornelius"], canonical: Celsus, floruit: 30, confidence: high}
+  - {aliases: ["Valerius Maximus"], canonical: Valerius Maximus, floruit: 30, confidence: high}
+  - {aliases: ["Phaedrus"], canonical: Phaedrus, floruit: 30, confidence: high}
+  - {aliases: ["Seneca, Lucius Annaeus"], canonical: Seneca Minor, floruit: 50, confidence: high}
+  - {aliases: ["Curtius Rufus, Quintus"], canonical: Curtius Rufus, floruit: 50, confidence: low,
+     note: "Date contested across the 1st c. AD; Claudian dating assumed. Classical either way."}
+  - {aliases: ["Persius"], canonical: Persius, floruit: 55, confidence: high}
+  - {aliases: ["Petronius Arbiter"], canonical: Petronius, floruit: 60, confidence: medium}
+  - {aliases: ["Lucan"], canonical: Lucanus, floruit: 60, confidence: high}
+  - {aliases: ["Columella, Lucius Junius Moderatus"], canonical: Columella, floruit: 60, confidence: high}
+  - {aliases: ["Pliny, the Elder"], canonical: Plinius Maior, floruit: 70, confidence: high}
+  - {aliases: ["Valerius Flaccus, Gaius"], canonical: Valerius Flaccus, floruit: 85, confidence: high}
+  - {aliases: ["Statius, P. Papinius (Publius Papinius)"], canonical: Statius, floruit: 90, confidence: high}
+  - {aliases: ["Martial"], canonical: Martialis, floruit: 90, confidence: high}
+  - {aliases: ["Silius Italicus, Tiberius Catius"], canonical: Silius Italicus, floruit: 90, confidence: high}
+  - {aliases: ["Quintilian"], canonical: Quintilianus, floruit: 90, confidence: high}
+  - {aliases: ["Pliny, the Younger"], canonical: Plinius Minor, floruit: 100, confidence: high}
+  - {aliases: ["Tacitus, Cornelius"], canonical: Tacitus, floruit: 105, confidence: high}
+  - {aliases: ["Suetonius"], canonical: Suetonius, floruit: 115, confidence: high}
+  - {aliases: ["Juvenal"], canonical: Iuvenalis, floruit: 115, confidence: high}
+  - {aliases: ["Florus, Lucius Annaeus"], canonical: Florus, floruit: 130, confidence: medium}
+  - {aliases: ["Gaius"], canonical: Gaius (iurisconsultus), floruit: 160, confidence: high,
+     note: "Jurist, fl. c.130-180. CLASSICAL despite arriving via DigilibLT, whose prior is LATE."}
+  - {aliases: ["Apuleius"], canonical: Apuleius, floruit: 160, confidence: high}
+  - {aliases: ["Gellius, Aulus"], canonical: Gellius, floruit: 175, confidence: high}
+  - {aliases: ["Festus (Sextus Pompeius Festus)"], canonical: Festus, floruit: 175, confidence: medium,
+     note: "2nd c. epitomator of Verrius Flaccus. CLASSICAL; arrives via DigilibLT."}
+
+  # --- The AD 200 boundary — genuinely contested cases ----------------------
+  - {aliases: ["Tertullian"], canonical: Tertullianus, floruit: 205, confidence: low,
+     note: "c.155-240; active c.197-220. Falls just past the CLASSICAL cutoff and so
+            reclassifies 557k words of Perseus as LATE. Defensible either way — the
+            single most consequential boundary call in this file."}
+  - {aliases: ["Minucius Felix, Marcus"], canonical: Minucius Felix, floruit: 210, confidence: low,
+     note: "Dated anywhere from c.160 to c.250 depending on the Tertullian priority
+            question. LATE assumed; flag if the classical set matters more than accuracy."}
+  - {aliases: ["Marcus Iunianus Iustinus"], canonical: Iustinus, floruit: 250, confidence: low,
+     note: "Epitome of Pompeius Trogus; dated 2nd-4th c. by different scholars."}
+  - {aliases: ["Iulius Solinus"], canonical: Solinus, floruit: 250, confidence: low}
+  - {aliases: ["Sacerdos, Marius Plotius"], canonical: Marius Plotius Sacerdos, floruit: 250, confidence: medium}
+  - {aliases: ["Cyprian Saint, Bishop of Carthage"], canonical: Cyprianus, floruit: 250, confidence: high}
+  - {aliases: ["Pseudo-Tertullian"], canonical: Ps.-Tertullianus, floruit: 250, confidence: low}
+  - {aliases: ["Pseudo-Cyprian"], canonical: Ps.-Cyprianus, floruit: 300, confidence: low}
+
+  # --- Late antique: Christian ---------------------------------------------
+  - {aliases: ["Arnobius of Sicca"], canonical: Arnobius, floruit: 300, confidence: high}
+  - {aliases: ["Lactantius"], canonical: Lactantius, floruit: 310, confidence: high}
+  - {aliases: ["Hilary, Saint, Bishop of Poitiers"], canonical: Hilarius Pictaviensis, floruit: 355, confidence: high}
+  - {aliases: ["Pseudo-Hilarius"], canonical: Ps.-Hilarius, floruit: 400, confidence: low}
+  - {aliases: ["Lucifer, Bishop of Cagliari"], canonical: Lucifer Calaritanus, floruit: 360, confidence: high}
+  - {aliases: ["Marius Victorinus"], canonical: Marius Victorinus, floruit: 360, confidence: high}
+  - {aliases: ["Optatus, Saint, Bishop of Mileve"], canonical: Optatus, floruit: 370, confidence: high}
+  - {aliases: ["Ambrosiaster"], canonical: Ambrosiaster, floruit: 375, confidence: high}
+  - {aliases: ["Priscillian, Bishop of Avila"], canonical: Priscillianus, floruit: 380, confidence: high}
+  - {aliases: ["Sanctus Ambrosius"], canonical: Ambrosius, floruit: 380, confidence: high}
+  - {aliases: ["Philastrius, Saint, Bishop of Brescia"], canonical: Philastrius, floruit: 385, confidence: high}
+  - {aliases: ["Jerome, Saint"], canonical: Hieronymus, floruit: 390, confidence: high}
+  - {aliases: ["Augustine"], canonical: Augustinus, floruit: 400, confidence: high}
+  - {aliases: ["Ps. Augustinus", "Ps. Aurelius Augustinus"],
+     canonical: Ps.-Augustinus, floruit: 500, confidence: low,
+     note: "Pseudo-Augustinian corpus spans 5th-9th c.; 500 is a compromise anchor."}
+  - {aliases: ["Paulinus of Nola, Saint"], canonical: Paulinus Nolanus, floruit: 400, confidence: high}
+  - {aliases: ["Severus, Sulpicius"], canonical: Sulpicius Severus, floruit: 400, confidence: high}
+  - {aliases: ["Orosius, Paulus"], canonical: Orosius, floruit: 415, confidence: high}
+  - {aliases: ["Cassian, John"], canonical: Iohannes Cassianus, floruit: 420, confidence: high}
+  - {aliases: ["Victor, Claudius Marius"], canonical: Claudius Marius Victor, floruit: 425, confidence: medium}
+  - {aliases: ["Eucherius of Lyon, Saint"], canonical: Eucherius, floruit: 430, confidence: high}
+  - {aliases: ["Sedulius"], canonical: Sedulius, floruit: 435, confidence: medium}
+  - {aliases: ["Salvian, of Marseilles"], canonical: Salvianus, floruit: 440, confidence: high}
+  - {aliases: ["Cyprianus Gallus"], canonical: Cyprianus Gallus, floruit: 400, confidence: low}
+  - {aliases: ["Faustus of Riez"], canonical: Faustus Reiensis, floruit: 470, confidence: high}
+  - {aliases: ["Claudianus Mamertus"], canonical: Claudianus Mamertus, floruit: 470, confidence: high}
+  - {aliases: ["Ennodius, Magnus Felix"], canonical: Ennodius, floruit: 510, confidence: high}
+  - {aliases: ["Eugippius"], canonical: Eugippius, floruit: 510, confidence: high}
+
+  # --- Late antique: secular, grammatical, technical ------------------------
+  - {aliases: ["Calcidius"], canonical: Calcidius, floruit: 350, confidence: medium}
+  - {aliases: ["Aphthonius = Marius Victorinus (Ps.)"], canonical: Ps.-Victorinus (Aphthonius), floruit: 350, confidence: low}
+  - {aliases: ["Firmicus Maternus", "Firmicus Maternus, Julius"], canonical: Firmicus Maternus, floruit: 340, confidence: high}
+  - {aliases: ["Charisius, Flauius Sosipater"], canonical: Charisius, floruit: 362, confidence: high}
+  - {aliases: ["Iulius Victor"], canonical: C. Iulius Victor, floruit: 375, confidence: medium}
+  - {aliases: ["Hegesippus"], canonical: Hegesippus (Latin Josephus), floruit: 375, confidence: medium}
+  - {aliases: ["Vindicianus"], canonical: Vindicianus, floruit: 380, confidence: medium}
+  - {aliases: ["Diomedes"], canonical: Diomedes grammaticus, floruit: 380, confidence: medium}
+  - {aliases: ["Symmachus", "Quintus Aurelius Symmachus"], canonical: Symmachus, floruit: 385, confidence: high}
+
+  # --- Second curation pass: top authors surfaced by `enrich.py --audit` ----
+  - {aliases: ["Terentianus Maurus"], canonical: Terentianus Maurus, floruit: 200, confidence: low,
+     note: "Late 2nd / early 3rd c. Sits exactly on the CLASSICAL cutoff, so the
+            period assignment here is a coin-flip; revisit if it matters."}
+  - {aliases: ["Iulius Paulus"], canonical: Iulius Paulus, floruit: 215, confidence: medium,
+     note: "Severan jurist. Just past the boundary, unlike Gaius."}
+  - {aliases: ["Victorinus, Saint, Bishop of Poetovio"], canonical: Victorinus Poetovionensis, floruit: 290, confidence: high}
+  - {aliases: ["Juvencus, Caius Vettius Aquilinus"], canonical: Iuvencus, floruit: 330, confidence: high}
+  - {aliases: ["Dictys Cretensis"], canonical: Dictys Cretensis (Septimius), floruit: 350, confidence: medium,
+     note: "The Latin Ephemeris, a 4th c. version of a Greek original."}
+  - {aliases: ["Donatus, Aelius"], canonical: Aelius Donatus, floruit: 350, confidence: high}
+  - {aliases: ["Fortunatianus, Consultus"], canonical: Consultus Fortunatianus, floruit: 350, confidence: medium}
+  - {aliases: ["Pelagonius"], canonical: Pelagonius, floruit: 350, confidence: medium}
+  - {aliases: ["Eutropius"], canonical: Eutropius, floruit: 370, confidence: high}
+  - {aliases: ["Flavius Josephus"], canonical: Iosephus Latinus, floruit: 380, confidence: low,
+     note: "Late antique Latin translation, not the 1st c. Greek. Dated as the translation."}
+  - {aliases: ["Itinera Hierosolymitana / Egragia"], canonical: Egeria, floruit: 385, confidence: medium,
+     note: "Egeria's pilgrimage account, c.381-384; source spelling `Egragia` is theirs."}
+  - {aliases: ["Arusianus Messius"], canonical: Arusianus Messius, floruit: 395, confidence: high}
+  - {aliases: ["Rufinus, of Aquileia"], canonical: Rufinus Aquileiensis, floruit: 400, confidence: high}
+  - {aliases: ["Iulius Paris"], canonical: Iulius Paris, floruit: 400, confidence: low,
+     note: "Epitomator of Valerius Maximus; 4th c. usually assumed."}
+  - {aliases: ["Aurelius Victor Ps."], canonical: Ps.-Aurelius Victor, floruit: 400, confidence: low}
+  - {aliases: ["Apicius"], canonical: Apicius, floruit: 400, confidence: low,
+     note: "The De re coquinaria as transmitted is a 4th-5th c. compilation, though
+            the tradition behind it is early imperial."}
+  - {aliases: ["Priscianus Theodorus (Ps.)"], canonical: Ps.-Theodorus Priscianus, floruit: 400, confidence: low}
+  - {aliases: ["Plinius Secundus Iunior"], canonical: Ps.-Plinius (medicus), floruit: 400, confidence: low,
+     note: "Medical compilation under Pliny's name; not Pliny the Younger."}
+  - {aliases: ["Commodianus"], canonical: Commodianus, floruit: 400, confidence: low,
+     note: "Dated anywhere from the mid-3rd to the mid-5th c."}
+  - {aliases: ["Cledonius"], canonical: Cledonius, floruit: 450, confidence: medium}
+  - {aliases: ["Consentius"], canonical: Consentius, floruit: 450, confidence: medium}
+  - {aliases: ["Grillius"], canonical: Grillius, floruit: 450, confidence: medium}
+  - {aliases: ["Paulinus Petricordiae"], canonical: Paulinus Petricordiae, floruit: 470, confidence: medium}
+  - {aliases: ["Victor Vitensis"], canonical: Victor Vitensis, floruit: 485, confidence: high}
+  - {aliases: ["Ruricius I, Bishop of Limoges"], canonical: Ruricius, floruit: 500, confidence: high}
+  - {aliases: ["Boethius (Ps.) - Iacobus Veneticus Graecus (?)"],
+     canonical: Ps.-Boethius (Iacobus Veneticus), floruit: 1150, confidence: low,
+     note: "Attributed to James of Venice, a 12th c. translator — MEDIEVAL, and a
+            reminder that DigilibLT's LATE prior is not universally safe."}
+  - {aliases: ["Florus"], canonical: Florus (DigilibLT), floruit: 130, confidence: low,
+     note: "DigilibLT's bare `Florus`, distinct from Perseus's `Florus, Lucius
+            Annaeus` only by string. Probably the same author; dated identically but
+            flagged low until the works are compared."}
+  - {aliases: ["Ausonius, Decimus Magnus", "Ausonius"], canonical: Ausonius, floruit: 375, confidence: high}
+  - {aliases: ["Vegetius (Flauius Vegetius Renatus)", "Flavius Vegetius Renatus"],
+     canonical: Vegetius, floruit: 390, confidence: medium}
+  - {aliases: ["Ammianus Marcellinus"], canonical: Ammianus, floruit: 385, confidence: high}
+  - {aliases: ["Claudian"], canonical: Claudianus, floruit: 400, confidence: high}
+  - {aliases: ["Prudentius"], canonical: Prudentius, floruit: 400, confidence: high}
+  - {aliases: ["Seruius"], canonical: Servius, floruit: 400, confidence: high}
+  - {aliases: ["Marcellus Empiricus"], canonical: Marcellus Empiricus, floruit: 400, confidence: medium}
+  - {aliases: ["Theodorus Priscianus"], canonical: Theodorus Priscianus, floruit: 400, confidence: medium}
+  - {aliases: ["Nonius Marcellus"], canonical: Nonius Marcellus, floruit: 400, confidence: medium}
+  - {aliases: ["Probus (Ps.)"], canonical: Ps.-Probus, floruit: 400, confidence: low}
+  - {aliases: ["Lactantius Placidus"], canonical: Lactantius Placidus, floruit: 400, confidence: low}
+  - {aliases: ["Scriptores Historiae Augustae"], canonical: Historia Augusta, floruit: 400, confidence: low,
+     note: "Authorship and date both contested; late 4th c. composition is the majority view."}
+  - {aliases: ["Iulius Valerius Alexander Polemus"], canonical: Iulius Valerius, floruit: 330, confidence: medium}
+  - {aliases: ["Macrobius"], canonical: Macrobius, floruit: 420, confidence: high}
+  - {aliases: ["Caelius Aurelianus", "Caelius Aurelianus / Mustio"], canonical: Caelius Aurelianus, floruit: 425, confidence: medium}
+  - {aliases: ["Martianus Capella"], canonical: Martianus Capella, floruit: 430, confidence: medium}
+  - {aliases: ["Cassius Felix"], canonical: Cassius Felix, floruit: 450, confidence: high}
+  - {aliases: ["Philargyrius / Philagrius"], canonical: Philargyrius, floruit: 450, confidence: low}
+  - {aliases: ["Fulgentius (Fabius Planciades Fulgentius)"], canonical: Fulgentius, floruit: 500, confidence: medium}
+  - {aliases: ["Pompeius Maurus"], canonical: Pompeius grammaticus, floruit: 500, confidence: low}
+  - {aliases: ["Sergius (Ps.)"], canonical: Ps.-Sergius, floruit: 500, confidence: low}
+  - {aliases: ["Hippocrates Latinus"], canonical: Hippocrates Latinus, floruit: 500, confidence: low,
+     note: "Late antique Latin translations of the Hippocratic corpus, not the Greek original."}
+  - {aliases: ["Boethius", "Boethius (Anicius Manlius Seuerinus Boethius)"],
+     canonical: Boethius, floruit: 510, confidence: high}
+  - {aliases: ["Priscianus"], canonical: Priscianus, floruit: 515, confidence: high}
+  - {aliases: ["Eugraphius"], canonical: Eugraphius, floruit: 550, confidence: low}
+  - {aliases: ["Iordanes"], canonical: Iordanes, floruit: 550, confidence: high}
+  - {aliases: ["Cassiodorus", "Cassiodorus (Flauius Magnus Aurelius Cassiodorus Senator)"],
+     canonical: Cassiodorus, floruit: 550, confidence: high}
+
+  # --- Past the LATE boundary ----------------------------------------------
+  - {aliases: ["Isidorus"], canonical: Isidorus Hispalensis, floruit: 615, confidence: high,
+     note: "c.560-636. Crosses into MEDIEVAL under the AD 600 boundary."}
+  - {aliases: ["Adamnan, Saint"], canonical: Adamnanus, floruit: 690, confidence: high}
+
+  # --- Undatable / corporate: period asserted, no floruit -------------------
+  - {aliases: ["Catholic Church. Pope"], canonical: Papal letters, period: LATE, confidence: low,
+     note: "Corporate author covering papal correspondence of several centuries;
+            arrives via CSEL so LATE holds, but no single date is meaningful."}
+  - {aliases: ["Anonymous", "Anonymus", "No author"], canonical: Anonymous, period: null,
+     confidence: none,
+     note: "Resolved per-work below where the work is identifiable; otherwise falls
+            through to the source prior."}
+
+  # --- Third pass ----------------------------------------------------------
+  - {aliases: ["Sextus Aurelius Victor"], canonical: Aurelius Victor, floruit: 360, confidence: high}
+  - {aliases: ["Sulpicius Victor"], canonical: Sulpicius Victor, floruit: 375, confidence: medium}
+  - {aliases: ["Lactantius Placidus (Ps.)"], canonical: Ps.-Lactantius Placidus, floruit: 400, confidence: low}
+  - {aliases: ["Sergius (Ps.-Cassiodorus)"], canonical: Ps.-Cassiodorus (Sergius), floruit: 500, confidence: low}
+  - {aliases: ["Eutyches"], canonical: Eutyches grammaticus, floruit: 550, confidence: medium}
+  - {aliases: ["Anonymous pilgrim of Piacenza"], canonical: Antoninus Placentinus, floruit: 570, confidence: medium}
+  - {aliases: ["Remigius, of Auxerre"], canonical: Remigius Autissiodorensis, floruit: 890, confidence: high,
+     note: "c.841-908. Carolingian, arriving via CSEL whose prior is LATE — the second
+            clear case of a source prior being wrong, after Ps.-Boethius."}
+
+# ---------------------------------------------------------------------------
+# Works — for anonymous material where the WORK is datable though the author
+# is not. Matched on the exact `work` field, and takes precedence over author.
+# ---------------------------------------------------------------------------
+works:
+  - {aliases: ["Digesta seu Pandectae"], floruit: 533, confidence: high,
+     note: "Promulgated 533 under Justinian; compiled from classical jurists of the
+            1st-3rd c., so the surface Latin is later than much of its material."}
+  - {aliases: ["Codex Iustinianus (Codex repetitae praelectionis)"], floruit: 534, confidence: high}
+  - {aliases: ["Iustiniani Institutiones"], floruit: 533, confidence: high}
+  - {aliases: ["Corpus iuris civilis: Authenticum"], floruit: 560, confidence: medium}
+  - {aliases: ["Codex Theodosianus sive Theodosiani Libri XVI"], floruit: 438, confidence: high}
+  - {aliases: ["Adnotationes super Lucanum", "Adnotationes super Lucanum: supplementum"],
+     floruit: 450, confidence: low, note: "Anonymous late antique scholia on Lucan."}
+  - {aliases: ["Commenta Bernensia in Lucanum"], floruit: 450, confidence: low}

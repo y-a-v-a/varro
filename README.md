@@ -15,6 +15,7 @@ Planning documents:
 | [`feasibility.md`](feasibility.md) | Assessment of that plan: the data arithmetic, the licensing decision, what the plan misses |
 | [`sources.md`](sources.md) | Human-readable survey of every Latin text source, licence-checked |
 | [`manifest/sources.yaml`](manifest/sources.yaml) | Machine-readable version of the above — drives the pipeline |
+| [`manifest/authorities.yaml`](manifest/authorities.yaml) | Author/work dating authority — assigns period per work |
 
 ## Quickstart
 
@@ -54,6 +55,7 @@ src/
                       #    Greek + English filtering live here, not in a
                       #    separate pass — they need the markup, which only
                       #    exists at extraction time.
+  enrich.py           # authorities.yaml -> date + period         [done]
   normalize.py        # u/v, i/j, macrons, ae/æ, hyphenation      [next]
   dedupe.py           # edition-aware; sources overlap heavily
   build.py            # -> data/processed/corpus.jsonl
@@ -128,9 +130,45 @@ Editorial interventions, counted and reported by every run:
 Largest works: Livy *Ab urbe condita* 515,204 · Pliny *Naturalis Historia*
 401,353 · Quintilian *Institutio Oratoria* 172,362.
 
-Note the period balance: only Perseus is classical. **5.6M of 18.2M words are
-CLASSICAL**, the rest LATE — which is the Latin-2 Phase 1 (*Latinitas*) corpus,
-not Latin-0/Latin-1 material.
+## Dating and period
+
+`src/enrich.py` applies [`manifest/authorities.yaml`](manifest/authorities.yaml)
+to set `approximate_date` and `period` **per work** rather than per source.
+
+```bash
+python src/enrich.py --report    # coverage, writes nothing
+python src/enrich.py --audit     # unresolved authors + aliases matching nothing
+python src/enrich.py             # rewrite data/interim/*.jsonl in place
+```
+
+| period | words | |
+|---|---:|---|
+| LATE | 13,174,924 | 72.6% |
+| **CLASSICAL** | **4,903,966** | **27.0%** |
+| MEDIEVAL | 79,882 | 0.4% |
+
+Resolved 84.2% by author entry, 10.6% by work entry (anonymous but datable
+texts, chiefly the Justinianic legal corpus), 5.2% by source prior. Nothing is
+unassigned, and no alias in the authority file matches nothing.
+
+**What the per-work dating changed.** 14.7% of Perseus — 822,468 words — is not
+classical: Tertullian, Jerome, Ammianus, Boethius, Claudian, Prudentius,
+Ausonius, Minucius Felix, the *Historia Augusta*. It cuts the other way too:
+Gaius and Festus arrive via DigilibLT, whose prior is LATE, but are 2nd century
+and so classical. Two records are *later* than any prior would suggest —
+Ps.-Boethius (a 12th c. translation) and Remigius of Auxerre (Carolingian) —
+which is why `perseus-canonical-latinLit` has no source prior at all: guessing
+is the bug the file exists to fix.
+
+**Confidence is carried, not hidden.** 73.9% of the corpus is dated high
+confidence, 8.2% medium, 12.7% low, 5.2% inferred from a source prior. Every
+record carries `date_source` and `date_confidence`, so a training run can filter
+on them. The single most consequential judgement call is Tertullian (557k words,
+floruit c.205), who falls just past the AD 200 cutoff; the entry says so.
+
+So the corpus available for Latin-0 / Latin-1 is **4.9M classical words**, of
+which 4.66M are high-confidence dated. The remaining 13.3M is Latin-2 Phase 1
+(*Latinitas*) material.
 
 ## Known limitations
 
@@ -170,7 +208,7 @@ revisiting this.
 - [x] `fetch.py` — git / http / zenodo / manual, with lockfile
 - [x] `extract.py` — Perseus + CSEL (CTS/TEI) and DigilibLT (CoNLL-U), 18.2M words
 - [ ] `extract.py` — EDH/Papyri EpiDoc, Vicifons MediaWiki, Latin Library + Gutenberg plaintext
-- [ ] Author-date authority list → real `period` and `approximate_date`
+- [x] Author-date authority list → per-work `period` and `approximate_date`
 - [ ] Orthographic normalization (see `feasibility.md` §4.1 — matters more than tokenizer vocab size)
 - [ ] Deduplication (Latin Library ↔ Perseus overlap is large)
 - [ ] **Token count** — words are measured; tokens need the tokenizer
