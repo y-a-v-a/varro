@@ -225,6 +225,51 @@
   .spec.after pre { color: var(--ink); }
   .spec .note { font-size: .84rem; color: var(--muted); }
 
+  /* ---- result tables ---- */
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { padding: .42rem .7rem; text-align: left; border-bottom: 1px solid var(--rule-soft); }
+  th { font-family: var(--sans); font-size: .69rem; letter-spacing: .07em;
+       text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-family: var(--mono);
+                   font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: 0; }
+  .tablewrap { overflow-x: auto; }
+
+  /* ---- headline figure ---- */
+  .verdict { display: flex; flex-wrap: wrap; gap: 1.6rem 2.6rem; align-items: flex-end; }
+  .big { display: flex; flex-direction: column; gap: .1rem; }
+  .big .v { font-family: var(--mono); font-size: 2.5rem; line-height: 1;
+            letter-spacing: -.03em; color: var(--rubric); font-variant-numeric: tabular-nums; }
+  .big .l { font-family: var(--sans); font-size: .72rem; letter-spacing: .05em;
+            text-transform: uppercase; color: var(--muted); }
+  .big .n { font-size: .85rem; color: var(--muted); }
+
+  /* ---- scale comparison ---- */
+  .scale { display: flex; flex-direction: column; gap: .9rem; }
+  .rung { display: grid; grid-template-columns: minmax(7rem, 9rem) 1fr; gap: .3rem 1rem;
+          align-items: center; }
+  .rung .who { font-family: var(--sans); font-size: .78rem; color: var(--ink-soft); }
+  .rung .bar { height: 12px; background: var(--rubric); border-radius: 1px; min-width: 3px; }
+  /* The comparison bars cannot be drawn to scale, so they are drawn running
+     off the edge rather than pretending to a length. */
+  .rung .runoff { position: relative; height: 12px; overflow: hidden; }
+  .rung .runoff::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, var(--rubric) 0%, var(--rubric) 55%,
+                                transparent 100%);
+  }
+  .rung .runoff::after {
+    content: "";
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    border-left: 7px solid var(--rubric);
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    opacity: .45;
+  }
+  .rung .amt { grid-column: 2; font-family: var(--mono); font-size: .78rem;
+               color: var(--muted); font-variant-numeric: tabular-nums; }
+
   ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .45rem; }
   li { color: var(--ink-soft); }
   li::marker { color: var(--muted); }
@@ -251,8 +296,8 @@
       <span class="chip on">Path A · everything publishable</span>
       <span class="chip">3 of 9 sources</span>
       <span class="chip">17.25M words</span>
-      <span class="chip">32.4M tokens</span>
-      <span class="chip">Next: Latin-0</span>
+      <span class="chip">33.7M tokens</span>
+      <span class="chip on">Latin-0 trained</span>
     </div>
   </header>
 
@@ -273,9 +318,9 @@
       <div class="sub">to AD 200</div>
     </div>
     <div class="stat">
-      <div class="n">48</div>
-      <div class="k">Letters</div>
-      <div class="sub">no <code>v</code>, no <code>j</code></div>
+      <div class="n">3.53M</div>
+      <div class="k">Parameters</div>
+      <div class="sub">Latin-0, from scratch</div>
     </div>
   </section>
 
@@ -483,6 +528,163 @@ uendundisque</pre>
 
   <hr>
 
+  <section>
+    <div class="eyebrow" style="margin-bottom:1.1rem">Latin-0 — what came out</div>
+
+    <div class="panel">
+      <div class="verdict">
+        <div class="big">
+          <div class="v">74.3</div>
+          <div class="l">Held-out perplexity</div>
+          <div class="n">against a floor of 195.2</div>
+        </div>
+        <div class="big">
+          <div class="v">0%</div>
+          <div class="l">Memorised</div>
+          <div class="n">of 1,459 twelve-word windows</div>
+        </div>
+        <div class="big">
+          <div class="v">1h</div>
+          <div class="l">To train</div>
+          <div class="n">on a laptop, from random weights</div>
+        </div>
+      </div>
+
+      <p class="prose">
+        A 3.53-million-parameter transformer, trained from random initialisation on 9.5 million
+        tokens of classical Latin and nothing else. The floor was published <em class="term">before
+        training began</em> — a simple word-pair statistical model scores 195.2, so anything that
+        cannot beat it has learned nothing. Latin-0 passed it six minutes in.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow" style="margin-bottom:.9rem">Is it writing Latin, or repeating it?</div>
+    <div class="panel">
+      <p class="prose">
+        The question the project turns on. A model this small, shown the same corpus nine times
+        over, could simply be giving the text back. So generated passages are cut into windows and
+        each is checked, word for word, against every line of training text.
+      </p>
+      <p class="prose">
+        Zero matches is not by itself meaningful — the window might just be too long for anything
+        to match. So genuine Latin the model has never seen, by a real author, is scored the same
+        way as a control.
+      </p>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Run of words</th>
+              <th class="num">Latin-0 wrote it</th>
+              <th class="num">A Roman wrote it</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>3 in a row</td><td class="num">19.4%</td><td class="num">18.7%</td></tr>
+            <tr><td>4 in a row</td><td class="num">1.7%</td><td class="num">6.7%</td></tr>
+            <tr><td>5 in a row</td><td class="num">0.0%</td><td class="num">4.4%</td></tr>
+            <tr><td>6 in a row</td><td class="num">0.0%</td><td class="num">1.2%</td></tr>
+            <tr><td>12 in a row</td><td class="num">0.0%</td><td class="num">0.0%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="found">
+        At three words the model matches real Latin almost exactly — both reuse the corpus's common
+        little phrases, because that is simply what the language is made of. From four words up,
+        <b>the model repeats the corpus less than a real Roman author does</b>. It is not giving the
+        text back. If anything it has not yet learned the longer set phrases that genuine Latin is
+        full of — a limitation as much as a result.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow" style="margin-bottom:.9rem">Knowing a language is not knowing things</div>
+    <div class="panel">
+      <p class="prose">
+        Everything that survives of classical Latin — every speech, poem, history and letter that
+        made it out of antiquity — is about <b>10 million words</b>. That is the whole inheritance,
+        not the part we have collected.
+      </p>
+
+      <div class="scale">
+        <div class="rung">
+          <div class="who">All classical Latin</div>
+          <div class="bar" style="width:4px"></div>
+          <div class="amt">~10 million words</div>
+        </div>
+        <div class="rung">
+          <div class="who">English Wikipedia</div>
+          <div class="runoff"></div>
+          <div class="amt">~4 billion words · 400× larger</div>
+        </div>
+        <div class="rung">
+          <div class="who">A frontier model</div>
+          <div class="runoff"></div>
+          <div class="amt">~11 trillion words · about 1,100,000× larger</div>
+        </div>
+      </div>
+
+      <p class="prose" style="color:var(--muted); font-size:.9rem">
+        The bars cannot be drawn honestly. If the first were the 4 pixels shown, Wikipedia's would
+        run about four metres and a frontier model's roughly <b>eleven kilometres</b>.
+      </p>
+
+      <p class="prose">
+        Another way to feel it: a committed reader gets through perhaps five million words a year.
+        The entire surviving written output of Roman civilisation is about two years of one
+        person's reading.
+      </p>
+
+      <p class="prose">
+        <b>So why did this work at all?</b> Because language and knowledge are not the same thing,
+        and they do not need the same amount of text. Ten million words is ample to learn how a
+        language behaves — which endings attach to which stems, which words expect which cases, how
+        a clause is built. It is nowhere near enough to learn what happened in the world.
+      </p>
+
+      <div class="found">
+        <b>Latin-0 knows how Latin works. It does not know anything about Rome.</b> It writes
+        well-formed words in plausible constructions and says nothing true. That is not a
+        shortcoming of the training — it is the honest shape of what ten million words can teach.
+      </div>
+
+      <p class="prose">
+        This also means the model is not an undersized version of something bigger. Given this much
+        text, roughly this size <em class="term">is</em> the right size; a larger model would spend
+        its extra capacity memorising rather than learning. The ceiling moves only by adding text —
+        the fifteen centuries of Latin written after antiquity, most of which has never been
+        digitised. That constraint is archival, not computational.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow" style="margin-bottom:.9rem">A specimen</div>
+    <div class="panel">
+      <div class="spec" style="padding:0">
+        <pre>Quid est, ut opinor, et quae sit ille, ut in rebus, quae ad modum
+in rebus agrum aduentum fatum, non ut ad se non potest, ita, ut cum
+aduentu resciscat; sed tamen etiam cum ab omnibus rebus, qui de rebus
+aduentu rumint, pro se a me expetendo ad eum qui uenerit</pre>
+      </div>
+      <p class="prose">
+        Read charitably and it is Latin: <em class="term">ut opinor</em> is a phrase Cicero uses,
+        <em class="term">qui uenerit</em> is a correctly formed subjunctive, and the endings agree
+        with their neighbours far more often than not. Read closely and it falls apart —
+        <em class="term">quae sit ille</em> mismatches its genders, <em class="term">rumint</em> is
+        not a word, and no sentence finishes an argument it started.
+      </p>
+      <p class="prose">
+        Which is exactly the expected result. The grammar has been learned; the meaning has not.
+      </p>
+    </div>
+  </section>
+
+  <hr>
+
   <section class="panel">
     <div class="eyebrow">What the numbers changed</div>
     <p class="prose">
@@ -505,7 +707,7 @@ uendundisque</pre>
 
   <footer>
     <div>Claudius · an openly licensed Latin corpus, and a language model trained only on Latin.</div>
-    <div>Measured 15 August 2026 · 3 of 9 sources, through corpus build and tokenizer.</div>
+    <div>Measured 15 August 2026 · 3 of 9 sources, through corpus, tokenizer and a first trained model.</div>
   </footer>
 
 </div>
