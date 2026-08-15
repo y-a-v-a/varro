@@ -295,11 +295,11 @@ def main() -> int:
     print(f"model        {args.name}  {n_params/1e6:.2f}M parameters "
           f"(dim {args.dim}, {args.layers} layers, {args.heads} heads, ctx {args.context})")
     print(f"corpus       {args.corpus}  {train_tokens.size:,} train tokens, "
-          f"{val_tokens.size:,} validation")
+          f"{val_tokens.size:,} validation", flush=True)
     print(f"schedule     {args.steps:,} steps x {tokens_per_step:,} tokens "
           f"= {total_tokens/1e6:.1f}M  ({epochs:.1f} epochs)")
     print(f"tokens/param {total_tokens/n_params:.1f}   "
-          f"(Chinchilla-optimal is ~20)")
+          f"(Chinchilla-optimal is ~20)", flush=True)
     if epochs > 16:
         print("  WARNING: past ~16 epochs repeated data buys almost nothing "
               "(feasibility.md §2)")
@@ -360,8 +360,24 @@ def main() -> int:
     weights = CHECKPOINTS / f"{args.name}.safetensors"
     final = history[-1] if history else {}
     print(f"\nsaved {weights.relative_to(ROOT)}")
-    print(f"final held-out perplexity {final.get('val_perplexity', float('nan')):.1f} "
-          f"(bigram floor 195.2)")
+
+    # The floor must come from a baseline trained AND evaluated on the same
+    # splits as this run. Quoting a floor computed on a different corpus
+    # compares perplexities over different held-out text, which is meaningless
+    # — and it flattered Latin-0 by 23% before this was caught.
+    floor_path = REPORTS / f"baselines-{args.corpus}.json"
+    floor = None
+    if floor_path.exists():
+        with floor_path.open(encoding="utf-8") as fh:
+            floor = json.load(fh)["baselines"]["overall_perplexity"]
+    ppl = final.get("val_perplexity", float("nan"))
+    if floor:
+        print(f"final held-out perplexity {ppl:.1f} against the {args.corpus} "
+              f"bigram floor of {floor:.1f}  ({floor/ppl:.2f}x better)")
+    else:
+        print(f"final held-out perplexity {ppl:.1f} "
+              f"(no baseline for `{args.corpus}` — run evaluate.py --baselines "
+              f"--corpus {args.corpus})")
 
     REPORTS.mkdir(parents=True, exist_ok=True)
     report = {

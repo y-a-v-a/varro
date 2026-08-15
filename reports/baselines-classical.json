@@ -1,0 +1,84 @@
+{
+  "baselines": {
+    "by": {
+      "form": {
+        "PROSE": {
+          "documents": 2,
+          "perplexity": 170.11299056439142,
+          "tokens": 31876
+        },
+        "PROSIMETRUM": {
+          "documents": 1,
+          "perplexity": 214.59579991285165,
+          "tokens": 70843
+        },
+        "VERSE": {
+          "documents": 15,
+          "perplexity": 151.22975418937864,
+          "tokens": 480646
+        }
+      },
+      "genre": {
+        "COMMENTARY": {
+          "documents": 1,
+          "perplexity": 201.5740663408979,
+          "tokens": 7966
+        },
+        "DRAMA": {
+          "documents": 6,
+          "perplexity": 147.42131330105062,
+          "tokens": 148659
+        },
+        "EPIC": {
+          "documents": 1,
+          "perplexity": 139.64943956824246,
+          "tokens": 140459
+        },
+        "EPISTOLOGRAPHY": {
+          "documents": 1,
+          "perplexity": 160.7622525575045,
+          "tokens": 23910
+        },
+        "LYRIC": {
+          "documents": 4,
+          "perplexity": 151.2984018219382,
+          "tokens": 77164
+        },
+        "NOVEL": {
+          "documents": 1,
+          "perplexity": 214.59579991285165,
+          "tokens": 70843
+        },
+        "SATIRE": {
+          "documents": 4,
+          "perplexity": 172.34369730763018,
+          "tokens": 114364
+        }
+      },
+      "period": {
+        "CLASSICAL": {
+          "documents": 18,
+          "perplexity": 158.8130396739182,
+          "tokens": 583365
+        }
+      }
+    },
+    "lambda_bigram": 0.7,
+    "model": "interpolated-bigram",
+    "overall_perplexity": 158.8130396739182,
+    "train_tokens": 9538249,
+    "vocab": 4000
+  },
+  "corpus": {
+    "group_by": "author",
+    "period_filter": null,
+    "records": 909,
+    "seed": 20260815,
+    "track": "A",
+    "train_words": 16401214,
+    "validation_words": 855423,
+    "words": 17256637
+  },
+  "generated": "2026-08-15T14:04:02+00:00",
+  "schema_version": 1
+}

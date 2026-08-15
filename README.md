@@ -372,9 +372,18 @@ is how this project's docs drifted from its builds before.
 
 ### The floor
 
-An interpolated bigram over 33.7M training tokens, scored on the held-out split:
-**perplexity 195.2**. A 2–5M parameter transformer that cannot beat that has
-learned nothing, and saying so in advance is the point.
+An interpolated bigram, trained on a corpus's own training split and scored on
+its own held-out split. **The floor is corpus-specific and must match the model
+being judged** — quoting one corpus's floor against another's model compares
+perplexities over different text and means nothing.
+
+| corpus | bigram floor |
+|---|---:|
+| full (33.7M tokens) | 195.2 |
+| classical (9.5M tokens) | 158.8 |
+
+Classical Latin is the easier of the two for a bigram, which is why using the
+full-corpus figure to judge a classical-corpus model overstated its margin.
 
 | slice | perplexity | |
 |---|---:|---|
@@ -418,8 +427,16 @@ python src/sample.py --n 5
 python src/evaluate.py --memorization samples.txt
 ```
 
-**Held-out perplexity 74.3, against a bigram floor of 195.2** stated before
-training began. It crossed the floor at roughly step 500 — six minutes in.
+**Held-out perplexity 74.3, against a bigram floor of 158.8** — 2.14× better.
+The floor was stated before training began.
+
+*(Corrected: this was first reported as 2.63× against a floor of 195.2. That
+figure came from a baseline trained and evaluated on the **full** corpus, while
+Latin-0 was evaluated on the **classical** split — two different held-out sets,
+so the comparison was invalid. Classical Latin is easier for a bigram than the
+mixed corpus, so the wrong floor flattered the model by 23%. `src/compare.py`
+now reads the corpus-matched baseline, and `train.py` refuses to quote a floor
+from a different corpus.)*
 
 Final train loss 4.3130 against validation 4.3080: **validation is marginally
 lower than training**, so after 8.6 epochs there is no overfitting gap at all.
@@ -511,7 +528,7 @@ revisiting this.
 - [x] `provenance.py` — attribution notice and standing audit gate
 - [x] Genre and form metadata — 97.5% resolved, two orthogonal axes
 - [x] Evaluation harness — baselines, memorisation, versioned JSON reports
-- [x] **Latin-0 trained** — 3.53M params, held-out ppl 74.3 vs 195.2 floor, 0% memorisation
+- [x] **Latin-0 trained** — 3.53M params, held-out ppl 74.3 vs 158.8 floor (2.14×), 0% memorisation
 - [ ] Latin-2 (~25M) on the full corpus, two-phase Latinitas→Romanitas
 - [ ] UD treebank syntactic probing (fetch via `--track eval`; exclude overlapping passages from training)
 - [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)
