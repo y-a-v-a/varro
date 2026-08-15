@@ -297,7 +297,7 @@
       <span class="chip">3 of 9 sources</span>
       <span class="chip">17.25M words</span>
       <span class="chip">33.7M tokens</span>
-      <span class="chip on">Latin-0 trained</span>
+      <span class="chip on">Latin-0 · Latin-2 trained</span>
     </div>
   </header>
 
@@ -318,9 +318,9 @@
       <div class="sub">to AD 200</div>
     </div>
     <div class="stat">
-      <div class="n">3.53M</div>
-      <div class="k">Parameters</div>
-      <div class="sub">Latin-0, from scratch</div>
+      <div class="n">44.1</div>
+      <div class="k">Perplexity</div>
+      <div class="sub">Latin-2, vs a floor of 158.8</div>
     </div>
   </section>
 
@@ -601,6 +601,57 @@ uendundisque</pre>
   </section>
 
   <section>
+    <div class="eyebrow" style="margin-bottom:1.1rem">Latin-2 — learn all of it, then specialise</div>
+    <div class="panel">
+      <p class="prose">
+        The second model follows the strategy the plan proposed: read
+        <em class="term">every</em> period of Latin first, then narrow onto Rome. Fifteen hundred
+        years of the language, then eight centuries of it.
+      </p>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Model</th><th>Trained on</th><th class="num">Size</th>
+                <th class="num">Perplexity</th><th class="num">vs floor</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Latin-0</td><td>classical only</td><td class="num">3.53M</td>
+                <td class="num">74.3</td><td class="num">2.14×</td></tr>
+            <tr><td>Latin-2, phase 1</td><td>all Latin</td><td class="num">15.90M</td>
+                <td class="num">48.2</td><td class="num">4.05×</td></tr>
+            <tr><td><b>Latin-2, phase 2</b></td><td>all Latin → classical</td>
+                <td class="num">15.90M</td><td class="num"><b>44.1</b></td>
+                <td class="num"><b>3.60×</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="prose">
+        Latin-0 and the finished Latin-2 are judged on the same held-out works against the same
+        floor, so they can be compared directly: perplexity falls by 41%.
+      </p>
+      <div class="found">
+        <b>Two things changed at once</b> — the model got four times larger <em class="term">and</em>
+        gained the two-phase schedule. So this shows the combination works; it does not say which
+        half did the work. The experiment that would separate them has not been run, and saying so
+        costs nothing.
+      </div>
+      <p class="prose">
+        One thing the second phase does show alone: it reached its final quality in
+        <b>500 steps</b>, where Latin-0 needed 5,000 from a random start. Shifting register inside a
+        language you already know is far cheaper than learning the language.
+      </p>
+      <div class="found">
+        And a warning sign worth reporting rather than burying. Latin-0 ended with training and
+        held-out scores <em class="term">identical</em> — no memorisation at all. Both larger runs
+        show a gap of about 1.35×. That is memorisation beginning to appear as the model grows
+        against a fixed amount of text, exactly as the arithmetic predicted it would. The verbatim
+        check still comes back clean at zero, but it is now doing real work rather than confirming
+        the obvious.
+      </div>
+    </div>
+  </section>
+
+  <section>
     <div class="eyebrow" style="margin-bottom:.9rem">Knowing a language is not knowing things</div>
     <div class="panel">
       <p class="prose">
@@ -680,6 +731,12 @@ aduentu rumint, pro se a me expetendo ad eum qui uenerit</pre>
       <p class="prose">
         Which is exactly the expected result. The grammar has been learned; the meaning has not.
       </p>
+      <p class="prose">
+        The larger model, given the same opening, drifts into recognisably poetic vocabulary —
+        <em class="term">umeros</em>, <em class="term">nigra</em>, <em class="term">frigidus</em>,
+        <em class="term">dulci flauae pinna</em> are the furniture of Latin hexameter. It invents
+        fewer non-words than the small one. It still finishes no thought it starts.
+      </p>
     </div>
   </section>
 
@@ -707,7 +764,7 @@ aduentu rumint, pro se a me expetendo ad eum qui uenerit</pre>
 
   <footer>
     <div>Claudius · an openly licensed Latin corpus, and a language model trained only on Latin.</div>
-    <div>Measured 15 August 2026 · 3 of 9 sources, through corpus, tokenizer and a first trained model.</div>
+    <div>Measured 16 August 2026 · 3 of 9 sources, through corpus, tokenizer and two trained models.</div>
   </footer>
 
 </div>
