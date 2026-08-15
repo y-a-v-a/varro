@@ -58,7 +58,8 @@ src/
   enrich.py           # authorities.yaml -> date + period         [done]
   normalize.py        # orthography: u/v, i/j, marks, hyphenation [done]
   dedupe.py           # content-based near-dup detection          [done]
-  build.py            # -> data/processed/corpus.jsonl
+  build.py            # -> data/processed/corpus.{train,validation} [done]
+  tokenizer.py        # Latin BPE sweep + fertility measurement    [done]
 configs/
 data/                 # gitignored — a build artifact, not source
   raw/ interim/ processed/
@@ -267,6 +268,62 @@ Mercurius Ut uos in uostris uoltis mercimoniis emundis uendundisque
 me laetum lucris adficere atque adiuuare in rebus omnibus
 ```
 
+## Corpus and tokenizer
+
+```bash
+python src/build.py                      # -> data/processed/corpus.{train,validation}.jsonl
+python src/build.py --period CLASSICAL   # the Latin-0 corpus, 4.64M words
+python src/tokenizer.py                  # train the vocabulary sweep and measure
+```
+
+Validation is held out as **whole works, never random lines** — a line-level
+split leaks the surrounding paragraphs of every held-out line, so it measures
+memorisation of context the model already has. Works are chosen deterministically
+and stratified by period, capped so no single work eats the budget: 49 works,
+856,617 words, 5.0%.
+
+### What the tokenizer settled
+
+Every parameter figure in the project rested on an assumed ~1.8 tokens per word.
+Measured, byte-level BPE trained on the corpus:
+
+| vocab | tok/word | tok/word (classical) | corpus tokens | whole forms memorised | embedding share |
+|---:|---:|---:|---:|---:|---:|
+| 2,000 | 2.265 | 2.469 | 37.1M | 0 / 12 | 10% |
+| **4,000** | **1.973** | **2.179** | **32.4M** | **0 / 12** | **18%** |
+| 8,000 | 1.757 | 1.952 | 28.8M | 3 / 12 | 30% |
+| 16,000 | 1.593 | 1.773 | 26.1M | 5 / 12 | 46% |
+| 32,000 | 1.470 | 1.632 | 24.1M | 7 / 12 | 63% |
+
+The assumption was good — 1.8 lands almost exactly at an 8k vocabulary. Classical
+Latin runs ~11% *higher* fertility than the corpus average, being older, more
+varied and more heavily verse.
+
+**Use 4,000.** Two reasons, and neither is compression:
+
+1. **It forces morphology.** `plan.md` asks whether a small vocabulary makes the
+   tokenizer learn Latin's stems and endings rather than memorising inflected
+   forms. It does, measurably. At 4k none of the twelve `amo` paradigm forms is
+   stored whole and `amabamus` divides `am · ab · amus`; at 32k seven are stored
+   whole and it divides `am · abamus`. Stem consistency — whether every form of a
+   stem opens with the same token — degrades from 0.44 at 2k to 0.94 at 16k.
+2. **Vocabulary is a parameter-budget decision.** At `d_model=256` the
+   transformer body is ~4.7M parameters whatever the vocabulary, while the
+   embedding table is `vocab × 256`. A 32k vocabulary costs **8.2M parameters —
+   larger than the model it serves**. For a model the corpus can only support at
+   2–5M parameters, the vocabulary has to be small.
+
+Caesar's opening at two sizes, showing the trade directly:
+
+```
+ 4,000 (20 tok)  ·Gal lia ·est ·omnis ·diuis a ·in ·partes ·tres , ·quarum ...
+32,000 (15 tok)  ·Gallia ·est ·omnis ·diuisa ·in ·partes ·tres , ·quarum ...
+```
+
+Byte-level BPE is used throughout: it cannot emit `<unk>`, which matters because
+249 stray non-ASCII characters survived normalization deliberately. Round-trip is
+verified on held-out works, exact modulo a documented leading space.
+
 ## Known limitations
 
 **Apparatus criticus in the Perseus source.** Four records (Pliny NH, three
@@ -308,7 +365,8 @@ revisiting this.
 - [x] Author-date authority list → per-work `period` and `approximate_date`
 - [x] Orthographic normalization — 48-letter alphabet, u/v unified across sources
 - [x] Deduplication — content-based, verbatim-verified, 0 false positives
-- [ ] **Token count** — words are measured; tokens need the tokenizer
+- [x] `build.py` — corpus with whole-work held-out split
+- [x] Tokenizer — 4k Latin BPE chosen on measured evidence; 32.4M tokens full / 9.6M classical
 - [ ] Evaluation suite, built *before* training Latin-0
 - [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)
 

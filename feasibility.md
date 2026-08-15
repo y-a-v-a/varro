@@ -53,12 +53,25 @@ what the plan assumed. The conclusions move accordingly.
 | LATE | 12,553,096 | DigilibLT + CSEL + late Perseus |
 | MEDIEVAL | 79,882 | |
 
-Still **estimated**: token count. Latin is heavily inflected and fragments more than English, so a
-4–8k Latin BPE runs about **1.6–2.2 tokens per word**; ~1.8 is the planning figure. This is the last
-unmeasured number in the chain and `normalize.py` → tokenizer will settle it.
+**Token count, now measured too** (`src/tokenizer.py`, byte-level BPE trained on the corpus):
 
-- classical → **~8.3M tokens**
-- full corpus → **~31M tokens**
+| vocab | tokens/word, all | tokens/word, classical | full corpus | classical |
+|---:|---:|---:|---:|---:|
+| 2,000 | 2.265 | 2.469 | 37.1M | 10.9M |
+| **4,000** | **1.973** | **2.179** | **32.4M** | **9.6M** |
+| 8,000 | 1.757 | 1.952 | 28.8M | 8.6M |
+| 16,000 | 1.593 | 1.773 | 26.1M | 7.8M |
+| 32,000 | 1.470 | 1.632 | 24.1M | 7.2M |
+
+The ~1.8 planning figure was close — it lands almost exactly at an 8k vocabulary. But 4k is the
+better choice for this project (see below), and classical Latin runs ~11% *higher* fertility than
+the corpus average, being older, more varied and more heavily verse. At 4k:
+
+- classical → **9.6M tokens**
+- full corpus → **32.4M tokens**
+
+Both slightly *above* the earlier estimate, which loosens the ladder a little rather than tightening
+it. Character-level, for reference: 6.91 chars/word, 113.3M characters.
 
 ### What that supports
 
@@ -67,11 +80,11 @@ epochs is Muennighoff et al. 2023 (*Scaling Data-Constrained Language Models*): 
 **~4 epochs** is worth nearly as much as fresh data, value decays sharply after, and is
 approximately zero past ~16–40.
 
-| epochs | classical only (8.3M tok) | full corpus (31M tok) |
+| epochs | classical only (9.6M tok) | full corpus (32.4M tok) |
 |---|---|---|
-| 4 (safe) | 33M eff. → **1.7M params** | 124M eff. → **6.2M params** |
-| 8 | 67M eff. → **3.3M params** | 249M eff. → **12.4M params** |
-| 16 (aggressive) | 134M eff. → **6.7M params** | 498M eff. → **25M params** |
+| 4 (safe) | 38M eff. → **1.9M params** | 130M eff. → **6.5M params** |
+| 8 | 77M eff. → **3.8M params** | 259M eff. → **13.0M params** |
+| 16 (aggressive) | 154M eff. → **7.7M params** | 518M eff. → **25.9M params** |
 
 ### Conclusions, revised
 
@@ -80,15 +93,21 @@ approximately zero past ~16–40.
   closes. Reaching ~10M means the Latin Library (which overlaps Perseus heavily — dedup will eat
   most of the nominal gain) plus inscriptions and papyri, and those are a *different register*:
   formulaic, abbreviated, epigraphic. Worth having, but not interchangeable with literary prose.
-- **Latin-0 at ~5M params on classical-only now needs ~12 epochs.** That is past the comfortable
-  range. Either accept it as an explicitly overtrained pipeline proof — which is what the plan says
-  it is — or size it at **~2–3M params**, which is the well-trained size for 8.3M tokens.
+- **Latin-0 at ~5M params on classical-only needs ~10 epochs.** Past the comfortable range. Either
+  accept it as an explicitly overtrained pipeline proof — which is what the plan says it is — or
+  size it at **~2–4M params**, the well-trained range for 9.6M tokens.
 - **Latin-1 at 10–15M params classical-only is no longer defensible**: 24–36 epochs. Either drop it
   to ~5M params, or train it on the full corpus with period tags, which is what Latin-2 does anyway.
   The honest move is probably to **collapse Latin-1 into Latin-0** and go straight from a small
   classical proof to the full-corpus model.
-- **LATIN-XXV at 25M params is exactly at the 16-epoch line for the current corpus** — and the
-  remaining six sources have not landed yet. It stays feasible, and gets more comfortable as they do.
+- **LATIN-XXV at 25M params is exactly at the 16-epoch line** — 25.9M by the measured numbers,
+  which is as close to the target as arithmetic gets. The remaining six sources have not landed yet,
+  so it stays feasible and gets more comfortable as they do.
+- **Vocabulary size is a parameter-budget decision, not a compression one.** At d_model=256 the
+  transformer body is ~4.7M parameters regardless of vocabulary, while the embedding table is
+  vocab×256. A 32k vocabulary costs 8.2M parameters — larger than the entire model it serves, 63%
+  of the total. At 4k it is 18%. For a model this small the vocabulary must be small, and the
+  compression gain from a larger one is not worth spending the budget on.
 - The 25–40M Path A ceiling from §3 still holds. Nothing here changes the licensing decision.
 
 Overtraining a small model on a fixed corpus remains a legitimate and interesting regime — closer to
@@ -262,10 +281,11 @@ Keep the staged structure. Change the following:
 4. **Specify the eval suite (§4.6) before training Latin-0**, so the pipeline test also tests the
    measurement apparatus. Building the eval after you have a model is how you end up with an eval
    that flatters the model.
-5. ~~Measure the real token count early.~~ **Partly done, and it did change the ladder.** Word
-   counts are now measured (§2) and moved the classical figure from ~10M to 4.6M. The remaining
-   estimate is words→tokens (~1.8), which the tokenizer settles. Build it as soon as
-   `normalize.py` lands and re-run §2 — the ladder may move once more.
+5. ~~Measure the real token count early.~~ **Done.** Word counts moved the classical figure from
+   ~10M to 4.6M; the tokenizer then settled words→tokens at 1.973 (4k vocab), close to the assumed
+   1.8. Nothing in §2 is an estimate any more. **Use a 4,000-token vocabulary** — it forces
+   morphological decomposition (0 of 12 paradigm forms memorised, against 7 of 12 at 32k) and keeps
+   embeddings to 18% of the parameter budget.
 6. **Do not add the Latin Library before normalisation and dedup are both proven.** It is the
    largest remaining source (~15M words) and the one that overlaps Perseus most heavily; adding it
    first would have made every other problem harder to see. Adding it now, with dedup verified and
