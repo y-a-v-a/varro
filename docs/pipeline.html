@@ -1,0 +1,483 @@
+<title>Claudius Pipeline</title>
+
+<style>
+  :root {
+    /* Light palette — complete. Every other block redefines these tokens only. */
+    --ground:      #f5f6f7;
+    --surface:     #ffffff;
+    --sunken:      #eceef0;
+    --ink:         #15181b;
+    --ink-soft:    #3d464e;
+    --muted:       #667079;   /* grey pulled slightly blue, not neutral by default */
+    --rule:        #d8dcdf;
+    --rule-soft:   #e6e9eb;
+    --rubric:      #a8362a;   /* rubrication: the red ink reserved for structure */
+    --rubric-soft: #f2e3e0;
+    --done:        #2f6b5e;
+    --done-soft:   #e0ebe8;
+    --shadow:      0 1px 2px rgba(21, 24, 27, .05);
+
+    --serif: "Iowan Old Style", Palatino, "Palatino Linotype", "Book Antiqua",
+             Georgia, "Times New Roman", serif;
+    --sans:  ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono:  ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #101315;
+      --surface:     #171b1e;
+      --sunken:      #0b0e10;
+      --ink:         #e7eaec;
+      --ink-soft:    #b7bfc5;
+      --muted:       #8d979f;
+      --rule:        #2a3034;
+      --rule-soft:   #21272a;
+      --rubric:      #e0705f;
+      --rubric-soft: #33211e;
+      --done:        #7fc4b2;
+      --done-soft:   #172723;
+      --shadow:      0 1px 2px rgba(0, 0, 0, .4);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #101315;
+    --surface:     #171b1e;
+    --sunken:      #0b0e10;
+    --ink:         #e7eaec;
+    --ink-soft:    #b7bfc5;
+    --muted:       #8d979f;
+    --rule:        #2a3034;
+    --rule-soft:   #21272a;
+    --rubric:      #e0705f;
+    --rubric-soft: #33211e;
+    --done:        #7fc4b2;
+    --done-soft:   #172723;
+    --shadow:      0 1px 2px rgba(0, 0, 0, .4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.6;
+    margin: 0;
+    padding: clamp(1.75rem, 5vw, 4.5rem) clamp(1.1rem, 5vw, 2rem) 4rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 60rem; margin: 0 auto; display: flex; flex-direction: column; gap: 3.25rem; }
+  .prose { max-width: 34em; }
+
+  h1, h2, h3 { text-wrap: balance; margin: 0; font-weight: 600; }
+  h1 { font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.12; letter-spacing: -.015em; }
+  h2 { font-size: 1.4rem; letter-spacing: -.01em; }
+  h3 { font-size: 1.08rem; }
+  p { margin: 0; }
+
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: .69rem;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .lede { font-size: 1.16rem; color: var(--ink-soft); }
+  em.term { font-style: italic; color: var(--ink); }
+  code {
+    font-family: var(--mono);
+    font-size: .86em;
+    background: var(--sunken);
+    padding: .1em .34em;
+    border-radius: 2px;
+  }
+
+  /* ---- header ---- */
+  header { display: flex; flex-direction: column; gap: 1rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: .5rem; padding-top: .35rem; }
+  .chip {
+    font-family: var(--sans);
+    font-size: .72rem;
+    letter-spacing: .04em;
+    padding: .26rem .6rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    color: var(--ink-soft);
+    background: var(--surface);
+  }
+  .chip.on { color: var(--done); border-color: var(--done); background: var(--done-soft); }
+
+  /* ---- stat row ---- */
+  .glance {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .stat { background: var(--surface); padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .2rem; }
+  .stat .n {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.5rem;
+    letter-spacing: -.02em;
+    color: var(--rubric);
+  }
+  .stat .k { font-family: var(--sans); font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .stat .sub { font-size: .82rem; color: var(--muted); }
+
+  /* ---- pipeline spine ---- */
+  .stages { display: flex; flex-direction: column; }
+  .stage {
+    display: grid;
+    grid-template-columns: 3.1rem minmax(0, 1fr);
+    gap: 0 1.25rem;
+    position: relative;
+    padding-bottom: 2.2rem;
+  }
+  .stage:last-child { padding-bottom: 0; }
+  /* the spine itself: a hairline the nodes sit on */
+  .stage::before {
+    content: "";
+    position: absolute;
+    left: 1.05rem;
+    top: 1.9rem;
+    bottom: 0;
+    width: 1px;
+    background: var(--rule);
+  }
+  .stage:last-child::before { display: none; }
+
+  .node {
+    grid-column: 1;
+    width: 2.1rem;
+    height: 2.1rem;
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--rubric);
+    font-family: var(--mono);
+    font-size: .82rem;
+    display: grid;
+    place-items: center;
+    position: relative;
+    z-index: 1;
+  }
+  .stage-head { grid-column: 2; display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; min-height: 2.1rem; }
+  .stage-head h3 { font-family: var(--mono); font-size: .95rem; font-weight: 600; }
+  .stage-head .role { font-family: var(--sans); font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .stage-body { grid-column: 2; display: flex; flex-direction: column; gap: .7rem; padding-top: .45rem; }
+  .stage-body p { color: var(--ink-soft); max-width: 36em; }
+
+  .figs { display: flex; flex-wrap: wrap; gap: .45rem 1.6rem; padding-top: .15rem; }
+  .fig { display: flex; align-items: baseline; gap: .45rem; }
+  .fig b {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: .92rem;
+    color: var(--ink);
+  }
+  .fig span { font-family: var(--sans); font-size: .73rem; letter-spacing: .03em; color: var(--muted); }
+
+  .found {
+    border-left: 2px solid var(--rubric);
+    background: var(--rubric-soft);
+    padding: .6rem .85rem;
+    border-radius: 0 3px 3px 0;
+    font-size: .92rem;
+    color: var(--ink-soft);
+    max-width: 40em;
+  }
+  .found b { color: var(--ink); font-weight: 600; }
+
+  /* ---- panels ---- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1.35rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: .8rem;
+  }
+
+  .specimen { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+  @media (min-width: 44rem) { .specimen { grid-template-columns: 1fr 1fr; } }
+  .spec { background: var(--surface); padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: .55rem; }
+  .spec .k { font-family: var(--sans); font-size: .7rem; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+  .spec pre {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: .88rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    color: var(--ink);
+  }
+  .spec.after pre { color: var(--ink); }
+  .spec .note { font-size: .84rem; color: var(--muted); }
+
+  ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .45rem; }
+  li { color: var(--ink-soft); }
+  li::marker { color: var(--muted); }
+
+  hr { border: 0; border-top: 1px solid var(--rule-soft); margin: 0; }
+
+  footer { color: var(--muted); font-size: .85rem; display: flex; flex-direction: column; gap: .3rem; }
+
+  a { color: var(--rubric); text-underline-offset: 2px; }
+  a:focus-visible, .chip:focus-visible { outline: 2px solid var(--rubric); outline-offset: 2px; }
+</style>
+
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Open Latin Corpus</div>
+    <h1>Turning critical editions into a training corpus</h1>
+    <p class="lede prose">
+      Five stages take scholarly markup from three digital libraries and produce a
+      licence-clean, orthographically unified corpus of Latin — with every editorial
+      decision counted, and provenance attached to every document.
+    </p>
+    <div class="chips">
+      <span class="chip on">Path A · everything publishable</span>
+      <span class="chip">3 of 9 sources</span>
+      <span class="chip">17.25M words</span>
+      <span class="chip">Next: tokenizer</span>
+    </div>
+  </header>
+
+  <section class="glance">
+    <div class="stat">
+      <div class="n">908</div>
+      <div class="k">Documents</div>
+      <div class="sub">one record per work</div>
+    </div>
+    <div class="stat">
+      <div class="n">17.25M</div>
+      <div class="k">Words</div>
+      <div class="sub">after deduplication</div>
+    </div>
+    <div class="stat">
+      <div class="n">4.64M</div>
+      <div class="k">Classical</div>
+      <div class="sub">to AD 200</div>
+    </div>
+    <div class="stat">
+      <div class="n">48</div>
+      <div class="k">Letters</div>
+      <div class="sub">no <code>v</code>, no <code>j</code></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="eyebrow">The constraint that shapes everything</div>
+    <p class="prose">
+      Ancient texts are long out of copyright; modern <em class="term">editions</em> of them are not.
+      Every source is therefore tiered — <b>green</b> ships, <b>amber</b> never does — and the rule is
+      enforced in code, not documentation. The largest Latin collection in existence, Corpus Corporum's
+      226 million words, is declared in the manifest and deliberately never fetched, because it is
+      non-commercial only.
+    </p>
+    <p class="prose">
+      That decision caps the model at roughly 25M parameters. It buys something worth more: a corpus
+      that can actually be published, which does not currently exist.
+    </p>
+  </section>
+
+  <section>
+    <div class="eyebrow" style="margin-bottom:1.4rem">The pipeline</div>
+    <div class="stages">
+
+      <article class="stage">
+        <div class="node">1</div>
+        <div class="stage-head">
+          <h3>fetch.py</h3>
+          <span class="role">manifest → data/raw</span>
+        </div>
+        <div class="stage-body">
+          <p>
+            A YAML manifest declares every source with its licence, tier and format. Git sources are
+            cloned blobless and pinned by commit; the resolved SHAs and checksums go into a lockfile
+            that makes any build reproducible — and the licence claim auditable.
+          </p>
+          <div class="figs">
+            <div class="fig"><b>17</b><span>sources declared</span></div>
+            <div class="fig"><b>9</b><span>green</span></div>
+            <div class="fig"><b>1.4 GB</b><span>raw</span></div>
+          </div>
+          <div class="found">
+            Amber sources are refused even when named explicitly. An <code>amber</code> entry marked
+            <code>include: true</code> is a hard validation error rather than a quiet contamination.
+          </div>
+        </div>
+      </article>
+
+      <article class="stage">
+        <div class="node">2</div>
+        <div class="stage-head">
+          <h3>extract.py</h3>
+          <span class="role">markup → text + provenance</span>
+        </div>
+        <div class="stage-body">
+          <p>
+            TEI and CoNLL-U become one JSON record per work. Editorial apparatus is dropped and
+            counted: notes, deletions, lacunae, bibliography, and <code>&lt;choice&gt;</code> resolved
+            to the corrected reading over the manuscript error.
+          </p>
+          <div class="figs">
+            <div class="fig"><b>968</b><span>records</span></div>
+            <div class="fig"><b>190,327</b><span>notes dropped</span></div>
+            <div class="fig"><b>0</b><span>Greek characters left</span></div>
+          </div>
+          <div class="found">
+            Language filtering needed <b>three independent layers</b>. Perseus ships English
+            translations in the same directory tree, only a third of its edition records carry a
+            language attribute, and Terence's plays hide an English <em class="term">introduction</em>
+            inside a verse line. The systematic Greek problem was not Cicero's letters but the
+            grammarians — Priscian and Servius quoting Greek terms mid-sentence.
+          </div>
+        </div>
+      </article>
+
+      <article class="stage">
+        <div class="node">3</div>
+        <div class="stage-head">
+          <h3>enrich.py</h3>
+          <span class="role">dating &amp; period</span>
+        </div>
+        <div class="stage-body">
+          <p>
+            A curated authority file assigns a floruit to each author and to anonymous-but-datable
+            works. Period is <em class="term">derived</em> from the date, so the two can never
+            disagree, and every record carries how it was dated and how confidently.
+          </p>
+          <div class="figs">
+            <div class="fig"><b>147</b><span>authorities curated</span></div>
+            <div class="fig"><b>94.8%</b><span>explicitly resolved</span></div>
+            <div class="fig"><b>73.9%</b><span>high confidence</span></div>
+          </div>
+          <div class="found">
+            Dating per <em class="term">work</em> rather than per source moved <b>822,468 words</b> of
+            Perseus out of "classical" — Jerome, Ammianus, Boethius, the <em class="term">Historia
+            Augusta</em>. It cuts both ways: Gaius and Festus arrive via a late-antique library but are
+            second century.
+          </div>
+        </div>
+      </article>
+
+      <article class="stage">
+        <div class="node">4</div>
+        <div class="stage-head">
+          <h3>normalize.py</h3>
+          <span class="role">one orthography</span>
+        </div>
+        <div class="stage-body">
+          <p>
+            The sources did not merely differ in spelling — they used opposing conventions. <code>v</code>
+            as a share of <code>u+v</code> measured 12.9% and 11.5% in two libraries against
+            <b>0.60%</b> in the third, which writes classical <em class="term">uir</em> throughout.
+            Folding is towards <code>u</code>: the reverse needs morphology to know which
+            <code>u</code> is consonantal.
+          </p>
+          <div class="figs">
+            <div class="fig"><b>40,672</b><span>editorial marks</span></div>
+            <div class="fig"><b>3,813</b><span>words rejoined</span></div>
+            <div class="fig"><b>233</b><span>homoglyphs</span></div>
+          </div>
+          <div class="found">
+            Stripping combining marks in one pass caught accents, macrons, papyrological underdots and
+            numeral overlines together — including <b>12,007 acute accents</b> that turned out to be
+            metrical stress marks in Plautus rather than orthography.
+          </div>
+        </div>
+      </article>
+
+      <article class="stage">
+        <div class="node">5</div>
+        <div class="stage-head">
+          <h3>dedupe.py</h3>
+          <span class="role">one copy per work</span>
+        </div>
+        <div class="stage-body">
+          <p>
+            Detection is by content, not title: the same work appears under different names, and the
+            same name hides different works. Documents reduce to sketches of overlapping five-word
+            spans, compared after folding orthography away.
+          </p>
+          <div class="figs">
+            <div class="fig"><b>60</b><span>duplicates marked</span></div>
+            <div class="fig"><b>886,542</b><span>words</span></div>
+            <div class="fig"><b>0</b><span>false positives</span></div>
+          </div>
+          <div class="found">
+            Two relationships hide in one cluster and need <b>opposite</b> rules. For twins, the
+            better-quality source wins. For <em class="term">containment</em> — one text inside a
+            fuller one — the larger must win, or the pipeline keeps a 43,000-word selection of Jerome's
+            letters and discards the complete 290,000-word corpus. Every mark is then verified by
+            sampling literal word-spans from the duplicate and checking they occur in the survivor.
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow" style="margin-bottom:.9rem">One line, through the whole pipeline</div>
+    <div class="specimen">
+      <div class="spec">
+        <div class="k">As fetched</div>
+        <pre>Mercvrivs
+Vt vos in vostris voltis
+mercimoniis</pre>
+        <div class="note">Plautus, <em>Amphitruo</em> — the first file the project ever pulled.</div>
+      </div>
+      <div class="spec after">
+        <div class="k">After five stages</div>
+        <pre>Mercurius Ut uos in uostris
+uoltis mercimoniis emundis
+uendundisque</pre>
+        <div class="note">
+          The archaic <em>uo-</em> for <em>ue-</em> stays. That is Plautus, not his editor.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <section class="panel">
+    <div class="eyebrow">What the numbers changed</div>
+    <p class="prose">
+      The project was planned against an assumed 10 million words of classical Latin. Measured, it is
+      <b>4.64 million</b> — and that is the figure the model has to be sized against, not the estimate.
+    </p>
+    <ul class="prose">
+      <li>Roughly 8.3M classical tokens supports a well-trained model of two to three million
+        parameters, not the five originally planned.</li>
+      <li>A middle rung at 10–15M parameters would need 24–36 passes over the same data, so it was
+        removed rather than shrunk into irrelevance.</li>
+      <li>The 25M-parameter target still holds — on the full corpus across all periods, which is what
+        the two-phase plan always intended.</li>
+    </ul>
+    <p class="prose" style="color:var(--muted); font-size:.9rem">
+      One estimate remains in the chain: how many tokens a word becomes. The tokenizer settles it, and
+      may move these numbers once more.
+    </p>
+  </section>
+
+  <footer>
+    <div>Claudius · an openly licensed Latin corpus, and a language model trained only on Latin.</div>
+    <div>Measured 15 August 2026 · 3 of 9 sources extracted, dated, normalized and deduplicated.</div>
+  </footer>
+
+</div>
