@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
 TOKENIZERS = PROCESSED / "tokenizers"
 CHECKPOINTS = ROOT / "checkpoints"
-REPORTS = PROCESSED / "eval"
+REPORTS = ROOT / "reports"
 
 sys.path.insert(0, str(ROOT / "src"))
 

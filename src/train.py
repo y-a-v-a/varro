@@ -44,13 +44,13 @@ ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
 TOKENIZERS = PROCESSED / "tokenizers"
 CHECKPOINTS = ROOT / "checkpoints"
-REPORTS = PROCESSED / "eval"
+REPORTS = ROOT / "reports"
 
 try:
     import mlx.core as mx
     import mlx.nn as nn
     import mlx.optimizers as optim
-    from mlx.utils import tree_flatten
+    from mlx.utils import tree_flatten, tree_unflatten
 except ImportError:
     sys.exit("MLX required — pip install mlx  (Apple Silicon only)")
 
@@ -100,6 +100,41 @@ class GPT(nn.Module):
         return self.embed.as_linear(self.ln_f(x))
 
 
+def save_checkpoint(name: str, model, optimizer, step: int, history: List[Dict]) -> None:
+    """Weights, optimizer state and position — everything needed to resume.
+
+    A twelve-hour run that can only be restarted from zero is a twelve-hour run
+    you will eventually lose. Optimizer state matters as much as weights: Adam's
+    moment estimates take hundreds of steps to rebuild, and dropping them mid-run
+    produces a visible loss spike.
+    """
+    CHECKPOINTS.mkdir(parents=True, exist_ok=True)
+    model.save_weights(str(CHECKPOINTS / f"{name}.safetensors"))
+    state = dict(tree_flatten(optimizer.state))
+    arrays = {k: v for k, v in state.items() if isinstance(v, mx.array)}
+    if arrays:
+        mx.save_safetensors(str(CHECKPOINTS / f"{name}.opt.safetensors"), arrays)
+    with (CHECKPOINTS / f"{name}.state.json").open("w", encoding="utf-8") as fh:
+        json.dump({"step": step, "history": history}, fh)
+
+
+def load_checkpoint(name: str, model, optimizer) -> Tuple[int, List[Dict]]:
+    weights = CHECKPOINTS / f"{name}.safetensors"
+    state_path = CHECKPOINTS / f"{name}.state.json"
+    if not weights.exists() or not state_path.exists():
+        sys.exit(f"cannot resume {name}: missing weights or state in "
+                 f"{CHECKPOINTS.relative_to(ROOT)}/")
+    model.load_weights(str(weights))
+    opt_path = CHECKPOINTS / f"{name}.opt.safetensors"
+    if opt_path.exists():
+        loaded = mx.load(str(opt_path))
+        optimizer.state = tree_unflatten(list(loaded.items()))
+    with state_path.open(encoding="utf-8") as fh:
+        saved = json.load(fh)
+    mx.eval(model.parameters())
+    return saved["step"], saved.get("history", [])
+
+
 def parameter_count(model: nn.Module) -> int:
     return sum(v.size for _, v in tree_flatten(model.parameters()))
 
@@ -108,21 +143,54 @@ def parameter_count(model: nn.Module) -> int:
 # Data
 # ---------------------------------------------------------------------------
 
-def load_tokens(corpus: str, split: str, tok, cache: bool = True) -> mx.array:
-    """Tokenise a split once and keep it as a flat token stream."""
+PERIOD_TOKENS = {"CLASSICAL": "<CLASSICAL>", "LATE": "<LATE>",
+                 "MEDIEVAL": "<MEDIEVAL>", "NEOLATIN": "<NEOLATIN>"}
+
+
+def load_tokens(corpus: str, split: str, tok, cache: bool = True,
+                period_tags: bool = True) -> mx.array:
+    """Tokenise a split once and keep it as a flat token stream.
+
+    Each document is prefixed with its period tag, which is what makes the
+    two-phase Latinitas -> Romanitas plan possible: the model sees register as an
+    explicit, conditionable signal rather than having to infer 1,500 years of
+    linguistic drift from context alone. The tags are reserved in the tokenizer
+    and injected here, never stored in the corpus — so the tagging scheme can
+    change without rebuilding anything upstream.
+
+    On a classical-only corpus every document gets the same tag, which is close
+    to a no-op; it matters on the mixed corpus, where LATE is three quarters of
+    the text and CLASSICAL is what we ultimately want generated.
+    """
     path = PROCESSED / f"{corpus}.{split}.jsonl"
     if not path.exists():
         sys.exit(f"missing {path.relative_to(ROOT)} — run src/build.py")
-    cached = PROCESSED / f"{corpus}.{split}.tokens.npy"
+    suffix = "tagged" if period_tags else "plain"
+    cached = PROCESSED / f"{corpus}.{split}.{suffix}.tokens.npy"
     if cache and cached.exists() and cached.stat().st_mtime > path.stat().st_mtime:
         return mx.array(mx.load(str(cached)))
 
     eos = tok.token_to_id("<|endoftext|>")
+    tag_ids = {k: tok.token_to_id(v) for k, v in PERIOD_TOKENS.items()}
+    missing = [k for k, v in tag_ids.items() if v is None]
+    if period_tags and missing:
+        sys.exit(f"tokenizer lacks period tokens {missing} — retrain src/tokenizer.py")
+
     stream: List[int] = []
+    counts: Dict[str, int] = {}
     with path.open(encoding="utf-8") as fh:
         for line in fh:
-            stream.extend(tok.encode(json.loads(line)["text"]).ids)
+            rec = json.loads(line)
+            if period_tags:
+                tag = tag_ids.get(rec.get("period") or "")
+                if tag is not None:
+                    stream.append(tag)
+                    counts[rec.get("period")] = counts.get(rec.get("period"), 0) + 1
+            stream.extend(tok.encode(rec["text"]).ids)
             stream.append(eos)
+    if period_tags and counts:
+        print(f"  {split}: period tags " +
+              ", ".join(f"{k} x{v}" for k, v in sorted(counts.items())))
     arr = mx.array(stream, dtype=mx.uint16 if max(stream) < 65535 else mx.int32)
     if cache:
         mx.save(str(cached), arr)
@@ -184,6 +252,15 @@ def main() -> int:
     ap.add_argument("--weight-decay", type=float, default=0.1)
     ap.add_argument("--eval-every", type=int, default=250)
     ap.add_argument("--seed", type=int, default=20260815)
+    ap.add_argument("--period-tags", action=argparse.BooleanOptionalAction, default=True,
+                    help="prefix each document with its period token (default on)")
+    ap.add_argument("--init-from", metavar="RUN",
+                    help="start from another run's weights — the second phase of a "
+                         "two-phase schedule continues from the first")
+    ap.add_argument("--checkpoint-every", type=int, default=500,
+                    help="save a resumable checkpoint every N steps")
+    ap.add_argument("--resume", action="store_true",
+                    help="continue this run from its last checkpoint")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -198,8 +275,18 @@ def main() -> int:
     mx.eval(model.parameters())
     n_params = parameter_count(model)
 
-    train_tokens = load_tokens(args.corpus, "train", tok)
-    val_tokens = load_tokens(args.corpus, "validation", tok)
+    train_tokens = load_tokens(args.corpus, "train", tok, period_tags=args.period_tags)
+    val_tokens = load_tokens(args.corpus, "validation", tok, period_tags=args.period_tags)
+
+    if args.init_from:
+        prior = CHECKPOINTS / f"{args.init_from}.safetensors"
+        if not prior.exists():
+            sys.exit(f"missing {prior.relative_to(ROOT)} — train {args.init_from} first")
+        model.load_weights(str(prior))
+        mx.eval(model.parameters())
+        print(f"initialised from {prior.relative_to(ROOT)} "
+              f"(optimizer state is fresh, by design: a phase change wants a new "
+              f"schedule, not the tail of the old one)")
 
     tokens_per_step = args.batch * args.context
     total_tokens = args.steps * tokens_per_step
@@ -233,10 +320,14 @@ def main() -> int:
 
     CHECKPOINTS.mkdir(parents=True, exist_ok=True)
     history: List[Dict[str, Any]] = []
+    start_step = 0
+    if args.resume:
+        start_step, history = load_checkpoint(args.name, model, optimizer)
+        print(f"resumed {args.name} at step {start_step:,}")
     started = time.time()
     running = 0.0
 
-    for step in range(args.steps):
+    for step in range(start_step, args.steps):
         optimizer.learning_rate = lr_at(step)
         x, y = next(stream)
         loss, grads = loss_and_grad(model, x, y)
@@ -245,7 +336,7 @@ def main() -> int:
         running += loss.item()
 
         if (step + 1) % args.eval_every == 0 or step == args.steps - 1:
-            train_loss = running / args.eval_every
+            train_loss = running / min(args.eval_every, step - start_step + 1)
             running = 0.0
             val_loss = evaluate_split(model, val_tokens, args.batch, args.context)
             elapsed = time.time() - started
@@ -262,8 +353,11 @@ def main() -> int:
                             else optimizer.learning_rate,
                             "elapsed_s": elapsed})
 
+        if (step + 1) % args.checkpoint_every == 0:
+            save_checkpoint(args.name, model, optimizer, step + 1, history)
+
+    save_checkpoint(args.name, model, optimizer, args.steps, history)
     weights = CHECKPOINTS / f"{args.name}.safetensors"
-    model.save_weights(str(weights))
     final = history[-1] if history else {}
     print(f"\nsaved {weights.relative_to(ROOT)}")
     print(f"final held-out perplexity {final.get('val_perplexity', float('nan')):.1f} "

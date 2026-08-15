@@ -45,7 +45,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
 TOKENIZERS = PROCESSED / "tokenizers"
-REPORTS = PROCESSED / "eval"
+REPORTS = ROOT / "reports"
 
 SCHEMA_VERSION = 1
 DEFAULT_VOCAB = 4000
@@ -55,8 +55,8 @@ DEFAULT_VOCAB = 4000
 MEMO_WINDOW = 12
 
 
-def load_split(split: str) -> List[Dict[str, Any]]:
-    path = PROCESSED / f"corpus.{split}.jsonl"
+def load_split(split: str, corpus: str = "corpus") -> List[Dict[str, Any]]:
+    path = PROCESSED / f"{corpus}.{split}.jsonl"
     if not path.exists():
         sys.exit(f"missing {path.relative_to(ROOT)} — run src/build.py first")
     with path.open(encoding="utf-8") as fh:
@@ -189,8 +189,8 @@ def memorisation(text: str, haystack: str,
 # Report
 # ---------------------------------------------------------------------------
 
-def corpus_fingerprint() -> Dict[str, Any]:
-    path = PROCESSED / "corpus.summary.json"
+def corpus_fingerprint(corpus: str = "corpus") -> Dict[str, Any]:
+    path = PROCESSED / f"{corpus}.summary.json"
     if not path.exists():
         return {}
     with path.open(encoding="utf-8") as fh:
@@ -219,8 +219,8 @@ def write_report(name: str, payload: Dict[str, Any]) -> Path:
 
 def cmd_baselines(args) -> Dict[str, Any]:
     tok = load_tokenizer(args.vocab)
-    train = load_split("train")
-    val = load_split("validation")
+    train = load_split("train", args.corpus)
+    val = load_split("validation", args.corpus)
 
     print(f"training {args.vocab:,}-token bigram baseline on {len(train):,} documents ...",
           flush=True)
@@ -256,8 +256,8 @@ def cmd_baselines(args) -> Dict[str, Any]:
 
 def cmd_self_test(args) -> Dict[str, Any]:
     """Validate the memorisation instrument on inputs whose answer is known."""
-    train = load_split("train")
-    val = load_split("validation")
+    train = load_split("train", args.corpus)
+    val = load_split("validation", args.corpus)
     haystack = build_haystack(train)
     print(f"haystack: {len(haystack):,} characters of training text\n")
 
@@ -318,7 +318,7 @@ def cmd_memorisation(args) -> Dict[str, Any]:
     Genuine unseen Latin — a held-out work by a real author — sets the scale.
     Overlap at or below that line is not regurgitation; well above it is.
     """
-    train = load_split("train")
+    train = load_split("train", args.corpus)
     haystack = build_haystack(train)
     text = sys.stdin.read() if args.memorization == "-" else \
         Path(args.memorization).read_text(encoding="utf-8")
@@ -329,7 +329,7 @@ def cmd_memorisation(args) -> Dict[str, Any]:
           f"fraction {frac}   longest verbatim run "
           f"{result['longest_verbatim_words']} words\n")
 
-    control_text = load_split("validation")[0]["text"]
+    control_text = load_split("validation", args.corpus)[0]["text"]
     curve = {}
     print(f"{'window':>7} {'this text':>11} {'real unseen Latin':>19}")
     for w in (3, 4, 5, 6, 8, 12):
@@ -353,14 +353,20 @@ def main() -> int:
     ap.add_argument("--vocab", type=int, default=DEFAULT_VOCAB)
     ap.add_argument("--window", type=int, default=MEMO_WINDOW,
                     help="verbatim window in words (default 12)")
+    ap.add_argument("--name", default=None,
+                    help="run label, so results from different models sit side by "
+                         "side rather than overwriting each other")
+    ap.add_argument("--corpus", default="corpus",
+                    help="corpus basename to evaluate against")
     args = ap.parse_args()
 
+    suffix = f"-{args.name}" if args.name else ""
     if args.baselines:
-        payload, name = cmd_baselines(args), "baselines"
+        payload, name = cmd_baselines(args), f"baselines-{args.corpus}"
     elif args.self_test:
-        payload, name = cmd_self_test(args), "self-test"
+        payload, name = cmd_self_test(args), f"self-test-{args.corpus}"
     elif args.memorization:
-        payload, name = cmd_memorisation(args), "memorization"
+        payload, name = cmd_memorisation(args), f"memorization{suffix}"
     else:
         ap.print_help()
         return 0

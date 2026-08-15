@@ -1,0 +1,38 @@
+{
+  "corpus": {
+    "group_by": "author",
+    "period_filter": null,
+    "records": 909,
+    "seed": 20260815,
+    "track": "A",
+    "train_words": 16401214,
+    "validation_words": 855423,
+    "words": 17256637
+  },
+  "generated": "2026-08-15T10:43:17+00:00",
+  "schema_version": 1,
+  "self_test": {
+    "results": {
+      "held_out_text": {
+        "fraction": 0.0,
+        "longest_verbatim_words": 0,
+        "memorised": 0,
+        "windows": 289
+      },
+      "shuffled_words": {
+        "fraction": 0.0,
+        "longest_verbatim_words": 0,
+        "memorised": 0,
+        "windows": 289
+      },
+      "training_text": {
+        "fraction": 1.0,
+        "longest_verbatim_words": 300,
+        "memorised": 289,
+        "windows": 289
+      }
+    },
+    "valid": true,
+    "window_words": 12
+  }
+}
