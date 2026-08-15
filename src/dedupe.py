@@ -83,10 +83,19 @@ def fold(text: str) -> List[str]:
     return NON_LETTER.sub(" ", text).split()
 
 
-def sketch(tokens: Sequence[str], k: int = SKETCH_K, n: int = SHINGLE) -> Set[int]:
-    """Bottom-k sketch of the document's n-gram hashes (k-minimum values)."""
+def sketch(tokens: Sequence[str], k: int = SKETCH_K,
+           n: int = SHINGLE) -> Tuple[Set[int], int]:
+    """Bottom-k sketch of the document's n-gram hashes, and its true cardinality.
+
+    The cardinality returned is the number of DISTINCT shingles, not the number
+    of shingle positions. Jaccard is estimated over sets, so containment — which
+    divides an estimated intersection by a document size — has to divide by a set
+    size too. Using positions mixes the two: repetition inflates the denominator
+    and containment is understated (measured at ~8% repetition on a typical
+    record, so the error is real but conservative).
+    """
     if len(tokens) < n:
-        return set()
+        return set(), 0
     heap: List[int] = []          # max-heap via negation
     seen: Set[int] = set()
     for i in range(len(tokens) - n + 1):
@@ -99,7 +108,7 @@ def sketch(tokens: Sequence[str], k: int = SKETCH_K, n: int = SHINGLE) -> Set[in
             heapq.heappush(heap, -value)
         elif -heap[0] > value:
             heapq.heapreplace(heap, -value)
-    return {-x for x in heap}
+    return {-x for x in heap}, len(seen)
 
 
 def jaccard(a: Sequence[int], b: Sequence[int], a_set: Set[int], b_set: Set[int],
@@ -278,8 +287,8 @@ def main() -> int:
     set_sketches: List[Set[int]] = []
     for rec in records:
         tokens = fold(rec["text"])
-        sizes.append(max(0, len(tokens) - SHINGLE + 1))
-        s = sketch(tokens)
+        s, cardinality = sketch(tokens)
+        sizes.append(cardinality)
         set_sketches.append(s)
         sorted_sketches.append(tuple(sorted(s)))
 

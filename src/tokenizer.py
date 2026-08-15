@@ -91,11 +91,21 @@ def train_one(records: List[Dict[str, Any]], vocab_size: int):
     return tok
 
 
-def fertility(tok, records: List[Dict[str, Any]], sample: int = 400) -> Dict[str, float]:
-    """Tokens per word, measured on real text rather than assumed."""
-    chosen = records[:sample]
+def fertility(tok, records: List[Dict[str, Any]]) -> Dict[str, float]:
+    """Tokens per word, counted over EVERY record — no sampling, no extrapolation.
+
+    This previously took `records[:400]`. Because the corpus is loaded in a
+    deterministic file order, those 400 records were 342 DigilibLT and 58 CSEL
+    and contained no Perseus at all — so the "full corpus" figure was measured on
+    late-antique prose only, then multiplied by every word in the corpus. The
+    classical subset was unaffected (all 189 of its records fell inside the
+    window), but the headline number did not mean what it said.
+
+    Encoding the whole corpus per vocabulary costs a couple of minutes. That is
+    the right price for a number the entire parameter ladder rests on.
+    """
     words = tokens = chars = 0
-    for rec in chosen:
+    for rec in records:
         words += len(rec["text"].split())
         chars += len(rec["text"])
         tokens += len(tok.encode(rec["text"]).ids)
@@ -252,12 +262,10 @@ def main() -> int:
     for vocab_size, _, _, _, morph in rows:
         print(f"  {vocab_size:>6,}   {morph['example']}")
 
-    print("\nprojected corpus size in tokens:")
+    print("\ncorpus size in tokens (counted, not projected):")
     for vocab_size, _, full, cls, _ in rows:
-        whole = total_words * full["tokens_per_word"]
-        classical_tokens = sum(r["n_words"] for r in classical) * cls["tokens_per_word"]
-        print(f"  {vocab_size:>6,}   full {whole / 1e6:>5.1f}M   "
-              f"classical {classical_tokens / 1e6:>5.1f}M")
+        print(f"  {vocab_size:>6,}   full {full['tokens'] / 1e6:>5.1f}M   "
+              f"classical {cls['tokens'] / 1e6:>5.1f}M")
 
     d, L = args.d_model, args.n_layer
     print(f"\nwhat the vocabulary costs at d_model={d}, n_layer={L} "

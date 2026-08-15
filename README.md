@@ -202,8 +202,8 @@ u/v and i/j merged); without that, Perseus's `uiri` and CSEL's `viri` look like
 different words. Documents reduce to bottom-k sketches of 5-gram hashes;
 Jaccard is estimated from sketch overlap and containment derived from it.
 
-**60 records, 887,619 words (4.9%) marked as duplicates. Surviving corpus:
-908 records, 17,271,153 words — of which 4,638,175 are CLASSICAL.**
+**59 records, 884,721 words (4.9%) marked as duplicates. Surviving corpus:
+909 records, 17,256,637 words — of which 4,636,779 are CLASSICAL.**
 
 Two relationships hide in the clusters and need opposite rules:
 
@@ -216,7 +216,10 @@ Two relationships hide in the clusters and need opposite rules:
 `--verify` is the guard against trusting an estimate: it samples 40 random
 8-word spans from each duplicate and tests literal membership in its keeper.
 Cross-edition duplicates score 50–90%, part-of-collection duplicates 100%.
-**Currently 0 of 60 fall below the 15% floor.** It earned its place — the
+**Currently 0 of 59 fall below the 15% floor.** That is the precise claim, and it
+is weaker than "no false positives": passing establishes that the duplicate's text
+really does occur in its keeper, not that discarding the whole record was the right
+call. Deciding that needs cluster-by-cluster human review, which has not been done. It earned its place — the
 *Excerpta Valesiana* looked like a false positive when probed on its opening
 alone, and verifies at 70% across 40 probes (Perseus uses Rolfe's Loeb, whose
 third volume prints the *Excerpta* as an appendix to Ammianus).
@@ -257,7 +260,8 @@ text rather than the text itself:
 | | |
 |---|---:|
 | editorial marks (`[] <> † ‡ * \| \ _ §`) removed | 40,672 |
-| words rejoined across line breaks | 3,813 |
+| words rejoined across line breaks | 3,050 |
+| ambiguous `word- word` split rather than fused | 763 |
 | orphaned spacing diacritics (OCR debris) | 667 |
 | homoglyphs remapped (mostly Cyrillic) | 233 |
 | acute accents — metrical ictus in Plautus | 12,007 |
@@ -267,8 +271,10 @@ Combining marks are stripped in a single NFD pass, which handles accents,
 macrons, breves, papyrological underdots (`ṃạḷẹ`) and numeral overlines
 together — ancient Latin needs none of them.
 
-**Result: a 48-letter alphabet** — a–z and A–Z minus `v/V` and `j/J`, which is
-exactly classical Latin's inventory. 249 non-ASCII characters remain in 17.25M
+**Result: a 48-character letter inventory** — a–z and A–Z minus `v/V` and `j/J`.
+That is *not* the classical alphabet, which had 23 letters and no case
+distinction at all; it is a modern cased inventory with the two post-classical
+letters folded away. 249 non-ASCII characters remain in 17.25M
 words, deliberately left visible rather than guessed at (Roman-numeral
 apostrophus `ↄ Ↄ`, and three stray OCR artifacts).
 
@@ -288,11 +294,15 @@ python src/build.py --period CLASSICAL   # the Latin-0 corpus, 4.64M words
 python src/tokenizer.py                  # train the vocabulary sweep and measure
 ```
 
-Validation is held out as **whole works, never random lines** — a line-level
-split leaks the surrounding paragraphs of every held-out line, so it measures
-memorisation of context the model already has. Works are chosen deterministically
-and stratified by period, capped so no single work eats the budget: 49 works,
-856,617 words, 5.0%.
+Validation is held out by **whole authors**, never random lines and not merely
+whole works. A line-level split leaks the surrounding paragraphs of every held-out
+line; a work-level split leaks the author — holding out one work by Augustine
+while training on thirty others measures interpolation to an unseen text by a
+thoroughly familiar writer. The first version of this split had **18 of 31
+validation authors also present in training, covering 58% of validation words**.
+Grouping by author closes it: 58 records, 855,423 words, 5.0%, **0 authors
+shared with training**. `--group-by work` restores the looser signal, which is
+worth reporting alongside since the two answer different questions.
 
 ### What the tokenizer settled
 
@@ -301,15 +311,15 @@ Measured, byte-level BPE trained on the corpus:
 
 | vocab | tok/word | tok/word (classical) | corpus tokens | whole forms memorised | embedding share |
 |---:|---:|---:|---:|---:|---:|
-| 2,000 | 2.265 | 2.469 | 37.1M | 0 / 12 | 10% |
-| **4,000** | **1.973** | **2.179** | **32.4M** | **0 / 12** | **18%** |
-| 8,000 | 1.757 | 1.952 | 28.8M | 3 / 12 | 30% |
-| 16,000 | 1.593 | 1.773 | 26.1M | 5 / 12 | 46% |
-| 32,000 | 1.470 | 1.632 | 24.1M | 7 / 12 | 63% |
+| 2,000 | 2.348 | 2.450 | 38.5M | 0 / 12 | 10% |
+| **4,000** | **2.054** | **2.164** | **33.7M** | **0 / 12** | **18%** |
+| 8,000 | 1.834 | 1.937 | 30.1M | 2 / 12 | 30% |
+| 16,000 | 1.667 | 1.759 | 27.3M | 5 / 12 | 46% |
+| 32,000 | 1.538 | 1.620 | 25.2M | 7 / 12 | 63% |
 
-The assumption was good — 1.8 lands almost exactly at an 8k vocabulary. Classical
-Latin runs ~11% *higher* fertility than the corpus average, being older, more
-varied and more heavily verse.
+Counted over every record, not sampled. The assumption was good — 1.8 lands
+between the 8k and 16k vocabularies. Classical Latin runs ~5% *higher* fertility
+than the corpus average, being older, more varied and more heavily verse.
 
 **Use 4,000.** Two reasons, and neither is compression:
 
@@ -331,6 +341,11 @@ Caesar's opening at two sizes, showing the trade directly:
  4,000 (20 tok)  ·Gal lia ·est ·omnis ·diuis a ·in ·partes ·tres , ·quarum ...
 32,000 (15 tok)  ·Gallia ·est ·omnis ·diuisa ·in ·partes ·tres , ·quarum ...
 ```
+
+The morphology evidence is an *illustration*, not a result: twelve hand-picked
+paradigm forms and three stem groups. It shows the mechanism clearly and it points
+the same way as the parameter-cost argument, but it is far too small a probe to
+carry the claim on its own.
 
 Byte-level BPE is used throughout: it cannot emit `<unk>`, which matters because
 249 stray non-ASCII characters survived normalization deliberately. Round-trip is
@@ -376,9 +391,9 @@ revisiting this.
 - [ ] `extract.py` — EDH/Papyri EpiDoc, Vicifons MediaWiki, Latin Library + Gutenberg plaintext
 - [x] Author-date authority list → per-work `period` and `approximate_date`
 - [x] Orthographic normalization — 48-letter alphabet, u/v unified across sources
-- [x] Deduplication — content-based, verbatim-verified, 0 false positives
+- [x] Deduplication — content-based; 0 of 59 below the verbatim floor
 - [x] `build.py` — corpus with whole-work held-out split
-- [x] Tokenizer — 4k Latin BPE chosen on measured evidence; 32.4M tokens full / 9.6M classical
+- [x] Tokenizer — 4k Latin BPE chosen on measured evidence; 33.7M tokens full / 9.5M classical
 - [x] Two-track structure — A redistributable / B research, enforced in code
 - [x] `provenance.py` — attribution notice and standing audit gate
 - [ ] Evaluation suite, built *before* training Latin-0

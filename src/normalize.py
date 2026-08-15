@@ -101,9 +101,21 @@ HOMOGLYPHS = {
     "ⅽ": "c", "ⅰ": "i",
 }
 
-# A word broken across a line break. Latin does not hyphenate compounds, so
-# every occurrence of this shape is a typesetting artifact.
+# A word broken across a line break: the hyphen is a typesetting artifact and
+# the two halves belong together.
 HYPHEN_BREAK = re.compile(r"(\w)-[ \t]*\n[ \t\n]*(\w)")
+
+# A hyphen followed by a SPACE rather than a newline is ambiguous, and the two
+# readings need opposite treatment. Measured across the corpus: 763 occurrences,
+# genuinely mixed. Some are line breaks whose newline was lost upstream
+# (`de- turbarunt` -> deturbarunt, `co- haerentes` -> cohaerentes); others are
+# dashes used as punctuation between separate words (`esse- celeriter`,
+# `incaluisse- deas`), where joining produces the nonce words `essceleriter` and
+# `incaluissedeas`.
+#
+# Fusing two real words is worse than failing to fuse a split one: the first
+# invents a token that does not exist in Latin, the second leaves two fragments
+# that mostly do. So the default strips the hyphen and keeps the word boundary.
 HYPHEN_SPACE = re.compile(r"(\w)-[ \t]+(\w)")
 
 FOLD_U = str.maketrans({"v": "u", "V": "U", "j": "i", "J": "I"})
@@ -122,7 +134,8 @@ def strip_marks(text: str) -> str:
 
 
 def normalize(text: str, uv: str = "u", diacritics: bool = False,
-              lowercase: bool = False, stats: Counter = None) -> str:
+              lowercase: bool = False, stats: Counter = None,
+              hyphen_space: str = "split") -> str:
     if stats is None:
         stats = Counter()
 
@@ -132,8 +145,12 @@ def normalize(text: str, uv: str = "u", diacritics: bool = False,
     # Rejoin before anything else: the marks that follow could mask the break.
     text, n = HYPHEN_BREAK.subn(r"\1\2", text)
     stats["hyphen_rejoined"] += n
-    text, n = HYPHEN_SPACE.subn(r"\1\2", text)
-    stats["hyphen_rejoined"] += n
+    if hyphen_space == "join":
+        text, n = HYPHEN_SPACE.subn(r"\1\2", text)
+        stats["hyphen_space_joined"] += n
+    elif hyphen_space == "split":
+        text, n = HYPHEN_SPACE.subn(r"\1 \2", text)
+        stats["hyphen_space_split"] += n
 
     if not diacritics:
         before = text
@@ -191,6 +208,9 @@ def main() -> int:
     ap.add_argument("--keep-diacritics", action="store_true",
                     help="retain combining marks (macrons, ictus, underdots)")
     ap.add_argument("--lowercase", action="store_true", help="also lowercase everything")
+    ap.add_argument("--hyphen-space", choices=("split", "join", "keep"), default="split",
+                    help="how to treat `word- word`: strip the hyphen and keep the "
+                         "boundary (default), fuse the halves, or leave untouched")
     ap.add_argument("--samples", type=int, default=6, help="before/after examples to show")
     args = ap.parse_args()
 
@@ -210,7 +230,8 @@ def main() -> int:
             original = rec["text"]
             words_before += len(original.split())
             text = normalize(original, uv=args.uv, diacritics=args.keep_diacritics,
-                             lowercase=args.lowercase, stats=stats)
+                             lowercase=args.lowercase, stats=stats,
+                             hyphen_space=args.hyphen_space)
             words_after += len(text.split())
             stats["records"] += 1
             if original != text:
@@ -239,7 +260,8 @@ def main() -> int:
     print(f"records          {stats['records']:,} ({stats['records_changed']:,} changed)")
     print(f"words            {words_before:,} -> {words_after:,} "
           f"({words_after - words_before:+,})")
-    for key in ("hyphen_rejoined", "editorial_marks", "orphan_diacritics",
+    for key in ("hyphen_rejoined", "hyphen_space_split", "hyphen_space_joined",
+                "editorial_marks", "orphan_diacritics",
                 "homoglyphs", "ligatures", "records_with_diacritics"):
         if stats[key]:
             print(f"  {key:<26} {stats[key]:>9,}")

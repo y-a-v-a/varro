@@ -76,29 +76,58 @@ def load() -> List[Dict[str, Any]]:
     return records
 
 
-def choose_validation(records: List[Dict[str, Any]], fraction: float) -> set:
-    """Pick whole works for validation, stratified by period."""
+def choose_validation(records: List[Dict[str, Any]], fraction: float,
+                      group_by: str = "author") -> set:
+    """Hold out validation, stratified by period, grouped so nothing leaks.
+
+    Whole works are not a strong enough unit. Holding out one work by Augustine
+    while training on thirty others measures interpolation to an unseen text by a
+    thoroughly familiar author — which is worth knowing, but is not
+    generalisation. Measured on the first version of this split: 18 of 31
+    validation authors also appeared in training, covering 498,089 of 856,617
+    validation words (58%).
+
+    Grouping by author closes that. `--group-by work` restores the old behaviour
+    for a cheaper, more optimistic loss signal; the two answer different
+    questions and it is worth reporting both.
+    """
     total = sum(r["n_words"] for r in records)
     budget = total * fraction
-    by_period: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+
+    def key(rec: Dict[str, Any]) -> str:
+        if group_by == "author":
+            return (rec.get("author") or f"~anon~{rec['id']}").strip().lower()
+        return rec["id"]
+
+    groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     for rec in records:
-        by_period[rec.get("period") or "UNASSIGNED"].append(rec)
+        groups[key(rec)].append(rec)
+
+    # A group belongs to whichever period holds most of its words, so an author
+    # is never split across strata either.
+    by_period: Dict[str, List[List[Dict[str, Any]]]] = defaultdict(list)
+    for members in groups.values():
+        weights: Counter = Counter()
+        for rec in members:
+            weights[rec.get("period") or "UNASSIGNED"] += rec["n_words"]
+        by_period[weights.most_common(1)[0][0]].append(members)
 
     rng = random.Random(SEED)
     chosen: set = set()
-    for period, group in sorted(by_period.items()):
-        share = budget * sum(r["n_words"] for r in group) / total
-        cap = share * MAX_VAL_SHARE
-        # Prefer mid-sized works: big enough to give a stable perplexity,
-        # small enough not to swallow the budget.
-        eligible = [r for r in group if 2000 <= r["n_words"] <= max(cap, 2000)]
+    for period, group_list in sorted(by_period.items()):
+        period_words = sum(r["n_words"] for g in group_list for r in g)
+        share = budget * period_words / total
+        cap = max(share * MAX_VAL_SHARE, 2000)
+        eligible = [g for g in group_list
+                    if 2000 <= sum(r["n_words"] for r in g) <= cap]
         rng.shuffle(eligible)
         used = 0.0
-        for rec in eligible:
-            if used + rec["n_words"] > share:
+        for members in eligible:
+            words = sum(r["n_words"] for r in members)
+            if used + words > share:
                 continue
-            chosen.add(rec["id"])
-            used += rec["n_words"]
+            chosen.update(r["id"] for r in members)
+            used += words
     return chosen
 
 
@@ -111,6 +140,9 @@ def main() -> int:
     ap.add_argument("--period", action="append",
                     help="restrict to a period (repeatable); default is all")
     ap.add_argument("--val-fraction", type=float, default=0.05)
+    ap.add_argument("--group-by", choices=("author", "work"), default="author",
+                    help="held-out unit: whole authors (default, no leakage) or "
+                         "whole works (cheaper signal, same authors in train)")
     ap.add_argument("--min-words", type=int, default=0,
                     help="drop records shorter than this")
     args = ap.parse_args()
@@ -138,13 +170,18 @@ def main() -> int:
             reasons["too-short"] += rec["n_words"]
             continue
         if not rec.get("normalization"):
-            reasons["NOT-NORMALIZED"] += rec["n_words"]
+            # Counted AND excluded. Previously this was counted and then kept,
+            # which let un-normalized text into a build that claimed to be
+            # normalized — the report said something was wrong and the corpus
+            # shipped it anyway.
+            reasons["NOT-NORMALIZED (excluded)"] += rec["n_words"]
+            continue
         kept.append(rec)
 
     if not kept:
         sys.exit("nothing left after filtering")
 
-    val_ids = choose_validation(kept, args.val_fraction)
+    val_ids = choose_validation(kept, args.val_fraction, args.group_by)
     train = [r for r in kept if r["id"] not in val_ids]
     val = [r for r in kept if r["id"] in val_ids]
 
@@ -156,7 +193,11 @@ def main() -> int:
     print(f"corpus           {len(kept):,} records, {tw + vw:,} words")
     print(f"  train          {len(train):,} records, {tw:,} words")
     print(f"  validation     {len(val):,} records, {vw:,} words "
-          f"({100 * vw / (tw + vw):.1f}%)")
+          f"({100 * vw / (tw + vw):.1f}%), held out by {args.group_by}")
+    shared = {r.get("author") for r in train} & {r.get("author") for r in val}
+    leaked = sum(r["n_words"] for r in val if r.get("author") in shared)
+    print(f"  author overlap {len(shared)} author(s), {leaked:,} validation words "
+          f"({100 * leaked / vw:.1f}%)" if vw else "")
     if args.period:
         print(f"  period filter  {', '.join(args.period)}")
     print("\nexcluded:")
@@ -203,6 +244,7 @@ def main() -> int:
         "licenses": dict(Counter(r.get("license") for r in kept)),
         "sources": dict(Counter(r.get("source") for r in kept)),
         "seed": SEED,
+        "group_by": args.group_by,
     }
     path = PROCESSED / "corpus.summary.json"
     with path.open("w", encoding="utf-8") as fh:

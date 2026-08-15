@@ -48,8 +48,8 @@ what the plan assumed. The conclusions move accordingly.
 
 | | words | notes |
 |---|---:|---|
-| corpus, post-dedup | 17,271,153 | 908 records, 3 of 9 green sources |
-| **CLASSICAL** | **4,638,175** | to AD 200; essentially all of it Perseus |
+| corpus, post-dedup | 17,256,637 | 908 records, 3 of 9 green sources |
+| **CLASSICAL** | **4,636,779** | to AD 200; essentially all of it Perseus |
 | LATE | 12,553,096 | DigilibLT + CSEL + late Perseus |
 | MEDIEVAL | 79,882 | |
 
@@ -57,18 +57,19 @@ what the plan assumed. The conclusions move accordingly.
 
 | vocab | tokens/word, all | tokens/word, classical | full corpus | classical |
 |---:|---:|---:|---:|---:|
-| 2,000 | 2.265 | 2.469 | 37.1M | 10.9M |
-| **4,000** | **1.973** | **2.179** | **32.4M** | **9.6M** |
-| 8,000 | 1.757 | 1.952 | 28.8M | 8.6M |
-| 16,000 | 1.593 | 1.773 | 26.1M | 7.8M |
-| 32,000 | 1.470 | 1.632 | 24.1M | 7.2M |
+| 2,000 | 2.348 | 2.450 | 38.5M | 10.8M |
+| **4,000** | **2.054** | **2.164** | **33.7M** | **9.5M** |
+| 8,000 | 1.834 | 1.937 | 30.1M | 8.5M |
+| 16,000 | 1.667 | 1.759 | 27.3M | 7.8M |
+| 32,000 | 1.538 | 1.620 | 25.2M | 7.1M |
 
-The ~1.8 planning figure was close — it lands almost exactly at an 8k vocabulary. But 4k is the
-better choice for this project (see below), and classical Latin runs ~11% *higher* fertility than
-the corpus average, being older, more varied and more heavily verse. At 4k:
+Counted over every record — an earlier version of this table sampled the first 400 documents, which
+in file order contained no Perseus at all and so measured late-antique prose only. The ~1.8 planning
+figure was still close: it lands between the 8k and 16k vocabularies. Classical Latin runs ~5%
+*higher* fertility than the corpus average, being older, more varied and more heavily verse. At 4k:
 
-- classical → **9.6M tokens**
-- full corpus → **32.4M tokens**
+- classical → **9.5M tokens**
+- full corpus → **33.7M tokens**
 
 Both slightly *above* the earlier estimate, which loosens the ladder a little rather than tightening
 it. Character-level, for reference: 6.91 chars/word, 113.3M characters.
@@ -80,11 +81,11 @@ epochs is Muennighoff et al. 2023 (*Scaling Data-Constrained Language Models*): 
 **~4 epochs** is worth nearly as much as fresh data, value decays sharply after, and is
 approximately zero past ~16–40.
 
-| epochs | classical only (9.6M tok) | full corpus (32.4M tok) |
+| epochs | classical only (9.5M tok) | full corpus (33.7M tok) |
 |---|---|---|
-| 4 (safe) | 38M eff. → **1.9M params** | 130M eff. → **6.5M params** |
-| 8 | 77M eff. → **3.8M params** | 259M eff. → **13.0M params** |
-| 16 (aggressive) | 154M eff. → **7.7M params** | 518M eff. → **25.9M params** |
+| 4 (safe) | 38M eff. → **1.9M params** | 135M eff. → **6.7M params** |
+| 8 | 76M eff. → **3.8M params** | 270M eff. → **13.5M params** |
+| 16 (aggressive) | 152M eff. → **7.6M params** | 539M eff. → **27.0M params** |
 
 ### Conclusions, revised
 
@@ -100,8 +101,8 @@ approximately zero past ~16–40.
   to ~5M params, or train it on the full corpus with period tags, which is what Latin-2 does anyway.
   The honest move is probably to **collapse Latin-1 into Latin-0** and go straight from a small
   classical proof to the full-corpus model.
-- **LATIN-XXV at 25M params is exactly at the 16-epoch line** — 25.9M by the measured numbers,
-  which is as close to the target as arithmetic gets. The remaining six sources have not landed yet,
+- **LATIN-XXV at 25M params sits just inside the 16-epoch line** — 27.0M by the measured numbers,
+  a little more headroom than the earlier (under-measured) figure suggested. The remaining six sources have not landed yet,
   so it stays feasible and gets more comfortable as they do.
 - **Vocabulary size is a parameter-budget decision, not a compression one.** At d_model=256 the
   transformer body is ~4.7M parameters regardless of vocabulary, while the embedding table is
@@ -325,7 +326,7 @@ Keep the staged structure. Change the following:
    measurement apparatus. Building the eval after you have a model is how you end up with an eval
    that flatters the model.
 5. ~~Measure the real token count early.~~ **Done.** Word counts moved the classical figure from
-   ~10M to 4.6M; the tokenizer then settled words→tokens at 1.973 (4k vocab), close to the assumed
+   ~10M to 4.6M; the tokenizer then settled words→tokens at 2.054 (4k vocab), against the assumed
    1.8. Nothing in §2 is an estimate any more. **Use a 4,000-token vocabulary** — it forces
    morphological decomposition (0 of 12 paradigm forms memorised, against 7 of 12 at 32k) and keeps
    embeddings to 18% of the parameter budget.
