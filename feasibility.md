@@ -143,7 +143,7 @@ but it under-specifies them. In rough order of how much damage they do if ignore
 remain open. Each subsection below records what was actually found, which in several cases was
 worse or stranger than anticipated.
 
-### 4.1 Orthographic normalisation (biggest omission) — IN PROGRESS
+### 4.1 Orthographic normalisation (biggest omission) — DONE
 Latin digital editions vary wildly and inconsistently on:
 - **u/v** and **i/j** (*uir* vs *vir*, *iam* vs *jam*)
 - **vowel-length macrons** (*āmō* vs *amo*) — present in teaching texts, absent in critical editions
@@ -160,8 +160,16 @@ orthography, normalise everything to it, and record the original form in metadat
 `Mercvrivs / Vt vos in vostris voltis mercimoniis` — three normalisation decisions in two lines.
 `dedupe.py` already has to fold u/v and i/j merely to *compare* editions: without that fold,
 Perseus's `uiri` and CSEL's `viri` are different words and cross-source similarity collapses. That
-fold is comparison-only; normalisation proper is the next step. CSEL adds a second requirement —
-unrejoined hyphenation across line breaks (`de the- sauro` for *thesauro*).
+fold is comparison-only; normalisation proper is `src/normalize.py`.
+
+*Implemented, and the measurement justified the priority.* The sources did not merely differ, they
+used opposing conventions: v as a share of (u+v) was 12.86% in Perseus and 11.46% in DigilibLT but
+**0.60% in CSEL**, which writes classical `uir`/`uita` throughout. All three are now 0%. Folding is
+towards `u` because the reverse needs morphology to know which u is consonantal. Also removed:
+40,672 editorial marks, 3,813 line-break hyphenations, 12,007 metrical ictus accents in Plautus,
+3,256 macrons/breves, 667 orphaned spacing diacritics and 233 homoglyphs (mostly Cyrillic, each of
+which silently split a word into two unrelated tokens). The result is a **48-letter alphabet** —
+a-z and A-Z less v/V and j/J — which is precisely classical Latin's inventory.
 
 ### 4.2 Deduplication — DONE
 Flagged already in `sources.md` §5 but worth repeating here because it interacts with the epoch

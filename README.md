@@ -56,8 +56,8 @@ src/
                       #    separate pass — they need the markup, which only
                       #    exists at extraction time.
   enrich.py           # authorities.yaml -> date + period         [done]
-  normalize.py        # u/v, i/j, macrons, ae/æ, hyphenation      [next]
-  dedupe.py           # content-based near-dup detection           [done]
+  normalize.py        # orthography: u/v, i/j, marks, hyphenation [done]
+  dedupe.py           # content-based near-dup detection          [done]
   build.py            # -> data/processed/corpus.jsonl
 configs/
 data/                 # gitignored — a build artifact, not source
@@ -211,6 +211,62 @@ third volume prints the *Excerpta* as an appendix to Ammianus).
 Duplicates are **marked, never deleted**, so the decision stays auditable and
 the policy can change without re-extracting.
 
+## Normalization
+
+`src/normalize.py` makes the corpus read as one language rather than three.
+The sources do not merely differ in spelling — they use **opposing conventions**:
+
+| v as a share of (u+v) | Perseus | DigilibLT | CSEL |
+|---|---:|---:|---:|
+| before | 12.86% | 11.46% | 0.60% |
+| after | 0% | 0% | 0% |
+
+CSEL writes classical `uir`/`uita` throughout while the other two distinguish u
+from v. Untreated, a tokenizer spends vocabulary discovering that `uir` and
+`vir` are the same word, and the model learns edition-house style as if it were
+Latin.
+
+```bash
+python src/normalize.py --report   # what would change, writes nothing
+python src/normalize.py            # rewrite data/interim/*.jsonl
+python src/normalize.py --uv v --keep-diacritics   # alternative policies
+```
+
+**Folding is towards `u`.** Going the other way — u to v where consonantal —
+requires morphological analysis to know which is which. Folding v to u requires
+nothing, restores the classical convention (Latin had one letter here; the
+distinction is a modern editorial invention), leaves CSEL's third of the corpus
+untouched, and matches what `dedupe.py` already does to compare editions.
+
+What the text turned out to be carrying, all of it an editor talking *about* the
+text rather than the text itself:
+
+| | |
+|---|---:|
+| editorial marks (`[] <> † ‡ * \| \ _ §`) removed | 40,672 |
+| words rejoined across line breaks | 3,813 |
+| orphaned spacing diacritics (OCR debris) | 667 |
+| homoglyphs remapped (mostly Cyrillic) | 233 |
+| acute accents — metrical ictus in Plautus | 12,007 |
+| macrons and breves | 3,256 |
+
+Combining marks are stripped in a single NFD pass, which handles accents,
+macrons, breves, papyrological underdots (`ṃạḷẹ`) and numeral overlines
+together — ancient Latin needs none of them.
+
+**Result: a 48-letter alphabet** — a–z and A–Z minus `v/V` and `j/J`, which is
+exactly classical Latin's inventory. 249 non-ASCII characters remain in 17.25M
+words, deliberately left visible rather than guessed at (Roman-numeral
+apostrophus `ↄ Ↄ`, and three stray OCR artifacts).
+
+Plautus' *Amphitruo*, which opened this project as
+`Mercvrivs / Vt vos in vostris voltis mercimoniis`, now reads:
+
+```
+Mercurius Ut uos in uostris uoltis mercimoniis emundis uendundisque
+me laetum lucris adficere atque adiuuare in rebus omnibus
+```
+
 ## Known limitations
 
 **Apparatus criticus in the Perseus source.** Four records (Pliny NH, three
@@ -250,7 +306,7 @@ revisiting this.
 - [x] `extract.py` — Perseus + CSEL (CTS/TEI) and DigilibLT (CoNLL-U), 18.2M words
 - [ ] `extract.py` — EDH/Papyri EpiDoc, Vicifons MediaWiki, Latin Library + Gutenberg plaintext
 - [x] Author-date authority list → per-work `period` and `approximate_date`
-- [ ] Orthographic normalization (see `feasibility.md` §4.1 — matters more than tokenizer vocab size)
+- [x] Orthographic normalization — 48-letter alphabet, u/v unified across sources
 - [x] Deduplication — content-based, verbatim-verified, 0 false positives
 - [ ] **Token count** — words are measured; tokens need the tokenizer
 - [ ] Evaluation suite, built *before* training Latin-0
