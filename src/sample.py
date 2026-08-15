@@ -45,11 +45,23 @@ def load_run(name: str) -> dict:
 
 
 def generate(model, tok, prompt: str, length: int, temperature: float,
-             top_k: int, context: int, key) -> str:
+             top_k: int, context: int, key, period: Optional[str] = None) -> str:
+    """Generate, optionally conditioned on a period tag.
+
+    Models trained with period tags saw each document prefixed by its register,
+    so starting a sample with <CLASSICAL> asks for Rome rather than the late
+    antique prose that is three quarters of the mixed corpus. A model trained
+    without tags ignores it — the token exists in the vocabulary but carries no
+    learned meaning, which is why the tag is reported alongside every sample.
+    """
+    ids = [tok.token_to_id("<|endoftext|>")]
+    if period:
+        tag = tok.token_to_id(f"<{period}>")
+        if tag is None:
+            sys.exit(f"tokenizer has no <{period}> token")
+        ids.append(tag)
     if prompt:
-        ids = tok.encode(prompt).ids
-    else:
-        ids = [tok.token_to_id("<|endoftext|>")]
+        ids.extend(tok.encode(prompt).ids)
 
     for _ in range(length):
         window = ids[-context:]
@@ -76,6 +88,8 @@ def main() -> int:
     ap.add_argument("--temperature", type=float, default=0.8)
     ap.add_argument("--top-k", type=int, default=40)
     ap.add_argument("--seed", type=int, default=3)
+    ap.add_argument("--period", choices=("CLASSICAL", "LATE", "MEDIEVAL", "NEOLATIN"),
+                    help="condition on a period tag (models trained with tags only)")
     ap.add_argument("--out", help="write samples here, one per blank-line block")
     args = ap.parse_args()
 
@@ -93,15 +107,23 @@ def main() -> int:
     model.eval()
     mx.eval(model.parameters())
 
-    print(f"{args.name}: {run['parameters']/1e6:.2f}M parameters, "
-          f"final held-out perplexity {run['final']['val_perplexity']:.1f}\n")
+    tagged = cfg.get("period_tags")
+    note = ""
+    if args.period and not tagged:
+        note = f"  [WARNING: {args.name} was trained WITHOUT period tags; " \
+               f"<{args.period}> carries no learned meaning here]"
+    print(f"{args.name}: {run['parameters']/1e6:.2f}M parameters, corpus "
+          f"{cfg.get('corpus')}, final held-out perplexity "
+          f"{run['final']['val_perplexity']:.1f}"
+          + (f", conditioned on <{args.period}>" if args.period else "") + note + "\n")
 
     key = mx.random.key(args.seed)
     samples: List[str] = []
     for i in range(args.n):
         key, use = mx.random.split(key)
         text = generate(model, tok, args.prompt, args.length,
-                        args.temperature, args.top_k, cfg["context"], use)
+                        args.temperature, args.top_k, cfg["context"], use,
+                        period=args.period)
         samples.append(text)
         print(f"--- {i+1} " + "-" * 62)
         print(" ".join(text.split()))
