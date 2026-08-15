@@ -1,5 +1,26 @@
 # Classical Latin Corpus — Copyright-Clear Source List
 
+> **Status, 2026-08-15.** This document is the original licence survey and remains the reference for
+> *what exists and under what terms*. Three of its Tier A sources are now fetched, extracted, dated
+> and deduplicated; see `README.md` for measured figures and `manifest/sources.yaml` for the
+> machine-readable manifest that actually drives the pipeline.
+>
+> | source | estimated here | **measured** |
+> |---|---:|---:|
+> | Perseus canonical-latinLit | 6.0M | **5,596,757** |
+> | DigilibLT | 4.0M | **6,522,099** |
+> | OGL CSEL | 5.0M | **6,039,916** |
+> | *total, post-dedup* | 15.0M | **17,271,153** |
+>
+> The estimates held to within ~21% in aggregate. Two corrections the survey got wrong are recorded
+> in `manifest/sources.yaml`: the CIRCSE DigilibLT mirror is **CoNLL-U + RDF, not TEI**, and its
+> README contradicts itself on licence (CC badge says BY-NC-SA 3.0, anchor text says BY-SA 4.0 —
+> resolved as BY-SA 4.0 for the texts, so only the text layer is ingested).
+>
+> The headline finding since: of that 17.3M words, only **4,638,175 are CLASSICAL**. The ~10M
+> classical figure below is an upper bound on what survives, not on what is reachable from literary
+> repositories — see `feasibility.md` §2.
+
 Goal: assemble as close as possible to the complete surviving corpus of **Classical Latin**
 (conventionally: earliest inscriptions ~600 BC through ~AD 200, i.e. the PHI scope), restricted to
 material that is **public domain** or under a **permissive / free-culture licence**.

@@ -44,12 +44,19 @@ There are two distinct corpus concepts, and a licensing ceiling that cuts across
 
 **Strict Classical Latin**
 
-Restricted approximately to Roman antiquity, the surviving body of text is small: on the order of
-**10 million words** for the core Classical corpus — Cicero, Caesar, Sallust, Livy, Virgil, Horace,
-Ovid, Seneca, Pliny, Tacitus and others.
+Restricted approximately to Roman antiquity, the surviving body of text is small. The usual figure
+is on the order of **10 million words** — Cicero, Caesar, Sallust, Livy, Virgil, Horace, Ovid,
+Seneca, Pliny, Tacitus and others.
 
-At roughly 1.8 tokens per word for a Latin BPE tokenizer, that is **~18M tokens**. This number
-drives the entire parameter ladder below.
+**Measured, 2026-08-15: 4,638,175 words.** Three of nine sources are extracted, dated per work and
+deduplicated. Perseus is the canonical classical source and is substantially complete for the
+canonical authors, so the gap to 10M does not close with another literary repository — it closes,
+partly, with the Latin Library (which overlaps Perseus heavily) plus inscriptions and papyri, and
+those are a different register: formulaic, abbreviated, epigraphic.
+
+At roughly 1.8 tokens per word for a Latin BPE tokenizer that is **~8.3M tokens** of classical
+Latin, against **~31M tokens** for the full corpus. These numbers drive the parameter ladder below;
+see `feasibility.md` §2 for the epoch arithmetic.
 
 **Historical Latin**
 
@@ -83,31 +90,33 @@ Latin represents the same linguistic distribution.
 ## Proposed training strategy
 
 Rather than immediately attempting a large Latin model, begin with a sequence of controlled
-experiments. Parameter counts are set by the data available, not by ambition: at ~18M tokens of
+experiments. Parameter counts are set by the data available, not by ambition: at ~8.3M tokens of
 strict classical Latin, and with repeated-data returns decaying sharply past ~4 epochs, the
-classical corpus alone supports a well-trained model of only a few million parameters. Full
-arithmetic in `feasibility.md`.
+classical corpus alone supports a well-trained model of only two or three million parameters. Full
+arithmetic in `feasibility.md` §2.
 
-**Latin-0 — ~5M parameters**
+**Latin-0 — ~2–5M parameters**
 
-Purpose: prove the pipeline, and establish the evaluation apparatus.
+Purpose: prove the pipeline, establish the evaluation apparatus, and answer the smallest interesting
+question — can a transformer trained only on Latin generate convincing Latin?
 
-Collect a small, clean Classical Latin corpus, build a Latin tokenizer, train from scratch and
-verify that loss decreases and recognizable Latin emerges.
+Collect a clean Classical Latin corpus, build a Latin tokenizer, train from scratch and verify that
+loss decreases and recognizable Latin emerges.
 
-This model is **not disposable**. At ~5M parameters it is approximately the largest *well-trained*
-model the strict classical corpus supports. Its outputs are a real result, not just a smoke test.
+This model is **not disposable**. On 8.3M classical tokens, ~2–3M parameters is the well-trained
+size; ~5M is defensible as an explicitly overtrained proof at roughly 12 epochs. Pick knowingly and
+record which. Its outputs are a real result, not a smoke test.
 
-**Latin-1 — ~10–15M parameters**
+Train entirely from random initialization. Do **pretraining only**. Don't instruction-tune it.
+Memorization must be *measured*, not assumed away: report n-gram overlap between generated samples
+and the training set.
 
-The first genuinely interesting model.
+**Latin-1 — folded into Latin-0**
 
-Trained on the strict Classical corpus — ~10M words, ~18M tokens. Train entirely from random
-initialization. Do **pretraining only** initially. Don't instruction-tune it.
-
-This size accepts some repetition and mild overtraining relative to Chinchilla, which is a
-legitimate regime for a fixed corpus — but memorization must be *measured*, not assumed away. Report
-n-gram overlap between generated samples and the training set.
+Originally a ~25M-parameter classical-only model, then ~10–15M. Against the measured corpus it needs
+24–36 epochs, past the point where repetition buys anything. There is no meaningful rung between a
+small classical proof and the full-corpus model, so this stage is dropped rather than shrunk into
+irrelevance.
 
 Test the base model by giving it beginnings such as:
 
@@ -121,13 +130,16 @@ and, more importantly, novel Latin sentences that don't occur in the training co
 The question at this stage is simply: can a small transformer trained exclusively on Latin learn to
 generate convincing Latin?
 
-**Latin-2 — ~25–40M parameters**
+**Latin-2 — ~25M parameters**
 
 Only after the small experiment works should corpus construction become serious.
 
-Build a larger historical Latin dataset from clean-licence sources only (~50–150M words) and train
-**25–40M parameters**. This is the ceiling the licensing decision imposes, and it is deliberate: a
-100M+ parameter model would require non-commercially-licensed material and could not be published.
+Build out the remaining clean-licence sources and train **~25M parameters**. This is the ceiling the
+licensing decision imposes, and it is deliberate: a 100M+ parameter model would require
+non-commercially-licensed material and could not be published.
+
+At today's measured 31M tokens, 25M parameters sits exactly on the 16-epoch line — feasible now, and
+easing as the remaining six sources land.
 
 A two-phase training strategy:
 
@@ -237,11 +249,11 @@ The initial project can therefore be remarkably simple:
 5. Create a Latin-specific tokenizer.
 6. Define the evaluation suite *before* training: held-out perplexity on whole withheld works, UD
    treebank probing, memorization / n-gram overlap.
-7. Configure a ~5M parameter GPT (Latin-0) and train from random initialization.
+7. Configure a ~2–5M parameter GPT (Latin-0) and train from random initialization.
 8. Watch training and validation loss. Save checkpoints at different stages.
 9. Sample Latin from each checkpoint; evaluate grammar, vocabulary, memorization and stylistic
    resemblance.
-10. Scale to Latin-1 (~10–15M) once the pipeline and eval hold up.
+10. Scale to Latin-2 (~25M, full corpus, Latinitas→Romanitas) once the pipeline and eval hold up.
 11. Publish the model, tokenizer, corpus manifest and training parameters.
 
 The resulting flagship artifact:
