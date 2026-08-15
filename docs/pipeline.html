@@ -251,7 +251,8 @@
       <span class="chip on">Path A · everything publishable</span>
       <span class="chip">3 of 9 sources</span>
       <span class="chip">17.25M words</span>
-      <span class="chip">Next: tokenizer</span>
+      <span class="chip">32.4M tokens</span>
+      <span class="chip">Next: Latin-0</span>
     </div>
   </header>
 
@@ -428,6 +429,33 @@
         </div>
       </article>
 
+      <article class="stage">
+        <div class="node">6</div>
+        <div class="stage-head">
+          <h3>build.py · tokenizer.py</h3>
+          <span class="role">corpus → tokens</span>
+        </div>
+        <div class="stage-body">
+          <p>
+            Validation is held out as <em class="term">whole works</em>, never random lines: a
+            line-level split lets the model see the surrounding paragraphs of everything it is
+            scored on. Then a byte-level BPE vocabulary is trained and measured.
+          </p>
+          <div class="figs">
+            <div class="fig"><b>32.4M</b><span>tokens, full corpus</span></div>
+            <div class="fig"><b>9.6M</b><span>classical</span></div>
+            <div class="fig"><b>1.973</b><span>tokens per word</span></div>
+          </div>
+          <div class="found">
+            Every parameter figure in the project rested on an assumed 1.8 tokens per word. It was a
+            good guess. The vocabulary was then chosen at <b>4,000</b> — not for compression but
+            because a 32,000-token vocabulary would cost 8.2M parameters, <b>larger than the model
+            it serves</b>, and because a small vocabulary is forced to learn Latin's stems rather
+            than memorise its inflections.
+          </div>
+        </div>
+      </article>
+
     </div>
   </section>
 
@@ -470,14 +498,14 @@ uendundisque</pre>
         the two-phase plan always intended.</li>
     </ul>
     <p class="prose" style="color:var(--muted); font-size:.9rem">
-      One estimate remains in the chain: how many tokens a word becomes. The tokenizer settles it, and
-      may move these numbers once more.
+      Nothing in that arithmetic is an estimate any more. The tokenizer settled the last one at 1.973
+      tokens per word, and the 25M-parameter target lands at 25.9M — as close as arithmetic gets.
     </p>
   </section>
 
   <footer>
     <div>Claudius · an openly licensed Latin corpus, and a language model trained only on Latin.</div>
-    <div>Measured 15 August 2026 · 3 of 9 sources extracted, dated, normalized and deduplicated.</div>
+    <div>Measured 15 August 2026 · 3 of 9 sources, through corpus build and tokenizer.</div>
   </footer>
 
 </div>
