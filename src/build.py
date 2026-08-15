@@ -139,6 +139,9 @@ def main() -> int:
                     help="A = redistributable (default); B = research only")
     ap.add_argument("--period", action="append",
                     help="restrict to a period (repeatable); default is all")
+    ap.add_argument("--name", default="corpus",
+                    help="output basename, so variant builds do not clobber each "
+                         "other (e.g. --name classical --period CLASSICAL)")
     ap.add_argument("--val-fraction", type=float, default=0.05)
     ap.add_argument("--group-by", choices=("author", "work"), default="author",
                     help="held-out unit: whole authors (default, no leakage) or "
@@ -224,7 +227,7 @@ def main() -> int:
 
     PROCESSED.mkdir(parents=True, exist_ok=True)
     for name, rows in (("train", train), ("validation", val)):
-        out = PROCESSED / f"corpus.{name}.jsonl"
+        out = PROCESSED / f"{args.name}.{name}.jsonl"
         with out.open("w", encoding="utf-8") as fh:
             for rec in rows:
                 rec = dict(rec, split=name, track=args.track)
@@ -246,7 +249,7 @@ def main() -> int:
         "seed": SEED,
         "group_by": args.group_by,
     }
-    path = PROCESSED / "corpus.summary.json"
+    path = PROCESSED / f"{args.name}.summary.json"
     with path.open("w", encoding="utf-8") as fh:
         json.dump(summary, fh, indent=2, sort_keys=True)
         fh.write("\n")
