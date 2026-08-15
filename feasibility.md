@@ -117,39 +117,81 @@ memorisation has to be measured rather than hoped away. That is what makes the e
 
 ---
 
-## 3. The central conflict: permissive licensing vs. 100M parameters
+## 3. Two tracks: what you may train on vs. what you may redistribute
 
-**This is the finding that matters most.**
+**REVISED 2026-08-15.** This section originally posed a single choice — publish cleanly at ~25–40M
+parameters, or reach 100M with material that could not be redistributed. That framing was wrong in
+one respect: it treated "may I train on this?" and "may I redistribute this?" as the same question.
+They are not, and separating them dissolves most of the conflict.
 
-The plan cites Latin BERT's ~643M-word corpus as evidence that historical Latin gets you to scale.
-That figure is correct (642.7M words, Bamman & Burns 2020). **But that corpus is not reproducible
-under your licensing criteria.** It draws on Corpus Corporum, the Latin Library, Perseus and
-assorted internet sources, and it was assembled for research use, not for redistribution.
+The project is now explicitly a **non-commercial research experiment with open-source code**. Under
+that framing:
 
-From `sources.md`, here is what the licence tiers actually yield:
+### Track A — redistributable
 
-| Scope | Rough word count | Licence reality |
-|---|---|---|
-| Strict classical, green-licence | ~7–10M | Clean. CC BY-SA + PD. |
-| Historical Latin, green-licence only | ~50–150M *(estimate — needs measuring)* | Achievable but requires real OCR work from Tier C scans |
-| Historical Latin, including amber | ~250–400M | Corpus Corporum alone is 226M words — but **non-commercial only**, rights varying per constituent corpus |
-| Latin BERT-scale | ~643M | Not redistributable under your criteria |
+Free-licence sources only. This is the published corpus and the published weights. It remains the
+contribution: **a properly licensed Latin corpus does not currently exist**, and building one is
+worth doing independently of any model trained on it.
 
-So the fork is:
+Currently 17.25M words; ~39M when the remaining six green sources land. Supports ~25M parameters.
 
-- **Path A — strict permissive.** Cap ambitions around 25–40M params. Publish corpus, tokenizer and
-  weights with a clean licence. The corpus itself becomes a genuine contribution ("Open Latin
-  Corpus" in the plan) because *nobody has assembled a properly-licensed historical Latin corpus.*
-- **Path B — maximum scale.** Include Corpus Corporum and LASLA, reach 100M+ params, but the result
-  is research-only and cannot be redistributed commercially. ShareAlike/NC contamination also makes
-  the weights legally murky (see `sources.md` §0 — untested for model weights).
+### Track B — research only
 
-**DECIDED: Path A.** Ladder capped at 25–40M parameters; everything publishable. Amber material is
-kept in a separately-tagged shard so a Path-B variant can be trained privately for comparison
-without contaminating the publishable artifact.
+Adds the non-commercial sources. Never redistributed; the code, the results and the provenance are
+published instead.
 
-Path A is also the more interesting *result* — "here is a properly-licensed Latin corpus and a model
-trained only on it" is a contribution; "here is another model trained on scraped text" is not.
+| | words |
+|---|---:|
+| Track A, all green sources landed | ~39M |
+| Corpus Corporum | 226M |
+| IntraText | 10M |
+| LASLA | 1.6M |
+| **Track B total** | **~277M** |
+
+At the measured ~2 tokens/word that is roughly **550M tokens** — 4 epochs gives 2.2B effective
+tokens, which supports a **~110M parameter model** at Chinchilla-optimal ratios, no overtraining
+games. The 100M-parameter ambition of the original plan is restored, and by a comfortable margin.
+
+Two riders on that number. Corpus Corporum is ~80% of it and is mostly medieval and neo-Latin, so
+Track B's period balance is very different from Track A's. And its 226M is the platform's headline
+figure, not a measurement of what is actually retrievable.
+
+### The legal basis, and its limit
+
+Training and redistribution sit under different rules.
+
+- **EU.** Directive 2019/790 Art. 3 permits text and data mining for scientific research on
+  lawfully accessed works by research organisations, and Art. 7(1) makes that right
+  **unoverridable by contract** — a licence term forbidding TDM does not bind it. Art. 4 extends a
+  general TDM exception to everyone, subject to rightsholder opt-out.
+- **US.** No explicit exception, but non-commercial research is the strongest fair-use posture
+  there is (*HathiTrust*, *Authors Guild v. Google*).
+
+The limit matters as much as the permission: **Art. 3 covers making and retaining copies for
+mining. It does not authorise redistributing the corpus.** That is precisely why Track B exists as a
+separate track rather than as a bigger Track A. Whether a trained model is a derivative of its
+training data is unsettled everywhere; publishing Track B *weights* would be taking a position on
+that question, so the default is not to.
+
+### What this changes, and what it does not
+
+- **Changed:** the ~25M ceiling is no longer a ceiling on the *project*, only on what is published.
+- **Changed:** LASLA becomes available, and it is the best Latin gold standard in existence —
+  1.6M words of hand-verified morphology. As held-out evaluation data it is never redistributed, so
+  its non-commercial terms cost nothing at all there.
+- **Unchanged:** Track A's discipline. The guard is now track-aware rather than absolute, but
+  `fetch.py`, `build.py` and `provenance.py --check` all still refuse non-green material in a
+  Track A build.
+- **Unchanged:** tier `unknown` enters neither track. A licence nobody has read is not a permissive
+  licence; silence is not permission. Musisque Deoque — the complete corpus of ancient Latin poetry
+  with apparatus — sits there, and is the most valuable outstanding permission request in the
+  project.
+
+### The comparison is itself a result
+
+Same pipeline, same tokenizer, two corpora an order of magnitude apart, on a language whose total
+surviving text is bounded. That is a cleaner data-scaling experiment than most, and it is available
+essentially for free once both tracks exist.
 
 ---
 
@@ -264,8 +306,9 @@ option — and that is a substantial project in its own right. Keep it out of sc
 
 Keep the staged structure. Change the following:
 
-1. ~~Make the Path A / Path B licensing decision~~ — **done, Path A.** Everything publishable;
-   non-commercial sources excluded from anything that ships.
+1. ~~Make the Path A / Path B licensing decision~~ — **superseded.** The project now runs two
+   tracks (§3): A redistributable, B research-only. Track membership is derived from the licence
+   tier and enforced in three places, and `provenance.py --check` audits it after the fact.
 2. **Re-size the ladder** to match the data. Revised again 2026-08-15 now that the classical
    corpus is measured at 4.6M words rather than the assumed 10M:
    - Latin-0: **~2–3M params** on classical-only is the well-trained size; ~5M is acceptable as an

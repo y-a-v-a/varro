@@ -26,22 +26,33 @@ pip install -r requirements.txt
 python src/fetch.py --list          # what's declared, and under what licence
 python src/fetch.py --validate      # check the manifest is sound
 python src/fetch.py --dry-run       # what would be fetched
-python src/fetch.py                 # fetch everything marked include:true
+python src/fetch.py                 # Track A — redistributable sources
+python src/fetch.py --track B       # research build, NOT redistributable
 python src/fetch.py --only perseus-canonical-latinLit
+
+python src/provenance.py --check    # audit provenance; non-zero exit on drift
 ```
 
 Perseus alone is ~175 MB / 1,361 files and clones in about ten seconds (blobless partial clone).
 
-## Two invariants
+## Three invariants
 
 **1. `data/raw/` is immutable.** Nothing in this repo edits a fetched file, and neither should you.
 Every correction belongs downstream, in code under `src/`. The moment you hand-patch a downloaded
 text, the corpus stops being reproducible and the licence trail breaks.
 
-**2. Path A is in force.** Everything that ships must be redistributable. Sources tiered `amber`
-(non-commercial or unclear licence) are declared in the manifest for the audit trail but are never
-fetched — `fetch.py` refuses them even when named explicitly. See [`feasibility.md`](feasibility.md) §3
-for the decision and what it costs (chiefly Corpus Corporum's 226M words).
+**2. Two tracks, and Track A stays clean.** "May I train on this?" and "May I redistribute this?"
+are different questions. **Track A** draws only on free-licence sources and is what gets published —
+corpus and weights. **Track B** adds non-commercial sources for research and is never redistributed;
+code, results and provenance are published instead. Track membership is *derived* from the licence
+tier, never asserted by hand, and enforced in three places: `fetch.py`, `build.py`, and
+`provenance.py --check`. See [`feasibility.md`](feasibility.md) §3.
+
+**3. Provenance is a standing obligation.** Every build records which sources it drew on, under
+which licence, in what proportion. `python src/provenance.py --check` regenerates
+[`ATTRIBUTION.md`](ATTRIBUTION.md) and exits non-zero if the corpus disagrees with the manifest, if a
+Track A build carries non-redistributable material, or if the notice has drifted. Run it after any
+manifest change and before publishing anything.
 
 ## Layout
 
@@ -60,6 +71,7 @@ src/
   dedupe.py           # content-based near-dup detection          [done]
   build.py            # -> data/processed/corpus.{train,validation} [done]
   tokenizer.py        # Latin BPE sweep + fertility measurement    [done]
+  provenance.py       # ATTRIBUTION.md + track audit gate          [done]
 configs/
 data/                 # gitignored — a build artifact, not source
   raw/ interim/ processed/
@@ -367,6 +379,8 @@ revisiting this.
 - [x] Deduplication — content-based, verbatim-verified, 0 false positives
 - [x] `build.py` — corpus with whole-work held-out split
 - [x] Tokenizer — 4k Latin BPE chosen on measured evidence; 32.4M tokens full / 9.6M classical
+- [x] Two-track structure — A redistributable / B research, enforced in code
+- [x] `provenance.py` — attribution notice and standing audit gate
 - [ ] Evaluation suite, built *before* training Latin-0
 - [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)
 

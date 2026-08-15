@@ -16,9 +16,16 @@ HELD-OUT SPLIT
     is not accidentally all late-antique prose, and capped in size so a single
     long work cannot consume the budget.
 
+TRACKS
+    Track A draws only on free-licence sources and is the corpus that gets
+    published. Track B adds non-commercial material and is research-only. The
+    track is recorded in the summary and in every record, and provenance.py
+    --check will refuse a Track A build that contains anything else.
+
 Usage:
     python src/build.py --report                 # what would be built
-    python src/build.py                          # full corpus, all periods
+    python src/build.py                          # Track A, all periods
+    python src/build.py --track B                # research build
     python src/build.py --period CLASSICAL       # the Latin-0 corpus
     python src/build.py --val-fraction 0.05
 """
@@ -39,6 +46,26 @@ PROCESSED = ROOT / "data" / "processed"
 # split cannot come down to one outlier (Livy alone is 515k words).
 MAX_VAL_SHARE = 0.25
 SEED = 20260815
+
+# Licence tiers each track may contain. Mirrors fetch.py's TRACKS; duplicated
+# deliberately so a build cannot succeed just because a fetch happened to.
+TRACKS = {"A": {"green"}, "B": {"green", "amber"}}
+
+
+def source_tiers() -> Dict[str, str]:
+    """Licence tier per source id, read from the manifest.
+
+    The corpus records carry a licence string but not a tier, and the tier is
+    what decides track membership — so it is looked up here rather than trusted
+    from whatever happened to be written into the records.
+    """
+    try:
+        import yaml
+    except ImportError:
+        sys.exit("PyYAML required — pip install -r requirements.txt")
+    with (ROOT / "manifest" / "sources.yaml").open(encoding="utf-8") as fh:
+        manifest = yaml.safe_load(fh)
+    return {s["id"]: s.get("tier", "unknown") for s in manifest["sources"]}
 
 
 def load() -> List[Dict[str, Any]]:
@@ -79,6 +106,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--report", action="store_true", help="analyse only, write nothing")
+    ap.add_argument("--track", choices=sorted(TRACKS), default="A",
+                    help="A = redistributable (default); B = research only")
     ap.add_argument("--period", action="append",
                     help="restrict to a period (repeatable); default is all")
     ap.add_argument("--val-fraction", type=float, default=0.05)
@@ -90,10 +119,17 @@ def main() -> int:
     if not records:
         sys.exit(f"no records in {INTERIM} — run the extract/enrich/normalize/dedupe stages")
 
+    tiers = source_tiers()
+    allowed = TRACKS[args.track]
+
     kept, reasons = [], Counter()
     for rec in records:
         if rec.get("is_duplicate"):
             reasons["duplicate"] += rec["n_words"]
+            continue
+        tier = tiers.get(rec.get("source"), "unknown")
+        if tier not in allowed:
+            reasons[f"not-in-track-{args.track} ({tier})"] += rec["n_words"]
             continue
         if args.period and (rec.get("period") not in args.period):
             reasons["period-filtered"] += rec["n_words"]
@@ -115,6 +151,8 @@ def main() -> int:
     tw = sum(r["n_words"] for r in train)
     vw = sum(r["n_words"] for r in val)
 
+    print(f"track            {args.track} — "
+          f"{'redistributable' if args.track == 'A' else 'RESEARCH ONLY, not redistributable'}")
     print(f"corpus           {len(kept):,} records, {tw + vw:,} words")
     print(f"  train          {len(train):,} records, {tw:,} words")
     print(f"  validation     {len(val):,} records, {vw:,} words "
@@ -148,12 +186,14 @@ def main() -> int:
         out = PROCESSED / f"corpus.{name}.jsonl"
         with out.open("w", encoding="utf-8") as fh:
             for rec in rows:
-                rec = dict(rec, split=name)
+                rec = dict(rec, split=name, track=args.track)
                 fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
         print(f"\nwrote {out.relative_to(ROOT)} — {len(rows):,} records, "
               f"{out.stat().st_size / 1e6:.1f} MB")
 
     summary = {
+        "track": args.track,
+        "redistributable": args.track == "A",
         "records": len(kept),
         "words": tw + vw,
         "train_records": len(train), "train_words": tw,

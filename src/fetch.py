@@ -8,13 +8,16 @@ Two invariants it exists to protect:
 
   1. data/raw/ is immutable. Nothing here edits a fetched file, and neither
      should you. Every correction belongs downstream, in code.
-  2. Path A (see feasibility.md §3): sources tiered `amber` are never fetched
-     into a build intended for publication.
+  2. Track discipline (see feasibility.md §3). Track A draws only on
+     free-licence sources and is what gets published; Track B adds
+     non-commercial sources and is never redistributed. Track membership is
+     derived from the licence tier, so the manifest cannot assert it directly.
 
 Usage:
     python src/fetch.py --list
     python src/fetch.py --validate
-    python src/fetch.py                       # all include:true sources
+    python src/fetch.py                       # Track A: redistributable
+    python src/fetch.py --track B             # research build, NOT redistributable
     python src/fetch.py --only perseus-canonical-latinLit
     python src/fetch.py --tier green --dry-run
 """
@@ -45,7 +48,14 @@ MANIFEST = ROOT / "manifest" / "sources.yaml"
 LOCKFILE = ROOT / "manifest" / "fetch.lock.json"
 RAW = ROOT / "data" / "raw"
 
-VALID_TIERS = {"green", "amber", "eval"}
+VALID_TIERS = {"green", "amber", "unknown", "eval"}
+
+# Which licence tiers each track may draw on. Track membership is derived here
+# and nowhere else — the manifest never names a track directly.
+TRACKS = {
+    "A": {"green"},                # redistributable: published corpus and weights
+    "B": {"green", "amber"},       # research only: adds non-commercial sources
+}
 VALID_METHODS = {"git", "http", "zenodo", "manual"}
 VALID_PERIODS = {
     "CLASSICAL", "LATE", "MEDIEVAL", "NEOLATIN", "MIXED", "DOCUMENTARY",
@@ -92,21 +102,24 @@ def validate(manifest: Dict[str, Any]) -> List[str]:
         if "period" in src and src["period"] not in VALID_PERIODS:
             errors.append(f"{where}: period must be one of {sorted(VALID_PERIODS)}")
 
-        # The Path A guardrail. An amber source marked include:true is not a
-        # typo we should quietly tolerate — it is the exact mistake that would
-        # contaminate a published corpus.
-        if src.get("tier") == "amber" and src.get("include"):
-            errors.append(
-                f"{where}: tier `amber` with include:true — this would put "
-                f"non-redistributable material into a published build (Path A violation)"
-            )
+        # An amber source with include:true is now correct — it means "wanted,
+        # in Track B". What must never happen is amber reaching a Track A build,
+        # and that is enforced at fetch and build time rather than here.
         if src.get("tier") == "eval" and src.get("include"):
             errors.append(
                 f"{where}: tier `eval` with include:true — evaluation data must "
                 f"never be mixed into pretraining"
             )
-        if src.get("tier") == "amber" and not src.get("exclude_reason"):
-            errors.append(f"{where}: tier `amber` requires an `exclude_reason`")
+        if src.get("tier") == "unknown" and src.get("include"):
+            errors.append(
+                f"{where}: tier `unknown` with include:true — a licence nobody has "
+                f"resolved cannot enter either track; settle it or leave it out"
+            )
+        if src.get("tier") in ("amber", "unknown") and not src.get("restriction"):
+            errors.append(
+                f"{where}: tier `{src.get('tier')}` requires a `restriction` "
+                f"explaining what the terms are and why"
+            )
 
     return errors
 
@@ -329,8 +342,11 @@ def main() -> int:
     ap.add_argument("--only", metavar="ID", help="fetch a single source by id")
     ap.add_argument("--tier", choices=sorted(VALID_TIERS), help="restrict to one tier")
     ap.add_argument("--dry-run", action="store_true", help="show what would be fetched")
+    ap.add_argument("--track", choices=sorted(TRACKS), default="A",
+                    help="A = redistributable sources only (default); "
+                         "B = research build, adds non-commercial sources")
     ap.add_argument("--include-all", action="store_true",
-                    help="ignore include:false (does NOT override the amber guard)")
+                    help="ignore include:false (does NOT override the track guard)")
     args = ap.parse_args()
 
     manifest = load_manifest()
@@ -354,19 +370,38 @@ def main() -> int:
         print("Nothing selected.")
         return 0
 
-    # Path A guard: refuse amber even when explicitly named.
-    amber = [s for s in targets if s.get("tier") == "amber"]
-    if amber:
-        print("Refusing to fetch non-redistributable (amber) sources:", file=sys.stderr)
-        for src in amber:
-            print(f"  - {src['id']}: {' '.join(src.get('exclude_reason','').split())}",
-                  file=sys.stderr)
-        print("\nThese are excluded by the Path A licensing decision (feasibility.md §3).\n"
-              "If you genuinely want a private research build, fetch them by hand into a\n"
-              "separate directory — do not route them through this script.", file=sys.stderr)
+    # Track guard. Track A may draw only on green sources; anything else named
+    # explicitly is refused rather than silently skipped, because a quiet skip
+    # is how a published corpus ends up missing what someone assumed was in it.
+    allowed = TRACKS[args.track]
+    blocked = [s for s in targets if s.get("tier") not in allowed]
+    if blocked:
+        print(f"Track {args.track} may not draw on these sources:", file=sys.stderr)
+        for src in blocked:
+            why = " ".join((src.get("restriction") or src.get("notes") or "").split())
+            print(f"  - {src['id']} [{src['tier']}]: {why[:160]}", file=sys.stderr)
+        if args.track == "A":
+            print("\nTrack A is the redistributable build. Non-commercial sources belong\n"
+                  "to Track B: re-run with --track B for a research build, which is NOT\n"
+                  "redistributable. See feasibility.md §3.", file=sys.stderr)
+        else:
+            print("\nTier `unknown` means the licence is unresolved, not merely\n"
+                  "restrictive. Settle the terms before fetching.", file=sys.stderr)
         return 1
 
-    print(f"Fetching {len(targets)} source(s) into {RAW.relative_to(ROOT)}/\n")
+    if args.track == "B":
+        research = [s for s in targets if s.get("tier") == "amber"]
+        if research:
+            print("=" * 72)
+            print(f"TRACK B — RESEARCH BUILD. NOT REDISTRIBUTABLE.")
+            print(f"{len(research)} non-commercial source(s) included:")
+            for src in research:
+                print(f"  - {src['id']} ({src['license']})")
+            print("Nothing built from this may be published as a corpus or as weights.")
+            print("=" * 72 + "\n")
+
+    print(f"Fetching {len(targets)} source(s) into {RAW.relative_to(ROOT)}/ "
+          f"[track {args.track}]\n")
     records: Dict[str, Any] = {}
 
     for src in targets:
@@ -384,6 +419,7 @@ def main() -> int:
                 "method": src["method"],
                 "license": src["license"],
                 "tier": src["tier"],
+                "name": src.get("name"),
                 "fetched": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 **result,
             }

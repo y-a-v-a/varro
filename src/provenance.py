@@ -1,0 +1,287 @@
+#!/usr/bin/env python3
+"""Generate the attribution notice and audit builds against the manifest.
+
+Provenance is a standing obligation here, not a release-time chore. Two things
+have to stay true continuously, and both are easy to break silently:
+
+  1. Every source that reached the corpus is credited under its actual licence,
+     with the exact version that was ingested. CC BY-SA obliges attribution on
+     redistribution, and "we will write that up before release" is how projects
+     end up unable to reconstruct what they trained on.
+
+  2. A Track A build contains only redistributable material. The guard exists in
+     fetch.py and build.py, but guards run at the moment of action and this one
+     has to hold afterwards too — a manifest edit, a hand-copied directory or a
+     stale interim file can each defeat them after the fact.
+
+`--check` is the gate: it exits non-zero if the built corpus disagrees with the
+manifest, if a Track A build carries non-green material, or if ATTRIBUTION.md is
+missing or out of date. Run it after any manifest change, and before publishing
+anything at all.
+
+Usage:
+    python src/provenance.py             # report + write ATTRIBUTION.md
+    python src/provenance.py --report    # report only
+    python src/provenance.py --check     # audit; non-zero exit on any problem
+"""
+
+import argparse
+import json
+import sys
+from collections import Counter, defaultdict
+from datetime import date
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+try:
+    import yaml
+except ImportError:
+    sys.exit("PyYAML required — pip install -r requirements.txt")
+
+ROOT = Path(__file__).resolve().parent.parent
+MANIFEST = ROOT / "manifest" / "sources.yaml"
+LOCKFILE = ROOT / "manifest" / "fetch.lock.json"
+INTERIM = ROOT / "data" / "interim"
+PROCESSED = ROOT / "data" / "processed"
+ATTRIBUTION = ROOT / "ATTRIBUTION.md"
+
+TRACKS = {"A": {"green"}, "B": {"green", "amber"}}
+
+# ShareAlike propagates: a corpus containing any CC BY-SA material must itself
+# be offered under CC BY-SA. Public-domain material can sit inside that happily;
+# it simply carries no obligation of its own.
+SHAREALIKE = {"CC-BY-SA-4.0", "CC-BY-SA-3.0"}
+ATTRIBUTION_ONLY = {"CC-BY-4.0", "CC-BY-3.0"}
+NO_OBLIGATION = {"public-domain", "CC0-1.0"}
+
+
+def load_manifest() -> Dict[str, Dict[str, Any]]:
+    with MANIFEST.open(encoding="utf-8") as fh:
+        doc = yaml.safe_load(fh)
+    return {s["id"]: s for s in doc["sources"]}
+
+
+def load_lock() -> Dict[str, Any]:
+    if not LOCKFILE.exists():
+        return {}
+    with LOCKFILE.open(encoding="utf-8") as fh:
+        return json.load(fh).get("sources", {})
+
+
+def load_corpus() -> Tuple[List[Dict[str, Any]], str, Optional[str]]:
+    """Prefer the built corpus; fall back to interim so this works pre-build."""
+    built = sorted(PROCESSED.glob("corpus.*.jsonl"))
+    if built:
+        records = []
+        for path in built:
+            with path.open(encoding="utf-8") as fh:
+                records.extend(json.loads(line) for line in fh)
+        track = records[0].get("track") if records else None
+        return records, "data/processed", track
+    records = []
+    for path in sorted(INTERIM.glob("*.jsonl")):
+        with path.open(encoding="utf-8") as fh:
+            records.extend(json.loads(line) for line in fh)
+    records = [r for r in records if not r.get("is_duplicate")]
+    return records, "data/interim (no build yet)", None
+
+
+def summarise(records: List[Dict[str, Any]],
+              manifest: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+    words: Counter = Counter()
+    docs: Counter = Counter()
+    for rec in records:
+        words[rec.get("source")] += rec.get("n_words", 0)
+        docs[rec.get("source")] += 1
+
+    total = sum(words.values()) or 1
+    rows = []
+    for source_id, count in words.most_common():
+        entry = manifest.get(source_id, {})
+        rows.append({
+            "id": source_id,
+            "name": entry.get("name", source_id),
+            "url": entry.get("url"),
+            "license": entry.get("license", "UNKNOWN"),
+            "tier": entry.get("tier", "UNKNOWN"),
+            "words": count,
+            "documents": docs[source_id],
+            "share": count / total,
+            "in_manifest": source_id in manifest,
+        })
+    return rows
+
+
+def corpus_licence(rows: List[Dict[str, Any]]) -> str:
+    licences = {r["license"] for r in rows}
+    if licences & SHAREALIKE:
+        return "CC-BY-SA-4.0"
+    if licences & ATTRIBUTION_ONLY:
+        return "CC-BY-4.0"
+    if licences and licences <= NO_OBLIGATION:
+        return "public-domain"
+    return "MIXED — resolve before redistributing"
+
+
+def render(rows: List[Dict[str, Any]], lock: Dict[str, Any],
+           track: Optional[str], effective: str) -> str:
+    total_words = sum(r["words"] for r in rows)
+    lines = [
+        "# Attribution",
+        "",
+        "This corpus is assembled from the sources below. Each is credited under",
+        "the licence it was released with, pinned to the exact version ingested.",
+        "",
+        f"Generated by `src/provenance.py` on {date.today().isoformat()}. Do not edit by hand —",
+        "regenerate it, so it cannot drift from what was actually built.",
+        "",
+        f"- **Track**: {track or 'unbuilt'}"
+        + ("  — redistributable" if track == "A"
+           else "  — RESEARCH ONLY, must not be redistributed" if track == "B" else ""),
+        f"- **Documents**: {len(set()) or sum(r['documents'] for r in rows):,}",
+        f"- **Words**: {total_words:,}",
+        f"- **Effective licence of the assembled corpus**: `{effective}`",
+        "",
+    ]
+
+    if effective in SHAREALIKE:
+        lines += [
+            "ShareAlike propagates. Because the corpus contains CC BY-SA material, the",
+            "corpus as a whole must be offered under CC BY-SA 4.0. Public-domain material",
+            "sits inside that without difficulty; it simply carries no obligation itself.",
+            "",
+        ]
+
+    lines += ["## Sources", ""]
+    for row in rows:
+        pin = lock.get(row["id"], {}).get("resolved_pin")
+        lines += [
+            f"### {row['name']}",
+            "",
+            f"- Licence: **{row['license']}**",
+            f"- Source: {row['url']}",
+        ]
+        if pin:
+            lines.append(f"- Version ingested: `{pin}`")
+        lines += [
+            f"- Contribution: {row['words']:,} words across {row['documents']:,} documents "
+            f"({row['share']:.1%} of the corpus)",
+            "",
+        ]
+
+    lines += [
+        "## Underlying texts",
+        "",
+        "The Latin texts themselves are ancient and long out of copyright. What the",
+        "licences above cover is the modern editorial and encoding work: the constituted",
+        "text of a critical edition, conjectures, punctuation, and the digital markup.",
+        "Those claims vary by jurisdiction — the US rejects 'sweat of the brow' after",
+        "*Feist*, while Germany and Italy grant a neighbouring right in scientific",
+        "editions — but this project honours the licences as offered rather than",
+        "litigating them.",
+        "",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def check(rows: List[Dict[str, Any]], manifest: Dict[str, Dict[str, Any]],
+          track: Optional[str], rendered: str) -> List[str]:
+    problems: List[str] = []
+
+    for row in rows:
+        if not row["in_manifest"]:
+            problems.append(
+                f"source `{row['id']}` is in the corpus but not in the manifest "
+                f"({row['words']:,} words) — provenance cannot be established")
+        if row["license"] == "UNKNOWN":
+            problems.append(f"source `{row['id']}` has no recorded licence")
+
+    if track:
+        allowed = TRACKS.get(track, set())
+        for row in rows:
+            if row["tier"] not in allowed:
+                problems.append(
+                    f"Track {track} build contains `{row['id']}` at tier "
+                    f"`{row['tier']}` ({row['words']:,} words) — not redistributable")
+    else:
+        problems.append("no built corpus found; run src/build.py before publishing")
+
+    if not ATTRIBUTION.exists():
+        problems.append("ATTRIBUTION.md is missing — run `python src/provenance.py`")
+    else:
+        current = ATTRIBUTION.read_text(encoding="utf-8")
+        # Compare ignoring the generation date, which changes every day.
+        def strip_date(text: str) -> str:
+            return "\n".join(l for l in text.splitlines() if "Generated by" not in l)
+        if strip_date(current) != strip_date(rendered):
+            problems.append(
+                "ATTRIBUTION.md is out of date with the current corpus — "
+                "run `python src/provenance.py` to regenerate")
+
+    return problems
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--report", action="store_true", help="print only, write nothing")
+    ap.add_argument("--check", action="store_true",
+                    help="audit and exit non-zero on any problem")
+    args = ap.parse_args()
+
+    manifest = load_manifest()
+    lock = load_lock()
+    records, origin, track = load_corpus()
+    if not records:
+        sys.exit("no corpus found — run the pipeline first")
+
+    rows = summarise(records, manifest)
+    effective = corpus_licence(rows)
+    rendered = render(rows, lock, track, effective)
+
+    total = sum(r["words"] for r in rows)
+    print(f"corpus source     {origin}")
+    print(f"track             {track or 'unbuilt'}")
+    print(f"documents         {sum(r['documents'] for r in rows):,}")
+    print(f"words             {total:,}")
+    print(f"effective licence {effective}\n")
+    print(f"{'source':<32} {'tier':<8} {'licence':<16} {'words':>11}  share")
+    print("-" * 78)
+    for row in rows:
+        flag = "" if row["in_manifest"] else "  <-- NOT IN MANIFEST"
+        print(f"{row['id'][:32]:<32} {row['tier']:<8} {row['license']:<16} "
+              f"{row['words']:>11,}  {row['share']:>5.1%}{flag}")
+    print("-" * 78)
+
+    obligations: Dict[str, List[str]] = defaultdict(list)
+    for row in rows:
+        if row["license"] in SHAREALIKE:
+            obligations["attribution + ShareAlike"].append(row["id"])
+        elif row["license"] in ATTRIBUTION_ONLY:
+            obligations["attribution"].append(row["id"])
+        elif row["license"] in NO_OBLIGATION:
+            obligations["none"].append(row["id"])
+        else:
+            obligations["UNRESOLVED"].append(row["id"])
+    print("\nobligations:")
+    for kind, ids in sorted(obligations.items()):
+        print(f"  {kind:<26} {', '.join(ids)}")
+
+    if args.check:
+        problems = check(rows, manifest, track, rendered)
+        if problems:
+            print("\nPROVENANCE CHECK FAILED:", file=sys.stderr)
+            for problem in problems:
+                print(f"  - {problem}", file=sys.stderr)
+            return 1
+        print("\nprovenance check passed")
+        return 0
+
+    if not args.report:
+        ATTRIBUTION.write_text(rendered, encoding="utf-8")
+        print(f"\nwrote {ATTRIBUTION.relative_to(ROOT)}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

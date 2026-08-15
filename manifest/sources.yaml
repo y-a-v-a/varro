@@ -4,21 +4,44 @@
 #
 # This file is the authoritative record of what enters the corpus and under
 # what licence. `src/fetch.py` consumes it; `manifest/fetch.lock.json` records
-# what was actually retrieved (resolved commit SHAs, checksums, timestamps).
+# what was actually retrieved (resolved commit SHAs, checksums, timestamps);
+# `src/provenance.py` turns it into the attribution notice and audits builds
+# against it.
 #
-# PATH A is in force (see feasibility.md §3): everything that ships must be
-# redistributable. Sources with tier `amber` are documented here for the audit
-# trail and are NEVER fetched into a published build. They are listed rather
-# than deleted so that "why isn't X in the corpus?" has an answer in-repo.
+# TWO TRACKS
+#   The project runs two corpora from one pipeline, because "may I train on
+#   this?" and "may I redistribute this?" are different questions with
+#   different answers.
 #
-# tier:
-#   green  — public domain or free-culture licence. Ships.
-#   amber  — NC / unclear / custom licence. Excluded from published builds.
-#   eval   — held-out evaluation data. NEVER mixed into pretraining.
+#   Track A — REDISTRIBUTABLE. Free-licence sources only. This is the corpus
+#     and the weights that get published. It is the contribution: a properly
+#     licensed Latin corpus does not currently exist.
+#
+#   Track B — RESEARCH ONLY. Adds non-commercial sources. Never redistributed;
+#     results, code and provenance are published instead. Roughly an order of
+#     magnitude larger, which is what makes a ~100M-parameter model possible.
+#     Depends on a non-commercial research framing — and in the EU, on the
+#     TDM exceptions in Directive 2019/790 Art. 3/4, which permit mining for
+#     scientific research on lawfully accessed works but do NOT permit
+#     redistributing the corpus. See feasibility.md §3.
+#
+# tier — a licence class. Track membership is derived from it, never set by hand.
+#   green    free licence or public domain      -> Track A and Track B
+#   amber    non-commercial, terms known        -> Track B only
+#   unknown  licence unresolved                 -> neither, until settled
+#   eval     held-out evaluation data           -> neither; never pretrained on
+#
+# include — whether the source is wanted at all. An amber source with
+#   include:true is CORRECT: it means "wanted, in Track B". The guard that
+#   matters is that no amber source reaches a Track A build, and that is
+#   enforced in code (fetch.py, build.py, provenance.py --check), not here.
 #
 # period:   CLASSICAL | LATE | MEDIEVAL | NEOLATIN | MIXED | DOCUMENTARY
-# est_words are rough planning figures, not measurements. Step 3 of the
-# First Milestone (plan.md) replaces them with real counts.
+# est_words are rough planning figures, not measurements.
+#
+# PROVENANCE IS A STANDING OBLIGATION, not a release-time chore. Every build
+# records which sources it drew on, under which licence, in what proportion.
+# Run `python src/provenance.py --check` after any change to this file.
 # ===========================================================================
 
 version: 1
@@ -273,7 +296,9 @@ sources:
       ud-latin-perseus. Verify the exact licence in the repo before use.
 
   # -------------------------------------------------------------------------
-  # AMBER — EXCLUDED from published builds (Path A). Documented, not fetched.
+  # AMBER — Track B only. Non-commercial terms, known and accepted.
+  # These are fetched for research builds and NEVER enter a Track A build or
+  # any redistributed artifact. `restriction` records why.
   # -------------------------------------------------------------------------
 
   - id: corpus-corporum
@@ -283,15 +308,18 @@ sources:
     pin: null
     license: NonCommercial
     tier: amber
-    include: false
+    include: true
     format: tei-xml
     period: MIXED
     est_words: 226000000
-    exclude_reason: >
+    restriction: >
       Non-commercial use only, and rights vary per constituent corpus
       ("heterogeneous origin"). By far the largest Latin collection in existence
-      and the single biggest thing Path A gives up — 226M words. Excluded because
-      nothing in a published build may depend on it.
+      and the single reason Track B is worth running at all — it is ~80% of that
+      track's volume. CAVEAT: the platform's headline NC term is not the whole
+      story; individual constituent corpora may carry stricter terms, and that
+      needs a per-corpus check before Track B results are written up. Mostly
+      medieval and neo-Latin, so it shifts Track B's period balance heavily.
 
   - id: lasla
     name: LASLA / Opera Latina
@@ -300,14 +328,16 @@ sources:
     pin: null
     license: CC-BY-NC-SA-4.0
     tier: amber
-    include: false
+    include: true
     format: txt
     period: CLASSICAL
     est_words: 1630825
-    exclude_reason: >
-      CC BY-NC-SA 4.0. The highest-quality manually-verified annotated classical
-      Latin that exists (154 works, 19 authors). Painful exclusion. May be usable
-      as an evaluation reference under tier `eval` — decide separately.
+    restriction: >
+      CC BY-NC-SA 4.0. The highest-quality manually verified annotated classical
+      Latin in existence (154 works, 19 authors, morphology checked by hand).
+      Valuable twice over in Track B: as training data, and as the gold standard
+      for morphological evaluation — and evaluation data is never redistributed,
+      so NC costs nothing there.
 
   - id: intratext
     name: IntraText — Bibliotheca Latina
@@ -316,11 +346,13 @@ sources:
     pin: null
     license: CC-BY-NC-SA-3.0
     tier: amber
-    include: false
+    include: true
     format: html
     period: MIXED
     est_words: 10000000
-    exclude_reason: NonCommercial clause.
+    restriction: >
+      CC BY-NC-SA 3.0. Substantially derived from other collections, so expect
+      dedupe to remove much of the nominal 10M against sources already present.
 
   - id: tesserae
     name: Tesserae Latin corpus
@@ -328,15 +360,17 @@ sources:
     method: git
     pin: null
     license: UB-Public-License-1.0
-    tier: amber
+    tier: unknown
     include: false
     format: txt
     period: MIXED
     est_words: 8000000
-    exclude_reason: >
-      Custom university licence (unreviewed), and the corpus is largely DERIVED
-      from Perseus / Latin Library / DigilibLT / OGL — so it adds little beyond
-      the backbone while adding licence ambiguity.
+    restriction: >
+      UB Public License 1.0 — a custom university licence nobody here has read,
+      so the tier is `unknown` rather than `amber`: the terms are not merely
+      restrictive, they are unassessed. Low priority to resolve, because the
+      corpus is largely DERIVED from Perseus / Latin Library / DigilibLT / OGL
+      and would mostly be eaten by dedupe anyway.
 
   - id: musisque-deoque
     name: Musisque Deoque — Latin poetry with critical apparatus
@@ -344,12 +378,14 @@ sources:
     method: manual
     pin: null
     license: unclear
-    tier: amber
+    tier: unknown
     include: false
     format: tei-xml
     period: CLASSICAL
     est_words: 4000000
-    exclude_reason: >
-      Open access but no explicit free-culture licence stated. Complete corpus of
-      ancient Latin poetry — worth writing to the project to request explicit
-      permission. Until then, excluded.
+    restriction: >
+      Open access, but NO explicit licence is stated — which is `unknown`, not
+      `amber`: silence is not permission, and it cannot be assumed either way.
+      The complete corpus of ancient Latin poetry with critical apparatus, so
+      this is the most valuable outstanding permission request in the project.
+      Ask the project directly; until an answer arrives it enters neither track.
