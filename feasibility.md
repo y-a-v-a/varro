@@ -286,7 +286,7 @@ Gutenberg's Latin browse tag likewise catches English translations, bilingual ed
 grammars written in English (see `sources.md` §1). The plan's rule "don't mix English into the
 pretraining corpus" requires active filtering, not just source selection.
 
-### 4.6 Evaluation design — OPEN, and now the critical path
+### 4.6 Evaluation design — HARNESS BUILT, model-facing parts open
 "Sample it and see if it looks like Latin" is not enough, and the plan's milestone 9 is vague. A
 minimal but real eval suite:
 - **Held-out perplexity** on complete works withheld from training (whole works, not random lines —

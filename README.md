@@ -72,6 +72,7 @@ src/
   build.py            # -> data/processed/corpus.{train,validation} [done]
   tokenizer.py        # Latin BPE sweep + fertility measurement    [done]
   provenance.py       # ATTRIBUTION.md + track audit gate          [done]
+  evaluate.py         # baselines, memorisation, versioned reports [done]
 configs/
 data/                 # gitignored — a build artifact, not source
   raw/ interim/ processed/
@@ -351,6 +352,58 @@ Byte-level BPE is used throughout: it cannot emit `<unk>`, which matters because
 249 stray non-ASCII characters survived normalization deliberately. Round-trip is
 verified on held-out works, exact modulo a documented leading space.
 
+## Evaluation
+
+Built **before** any model exists, deliberately. An evaluation written afterwards
+measures what the model happens to be good at; written first, it states in
+advance what would count as success.
+
+```bash
+python src/evaluate.py --self-test          # validate the instrument
+python src/evaluate.py --baselines          # the floor, sliced
+python src/evaluate.py --memorization FILE  # score generated text
+```
+
+Every run writes a versioned JSON report to `data/processed/eval/`. **Those files
+are the source of truth for any figure quoted here** — hand-transcribing numbers
+is how this project's docs drifted from its builds before.
+
+### The floor
+
+An interpolated bigram over 33.7M training tokens, scored on the held-out split:
+**perplexity 195.2**. A 2–5M parameter transformer that cannot beat that has
+learned nothing, and saying so in advance is the point.
+
+| slice | perplexity | |
+|---|---:|---|
+| CLASSICAL | 163.8 | |
+| LATE | 211.2 | |
+| VERSE | 159.6 | more formulaic, more repetition |
+| PROSE | 218.2 | |
+| DRAMA | 129.7 | easiest — colloquial, highly repetitive |
+| MEDICINE | 280.0 | hardest — dense technical vocabulary |
+
+This is what the genre metadata bought. A single averaged number would have hidden
+a 150-point spread between Plautus and Caelius Aurelianus.
+
+### Memorisation
+
+The metric that matters most here. At 2–5M parameters trained many epochs over
+9.5M tokens, memorisation *is* the failure mode — and the plan's success criterion
+("novel Latin that does not occur in the corpus") is unfalsifiable without it.
+Generated text is cut into 12-word windows and each checked verbatim against the
+113MB of training text. Exact search, so it cannot report a false positive.
+
+The instrument is validated on inputs whose answer is known:
+
+| input | memorised | longest verbatim run |
+|---|---:|---:|
+| training text | 100.0% | 300 words |
+| held-out text | 0.0% | 0 |
+| shuffled real words | 0.0% | 0 |
+
+An unvalidated metric is worse than none, because it gets believed.
+
 ## Known limitations
 
 **Apparatus criticus in the Perseus source.** Four records (Pliny NH, three
@@ -396,7 +449,10 @@ revisiting this.
 - [x] Tokenizer — 4k Latin BPE chosen on measured evidence; 33.7M tokens full / 9.5M classical
 - [x] Two-track structure — A redistributable / B research, enforced in code
 - [x] `provenance.py` — attribution notice and standing audit gate
-- [ ] Evaluation suite, built *before* training Latin-0
+- [x] Genre and form metadata — 97.5% resolved, two orthogonal axes
+- [x] Evaluation harness — baselines, memorisation, versioned JSON reports
+- [ ] Model-facing eval: perplexity + generation, once Latin-0 exists
+- [ ] UD treebank syntactic probing (fetch via `--track eval`; exclude overlapping passages from training)
 - [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)
 
 ## A note on the first text fetched
