@@ -96,7 +96,7 @@ approximately zero past ~16–40.
   formulaic, abbreviated, epigraphic. Worth having, but not interchangeable with literary prose.
 - **Latin-0 at ~5M params on classical-only needs ~10 epochs.** Past the comfortable range. Either
   accept it as an explicitly overtrained pipeline proof — which is what the plan says it is — or
-  size it at **~2–4M params**, the well-trained range for 9.6M tokens.
+  size it at **~2–4M params**, the well-trained range for 9.5M tokens.
 - **Latin-1 at 10–15M params classical-only is no longer defensible**: 24–36 epochs. Either drop it
   to ~5M params, or train it on the full corpus with period tags, which is what Latin-2 does anyway.
   The honest move is probably to **collapse Latin-1 into Latin-0** and go straight from a small
@@ -243,7 +243,9 @@ are different texts, but you probably want only one.
 
 *Implemented in `src/dedupe.py`.* Content-based (bottom-k sketches of 5-gram hashes), not
 title-based, because titles diverge across projects and — more dangerously — the same title can hide
-different texts. 60 records / 887,619 words (4.9%) marked, verbatim-verified at 0 false positives.
+different texts. 59 records / 884,721 words (4.9%) marked; 0 of 59 fall below the 15% verbatim
+floor — which establishes that each duplicate's text really does occur in its keeper, not that
+discarding the whole record was right. That needs cluster-by-cluster human review, still undone.
 Two findings worth carrying forward: the overlap is not only cross-source (Celsus' *De Medicina*
 appears three times *inside* Perseus, in three different editions), and part/whole containment is as
 common as equivalence (Historia Augusta lives inside the whole, individual panegyrics inside
