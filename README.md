@@ -481,6 +481,90 @@ locally coherent and globally not: `quae sit ille` disagrees in gender, `rumint`
 is not a word, and no sentence sustains an argument. That is what 3.5M parameters
 on 9.5M tokens buys, and it is roughly what should have been expected.
 
+## Latin-2 — two-phase Latinitas → Romanitas
+
+The strategy `plan.md` proposed: learn Latin from all of it, then specialise on
+Rome. 15.90M parameters, sized to the data rather than to the name — 27M would
+have needed 16 epochs, which `feasibility.md` §2 itself calls aggressive, and
+37 hours instead of 8.
+
+```bash
+python src/train.py --name latin-2-latinitas --corpus corpus \
+    --dim 384 --layers 8 --heads 8 --steps 16000 --lr 2.5e-4
+python src/train.py --name latin-2 --corpus classical \
+    --init-from latin-2-latinitas --steps 1750 --lr 1e-4
+python src/compare.py
+```
+
+| run | params | corpus | epochs | ppl | floor | × floor | memo | hours |
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+| latin-0 | 3.53M | classical | 8.6 | 74.3 | 158.8 | 2.14× | 0.0% | 1.0 |
+| latin-2-latinitas | 15.90M | full | 7.8 | 48.2 | 195.2 | 4.05× | — | 8.1 |
+| **latin-2** | 15.90M | classical | 3.0 | **44.1** | 158.8 | **3.60×** | 0.0% | 0.9 |
+
+**Latin-0 and Latin-2 are directly comparable** — same held-out classical works,
+same 158.8 floor. Perplexity falls from 74.3 to 44.1, a 41% reduction.
+
+**But two variables moved at once**: model size (3.53M → 15.90M) *and* the
+two-phase schedule. This shows the combination works; it does not isolate which
+did the work. The clean ablation — 15.90M trained on classical alone — is a
+~2.5 hour run and has not been done.
+
+One thing the phase transition shows on its own: Romanitas reached 45.2 within
+**500 steps**, where Latin-0 needed 5,000 from random weights to reach 74.3.
+Adapting register inside a language you already know is far cheaper than
+learning the language.
+
+### Overfitting appears at scale, as predicted
+
+| run | train ppl | val ppl | gap |
+|---|---:|---:|---:|
+| latin-0 | 74.7 | 74.3 | 1.00× |
+| latin-2-latinitas | 34.5 | 48.2 | 1.40× |
+| latin-2 | 33.0 | 44.1 | 1.34× |
+
+Latin-0 had no gap at all. The larger models do — memorisation emerging as
+parameters rise against a fixed corpus, which is exactly what `feasibility.md`
+§2 warned would happen. It makes the memorisation measurement load-bearing here
+in a way it was not before.
+
+### Still not regurgitating
+
+Measured against the training text each model actually saw, with the control
+sampled evenly across every held-out work:
+
+| window | latin-0 | real Latin | latin-2 | real Latin |
+|---:|---:|---:|---:|---:|
+| 3 | 16.3% | 5.1% | 23.6% | 12.7% |
+| 4 | 1.0% | 1.2% | 4.1% | 5.2% |
+| 5 | 0.0% | 0.4% | 0.4% | 2.8% |
+| 12 | 0.0% | 0.4% | 0.0% | 1.6% |
+
+Both are at zero by twelve words. At three words both exceed real Latin — models
+reach for common phrasing more often than any individual author does, which is a
+bias toward the average, not memorisation. From five words up both sit *below*
+genuine unseen Latin. The train/val gap is real, but it is not showing up as
+verbatim recall.
+
+### What changed in the writing
+
+Same prompt, same seed:
+
+```
+latin-0    Gallia est omnis diuisa cum regni dedepit, ut, dum et Proici,
+           quem per urbem uenit, magistrato Treici, in Gallia; quos
+           Hannonis et ipse, fortune Pamphorium Pamlio, qui adesse
+
+latin-2    Gallia est omnis diuisa cum Secundamen, quique umeros et nigra
+           lotos Frigidus in Indicis in Geronibus aduectus Fletamque,
+           quae dulci flauae pinna uidemus, Italiaque et ex eo fontes
+```
+
+Latin-0 invents more non-words (`dedepit`, `Pamphorium`, `magistrato`). Latin-2's
+vocabulary is recognisably poetic — `umeros`, `nigra`, `frigidus`, `dulci flauae
+pinna` are hexameter furniture. Neither sustains an argument. The grammar
+improved; the meaning did not arrive.
+
 ## Known limitations
 
 **Apparatus criticus in the Perseus source.** Four records (Pliny NH, three
@@ -529,7 +613,9 @@ revisiting this.
 - [x] Genre and form metadata — 97.5% resolved, two orthogonal axes
 - [x] Evaluation harness — baselines, memorisation, versioned JSON reports
 - [x] **Latin-0 trained** — 3.53M params, held-out ppl 74.3 vs 158.8 floor (2.14×), 0% memorisation
-- [ ] Latin-2 (~25M) on the full corpus, two-phase Latinitas→Romanitas
+- [x] **Latin-2 trained** — 15.90M params, two-phase; ppl 44.1 vs 158.8 floor (3.60×), 0% memorisation
+- [ ] Ablation: 15.90M on classical alone, to separate size from schedule
+- [ ] LATIN-XXV (~25M) once the remaining six sources roughly double the corpus
 - [ ] UD treebank syntactic probing (fetch via `--track eval`; exclude overlapping passages from training)
 - [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)
 

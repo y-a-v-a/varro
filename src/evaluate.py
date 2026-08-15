@@ -54,6 +54,11 @@ DEFAULT_VOCAB = 4000
 # Latin collocations do not trip it, short enough to catch real regurgitation.
 MEMO_WINDOW = 12
 
+# Words taken from each held-out document to build the real-Latin control.
+# Spread across every work rather than drawn from one, so the control reflects
+# the held-out set as a whole instead of one author's habits.
+CONTROL_WORDS_PER_DOC = 400
+
 
 def load_split(split: str, corpus: str = "corpus") -> List[Dict[str, Any]]:
     path = PROCESSED / f"{corpus}.{split}.jsonl"
@@ -329,8 +334,17 @@ def cmd_memorisation(args) -> Dict[str, Any]:
           f"fraction {frac}   longest verbatim run "
           f"{result['longest_verbatim_words']} words\n")
 
-    control_text = load_split("validation", args.corpus)[0]["text"]
+    # The control must be stable, or numbers from different runs cannot be
+    # compared. Taking "the first held-out document" made it depend on whichever
+    # work sorted first, which differs between corpora — the same measurement
+    # gave 18.7% on one corpus and 4.7% on another purely from that choice.
+    # Sampling evenly across every held-out work removes it.
+    held_out = load_split("validation", args.corpus)
+    control_text = " ".join(
+        " ".join(rec["text"].split()[:CONTROL_WORDS_PER_DOC]) for rec in held_out)
     curve = {}
+    print(f"control: {len(held_out)} held-out works, "
+          f"{len(control_text.split()):,} words\n")
     print(f"{'window':>7} {'this text':>11} {'real unseen Latin':>19}")
     for w in (3, 4, 5, 6, 8, 12):
         here = overlap_fraction(text, haystack, w)

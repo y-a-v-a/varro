@@ -1,0 +1,96 @@
+{
+  "config": {
+    "batch": 32,
+    "checkpoint_every": 250,
+    "context": 512,
+    "corpus": "classical",
+    "dim": 384,
+    "dry_run": false,
+    "eval_every": 250,
+    "heads": 8,
+    "init_from": "latin-2-latinitas",
+    "layers": 8,
+    "lr": 0.0001,
+    "name": "latin-2",
+    "period_tags": true,
+    "resume": false,
+    "seed": 20260815,
+    "steps": 1750,
+    "vocab": 4000,
+    "warmup": 100,
+    "weight_decay": 0.1
+  },
+  "epochs": 3.0058846020017773,
+  "final": {
+    "elapsed_s": 3275.2863137722015,
+    "lr": 1.0000081601901911e-05,
+    "step": 1750,
+    "train_loss": 3.4977113008499146,
+    "val_loss": 3.7870834469795227,
+    "val_perplexity": 44.12751218392329
+  },
+  "generated": "2026-08-15T22:59:24+00:00",
+  "history": [
+    {
+      "elapsed_s": 466.6250138282776,
+      "lr": 9.82012425083667e-05,
+      "step": 250,
+      "train_loss": 3.7395159368515016,
+      "val_loss": 3.8597980737686157,
+      "val_perplexity": 47.45576783694609
+    },
+    {
+      "elapsed_s": 932.4057059288025,
+      "lr": 8.762710058363155e-05,
+      "step": 500,
+      "train_loss": 3.668727375984192,
+      "val_loss": 3.81142538189888,
+      "val_perplexity": 45.21484137278478
+    },
+    {
+      "elapsed_s": 1398.1829917430878,
+      "lr": 6.979899626458064e-05,
+      "step": 750,
+      "train_loss": 3.618531660079956,
+      "val_loss": 3.809045535326004,
+      "val_perplexity": 45.1073649269522
+    },
+    {
+      "elapsed_s": 1870.2473556995392,
+      "lr": 4.8680652980692685e-05,
+      "step": 1000,
+      "train_loss": 3.5662996644973757,
+      "val_loss": 3.800554543733597,
+      "val_perplexity": 44.72598012954286
+    },
+    {
+      "elapsed_s": 2340.062732696533,
+      "lr": 2.8967278922209516e-05,
+      "step": 1250,
+      "train_loss": 3.53679988861084,
+      "val_loss": 3.7934746146202087,
+      "val_perplexity": 44.41044167368864
+    },
+    {
+      "elapsed_s": 2807.9295308589935,
+      "lr": 1.504173815192189e-05,
+      "step": 1500,
+      "train_loss": 3.517693753242493,
+      "val_loss": 3.787540239095688,
+      "val_perplexity": 44.14767388809807
+    },
+    {
+      "elapsed_s": 3275.2863137722015,
+      "lr": 1.0000081601901911e-05,
+      "step": 1750,
+      "train_loss": 3.4977113008499146,
+      "val_loss": 3.7870834469795227,
+      "val_perplexity": 44.12751218392329
+    }
+  ],
+  "parameters": 15901440,
+  "run": "latin-2",
+  "schema_version": 1,
+  "train_tokens": 9538623,
+  "validation_tokens": 583401
+}
