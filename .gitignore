@@ -64,3 +64,6 @@ tokenizer/*.model
 .vscode/
 *.swp
 *~
+
+# Trained weights: reproducible from src/train.py + the pinned corpus.
+checkpoints/

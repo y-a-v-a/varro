@@ -294,16 +294,51 @@ def cmd_self_test(args) -> Dict[str, Any]:
                           "window_words": MEMO_WINDOW}}
 
 
+def overlap_fraction(text: str, haystack: str, window: int,
+                     cap: int = 250) -> Optional[float]:
+    """Share of sampled windows occurring verbatim in the haystack."""
+    words = " ".join(text.split()).split()
+    available = max(0, len(words) - window + 1)
+    if not available:
+        return None
+    step = max(1, available // min(cap, available))
+    tried = hits = 0
+    for start in range(0, available, step):
+        tried += 1
+        if " ".join(words[start:start + window]) in haystack:
+            hits += 1
+    return hits / tried if tried else None
+
+
 def cmd_memorisation(args) -> Dict[str, Any]:
+    """Score text for verbatim training overlap, against a real-Latin control.
+
+    A bare 0% is uninterpretable on its own: it could mean the model invents
+    everything, or merely that the window is too long for any text to match.
+    Genuine unseen Latin — a held-out work by a real author — sets the scale.
+    Overlap at or below that line is not regurgitation; well above it is.
+    """
     train = load_split("train")
     haystack = build_haystack(train)
     text = sys.stdin.read() if args.memorization == "-" else \
         Path(args.memorization).read_text(encoding="utf-8")
-    result = memorisation(text, haystack)
+
+    result = memorisation(text, haystack, window=args.window)
     frac = f"{result['fraction']:.1%}" if result["fraction"] is not None else "n/a"
     print(f"windows {result['windows']:,}   memorised {result['memorised']:,}   "
-          f"fraction {frac}   longest verbatim run {result['longest_verbatim_words']} words")
-    return {"memorization": result}
+          f"fraction {frac}   longest verbatim run "
+          f"{result['longest_verbatim_words']} words\n")
+
+    control_text = load_split("validation")[0]["text"]
+    curve = {}
+    print(f"{'window':>7} {'this text':>11} {'real unseen Latin':>19}")
+    for w in (3, 4, 5, 6, 8, 12):
+        here = overlap_fraction(text, haystack, w)
+        there = overlap_fraction(control_text, haystack, w)
+        curve[w] = {"text": here, "control": there}
+        print(f"{w:>7} {here:>10.1%} {there:>18.1%}")
+
+    return {"memorization": result, "window": args.window, "curve": curve}
 
 
 def main() -> int:
@@ -316,6 +351,8 @@ def main() -> int:
     ap.add_argument("--memorization", metavar="FILE",
                     help="score a file (or - for stdin) for verbatim training overlap")
     ap.add_argument("--vocab", type=int, default=DEFAULT_VOCAB)
+    ap.add_argument("--window", type=int, default=MEMO_WINDOW,
+                    help="verbatim window in words (default 12)")
     args = ap.parse_args()
 
     if args.baselines:

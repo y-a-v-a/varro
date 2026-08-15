@@ -73,6 +73,8 @@ src/
   tokenizer.py        # Latin BPE sweep + fertility measurement    [done]
   provenance.py       # ATTRIBUTION.md + track audit gate          [done]
   evaluate.py         # baselines, memorisation, versioned reports [done]
+  train.py            # MLX GPT from random init                  [done]
+  sample.py           # generation, for memorisation scoring      [done]
 configs/
 data/                 # gitignored — a build artifact, not source
   raw/ interim/ processed/
@@ -404,6 +406,64 @@ The instrument is validated on inputs whose answer is known:
 
 An unvalidated metric is worse than none, because it gets believed.
 
+## Latin-0 — the first model
+
+3.53M parameters (dim 192, 6 layers), trained from random initialisation on
+9.5M tokens of classical Latin and nothing else. 8.6 epochs, 23.2 tokens per
+parameter — essentially Chinchilla-optimal. One hour on an M2 at 23k tok/s.
+
+```bash
+python src/train.py                  # ~1h, writes checkpoints/latin-0.safetensors
+python src/sample.py --n 5
+python src/evaluate.py --memorization samples.txt
+```
+
+**Held-out perplexity 74.3, against a bigram floor of 195.2** stated before
+training began. It crossed the floor at roughly step 500 — six minutes in.
+
+Final train loss 4.3130 against validation 4.3080: **validation is marginally
+lower than training**, so after 8.6 epochs there is no overfitting gap at all.
+
+### Does it memorise?
+
+The question the whole project turns on, and the reason validation is held out
+by whole author. Of 1,459 twelve-word windows across 25 generations, **0 appear
+anywhere in the training corpus**.
+
+A bare 0% is uninterpretable, so the harness scores genuine unseen Latin — a
+held-out work by a real author — as a control:
+
+| window (words) | generated | real unseen Latin |
+|---:|---:|---:|
+| 3 | 19.4% | 18.7% |
+| 4 | 1.7% | 6.7% |
+| 5 | 0.0% | 4.4% |
+| 6 | 0.0% | 1.2% |
+| 12 | 0.0% | 0.0% |
+
+At three words the model matches real Latin almost exactly — both share common
+trigrams with the corpus, which is simply what Latin is. From four words up the
+generated text overlaps the corpus **less** than genuine Latin by a real author
+does. It is not regurgitating; if anything it under-reproduces the longer
+formulaic phrases that real Latin contains, which is a limitation as much as a
+result.
+
+### What it actually writes
+
+```
+Quid est, ut opinor, et quae sit ille, ut in rebus, quae ad modum in rebus
+agrum aduentum fatum, non ut ad se non potest, ita, ut cum aduentu resciscat;
+sed tamen etiam cum ab omnibus rebus, qui de rebus aduentu rumint, pro se a me
+expetendo ad eum qui uenerit, ita, quia aut exposui aut,
+```
+
+Honest reading: morphology is largely well-formed and the function-word skeleton
+is Latin — `ut opinor` is genuinely Ciceronian, `qui uenerit` is a correct
+perfect subjunctive, `pro se a me expetendo` is a plausible gerundive. But it is
+locally coherent and globally not: `quae sit ille` disagrees in gender, `rumint`
+is not a word, and no sentence sustains an argument. That is what 3.5M parameters
+on 9.5M tokens buys, and it is roughly what should have been expected.
+
 ## Known limitations
 
 **Apparatus criticus in the Perseus source.** Four records (Pliny NH, three
@@ -451,7 +511,8 @@ revisiting this.
 - [x] `provenance.py` — attribution notice and standing audit gate
 - [x] Genre and form metadata — 97.5% resolved, two orthogonal axes
 - [x] Evaluation harness — baselines, memorisation, versioned JSON reports
-- [ ] Model-facing eval: perplexity + generation, once Latin-0 exists
+- [x] **Latin-0 trained** — 3.53M params, held-out ppl 74.3 vs 195.2 floor, 0% memorisation
+- [ ] Latin-2 (~25M) on the full corpus, two-phase Latinitas→Romanitas
 - [ ] UD treebank syntactic probing (fetch via `--track eval`; exclude overlapping passages from training)
 - [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)
 
