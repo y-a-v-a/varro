@@ -310,7 +310,7 @@ revisiting this.
 - [x] Deduplication — content-based, verbatim-verified, 0 false positives
 - [ ] **Token count** — words are measured; tokens need the tokenizer
 - [ ] Evaluation suite, built *before* training Latin-0
-- [ ] Latin-0 (~5M params)
+- [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)
 
 ## A note on the first text fetched
 
@@ -322,5 +322,13 @@ Vt vos in vostris voltis mercimoniis
 ```
 
 `Mercvrivs`, `vostris`, `voltis` — u/v undifferentiated, archaic `vo-` for `ve-`. Three
-normalization decisions in the first two lines, before any modelling question arises. That is a fair
-preview of where the work actually is.
+normalization decisions in the first two lines, before any modelling question arose. It was a fair
+preview of where the work actually was: five pipeline stages later the same passage reads
+
+```
+Mercurius Ut uos in uostris uoltis mercimoniis
+```
+
+and getting there meant reconciling two incompatible u/v conventions across three projects,
+stripping 40,672 editorial marks, and proving that 60 apparent duplicates really were duplicates.
+The archaic `uo-` for `ue-` stays, because that is Plautus rather than his editor.
