@@ -1,0 +1,229 @@
+# ===========================================================================
+# Form and genre authority
+# ===========================================================================
+#
+# Period tells you when a text was written and nothing about what it is. Plautus
+# and the Digesta share a language and almost nothing else, and a single
+# perplexity number averaged over both says very little. Evaluation results are
+# far more informative sliced by register than by century.
+#
+# WHY THIS IS CURATED RATHER THAN INFERRED
+#   Line structure looked like a free signal for verse — verse lines are short.
+#   Measured, it is not: Livy, Tacitus, Augustine and Pliny all score like verse
+#   (median 8-9 words per line, >0.9 short lines) because their sources encode
+#   prose line-by-line, while Caesar and Cicero look like prose only because
+#   Perseus encodes them in paragraphs. The signal reports the ENCODING, not the
+#   text. So form is curated, like dates.
+#
+# TWO AXES, deliberately orthogonal
+#   form   how it is written   VERSE | PROSE | PROSIMETRUM | UNKNOWN
+#   genre  what it is          see `genres` below
+#   Terentianus Maurus writes grammar in verse; Boethius and Petronius alternate
+#   verse and prose within one work. One combined field cannot express either.
+#
+# RESOLUTION, most specific first
+#   1. works[]          exact work title
+#   2. title_patterns[] regex on the title — does most of the work, because the
+#                       large authors are polygeneric and the title is reliable
+#   3. authors[]        author default, for the monogeneric majority
+#   4. UNKNOWN          recorded as such, never guessed
+# ===========================================================================
+
+version: 1
+
+forms: [VERSE, PROSE, PROSIMETRUM, UNKNOWN]
+
+genres:
+  # verse-leaning
+  - EPIC          # narrative hexameter, incl. biblical epic
+  - DRAMA         # comedy and tragedy
+  - LYRIC         # odes, hymns, occasional verse
+  - ELEGY
+  - SATIRE
+  - EPIGRAM
+  - DIDACTIC      # instructional verse
+  # prose
+  - HISTORY
+  - BIOGRAPHY
+  - ORATORY
+  - EPISTOLOGRAPHY
+  - PHILOSOPHY
+  - RHETORIC
+  - GRAMMAR       # incl. lexicography and metrics
+  - COMMENTARY    # incl. scriptural exegesis and scholia
+  - TECHNICAL     # architecture, warfare, surveying, cookery, encyclopaedia
+  - MEDICINE
+  - AGRICULTURE
+  - LAW
+  - GEOGRAPHY     # incl. pilgrimage accounts
+  - NOVEL
+  - MISCELLANY    # Gellius, Macrobius, Isidore: deliberately heterogeneous
+  # Christian prose
+  - THEOLOGY
+  - APOLOGETIC
+  - HOMILETIC
+  - HAGIOGRAPHY
+  - LITURGY
+  # non-literary
+  - DOCUMENTARY   # inscriptions, papyri, charters
+
+# Applied before author defaults. Ordered: first match wins.
+title_patterns:
+  - {match: "^Epistul|^Epistol|^Letters|ad Atticum|ad Familiares|ad Quintum|ad Brutum|Epistula",
+     genre: EPISTOLOGRAPHY, form: PROSE}
+  - {match: "Panegyric", genre: ORATORY, form: PROSE}
+  # `Philippic` unanchored matched Justin's Epitoma historiarum PHILIPPICARUM,
+  # 60k words of history filed as oratory. Cicero's speeches are `Philippicae`.
+  - {match: "^In [A-Z][a-z]+ (Verrem|Catilinam|Pisonem|Vatinium|Caecilium)|^Pro [A-Z]|^Philippicae",
+     genre: ORATORY, form: PROSE}
+  - {match: "Commentari|Explanatio|Expositio|Adnotatio|Scholia|Commenta |Quaestiones in|In .* (Prophetam|Psalmos|Euangelium|Genesim|Isaiam)",
+     genre: COMMENTARY, form: PROSE}
+  - {match: "^Ars |De arte|Institutiones grammatic|^De lingua|Grammatic|De metris|De orthographia|De compendiosa doctrina",
+     genre: GRAMMAR, form: PROSE}
+  - {match: "^Digesta|^Codex |Institutiones|Corpus iuris|Novellae|^Lex ",
+     genre: LAW, form: PROSE,
+     note: "Bare `Institutiones` also catches Iustiniani Institutiones, whose word
+            order the earlier pattern missed. Quintilian's Institutio Oratoria is
+            singular and caught as RHETORIC by work override first."}
+  - {match: "^Vita |^Vitae |De uita|De Vita", genre: BIOGRAPHY, form: PROSE}
+  - {match: "^Chronic|^Historia|Res Gestae|Ab urbe condita|Rerum gestarum",
+     genre: HISTORY, form: PROSE}
+  - {match: "Itinerar|Peregrinatio|De Locis", genre: GEOGRAPHY, form: PROSE}
+  - {match: "Confessio|De ciuitate dei|De civitate dei|Contra |Aduersus |Adversus |De trinitate|De fide",
+     genre: THEOLOGY, form: PROSE}
+  - {match: "Sermo|Homili|Tractatus in", genre: HOMILETIC, form: PROSE}
+  # `Passio` unanchored matched Caelius Aurelianus on chronic and acute DISEASES
+  # (passiones = afflictions), filing 119k words of medicine as hagiography.
+  - {match: "^Passio |^Passiones |Martyri", genre: HAGIOGRAPHY, form: PROSE}
+  # De uiris illustribus is a title used by both Jerome (Christian literary
+  # biography) and Ps.-Aurelius Victor (pagan Roman). Biography covers both.
+  - {match: "De uiris illustribus|De viris illustribus", genre: BIOGRAPHY, form: PROSE}
+
+authors:
+
+  # --- verse ---------------------------------------------------------------
+  - {aliases: ["P. Vergilius Maro (Virgil)"], form: VERSE, genre: EPIC}
+  - {aliases: ["Lucan"], form: VERSE, genre: EPIC}
+  - {aliases: ["Statius, P. Papinius (Publius Papinius)"], form: VERSE, genre: EPIC}
+  - {aliases: ["Silius Italicus, Tiberius Catius"], form: VERSE, genre: EPIC}
+  - {aliases: ["Valerius Flaccus, Gaius"], form: VERSE, genre: EPIC}
+  - {aliases: ["Sedulius", "Juvencus, Caius Vettius Aquilinus", "Cyprianus Gallus",
+               "Victor, Claudius Marius"], form: VERSE, genre: EPIC,
+     note: "Biblical epic — classical hexameter form, scriptural matter."}
+  - {aliases: ["Plautus, Titus Maccius", "Terence"], form: VERSE, genre: DRAMA}
+  - {aliases: ["Catullus, C. Valerius"], form: VERSE, genre: LYRIC}
+  - {aliases: ["Horace"], form: VERSE, genre: LYRIC,
+     note: "Odes dominate by volume; the Satires and Epistles are overridden by title."}
+  - {aliases: ["Prudentius", "Paulinus of Nola, Saint", "Ausonius, Decimus Magnus",
+               "Ennodius, Magnus Felix"], form: VERSE, genre: LYRIC}
+  - {aliases: ["Tibullus", "Propertius, Sextus"], form: VERSE, genre: ELEGY}
+  - {aliases: ["Ovid"], form: VERSE, genre: ELEGY,
+     note: "Elegy by volume; the Metamorphoses is epic and overridden below."}
+  - {aliases: ["Juvenal", "Persius"], form: VERSE, genre: SATIRE}
+  - {aliases: ["Martial"], form: VERSE, genre: EPIGRAM}
+  - {aliases: ["Lucretius", "Phaedrus"], form: VERSE, genre: DIDACTIC}
+  - {aliases: ["Claudian"], form: VERSE, genre: EPIC}
+  - {aliases: ["Terentianus Maurus"], form: VERSE, genre: GRAMMAR,
+     note: "Metrics treatise written in verse — the case the two-axis split exists for."}
+  - {aliases: ["Commodianus"], form: VERSE, genre: DIDACTIC}
+
+  # --- history and biography -----------------------------------------------
+  - {aliases: ["Julius Caesar", "Pseudo-Caesar", "Sallust", "Titus Livius (Livy)",
+               "Tacitus, Cornelius", "Curtius Rufus, Quintus", "Florus, Lucius Annaeus",
+               "Marcus Iunianus Iustinus", "Eutropius", "Ammianus Marcellinus",
+               "Orosius, Paulus", "Iordanes", "Hegesippus", "Velleius Paterculus",
+               "Sextus Aurelius Victor", "Aurelius Victor Ps.", "Victor Vitensis"],
+     form: PROSE, genre: HISTORY}
+  - {aliases: ["Nepos, Cornelius", "Suetonius", "Scriptores Historiae Augusta",
+               "Scriptores Historiae Augustae"], form: PROSE, genre: BIOGRAPHY}
+
+  # --- oratory, rhetoric, philosophy ---------------------------------------
+  - {aliases: ["Quintilian", "Seneca the Elder", "Iulius Victor", "Sulpicius Victor",
+               "Fortunatianus, Consultus", "Grillius", "Aphthonius = Marius Victorinus (Ps.)"],
+     form: PROSE, genre: RHETORIC}
+  - {aliases: ["Cicero, Marcus Tullius"], form: PROSE, genre: PHILOSOPHY,
+     note: "Polygeneric: letters, oratory and rhetoric are caught by title first."}
+  - {aliases: ["Seneca, Lucius Annaeus"], form: PROSE, genre: PHILOSOPHY,
+     note: "Tragedies are verse and overridden below."}
+  - {aliases: ["Boethius", "Boethius (Anicius Manlius Seuerinus Boethius)",
+               "Calcidius", "Claudianus Mamertus", "Marius Victorinus"],
+     form: PROSE, genre: PHILOSOPHY}
+  - {aliases: ["Minucius Felix, Marcus", "Arnobius of Sicca", "Lactantius",
+               "Tertullian", "Pseudo-Tertullian"], form: PROSE, genre: APOLOGETIC}
+
+  # --- technical, medical, legal -------------------------------------------
+  - {aliases: ["Pliny, the Elder", "Vitruvius Pollio", "Vegetius (Flauius Vegetius Renatus)",
+               "Flavius Vegetius Renatus", "Apicius", "Siculus Flaccus", "Firmicus Maternus",
+               "Martianus Capella"], form: PROSE, genre: TECHNICAL}
+  - {aliases: ["Celsus, Aulus Cornelius", "Caelius Aurelianus", "Caelius Aurelianus / Mustio",
+               "Marcellus Empiricus", "Theodorus Priscianus", "Priscianus Theodorus (Ps.)",
+               "Cassius Felix", "Vindicianus", "Pelagonius", "Hippocrates Latinus",
+               "Plinius Secundus Iunior", "Dioscorides Latinus (Ps.)"],
+     form: PROSE, genre: MEDICINE}
+  - {aliases: ["Columella, Lucius Junius Moderatus"], form: PROSE, genre: AGRICULTURE}
+  - {aliases: ["Gaius", "Iulius Paulus"], form: PROSE, genre: LAW}
+  - {aliases: ["Iulius Solinus", "Adamnan, Saint", "Anonymous pilgrim of Piacenza"],
+     form: PROSE, genre: GEOGRAPHY}
+
+  # --- grammar, commentary, miscellany -------------------------------------
+  - {aliases: ["Priscianus", "Charisius, Flauius Sosipater", "Diomedes", "Donatus, Aelius",
+               "Nonius Marcellus", "Pompeius Maurus", "Consentius", "Cledonius",
+               "Sacerdos, Marius Plotius", "Audax", "Phocas", "Eutyches",
+               "Arusianus Messius", "Probus (Ps.)", "Sergius (Ps.)",
+               "Sergius (Ps.-Cassiodorus)", "Festus (Sextus Pompeius Festus)",
+               "Iulius Rufinianus Ps.", "Iulius Paris"], form: PROSE, genre: GRAMMAR}
+  - {aliases: ["Seruius", "Philargyrius / Philagrius", "Philargirius (Ps.)",
+               "Lactantius Placidus", "Lactantius Placidus (Ps.)", "Eugraphius",
+               "Remigius, of Auxerre"], form: PROSE, genre: COMMENTARY}
+  - {aliases: ["Gellius, Aulus", "Macrobius", "Isidorus", "Cassiodorus",
+               "Cassiodorus (Flauius Magnus Aurelius Cassiodorus Senator)",
+               "Fulgentius (Fabius Planciades Fulgentius)"], form: PROSE, genre: MISCELLANY}
+  - {aliases: ["Apuleius"], form: PROSE, genre: NOVEL}
+  - {aliases: ["Petronius Arbiter"], form: PROSIMETRUM, genre: NOVEL,
+     note: "Verse embedded throughout the prose narrative."}
+
+  # --- Christian prose ------------------------------------------------------
+  - {aliases: ["Augustine", "Ps. Augustinus", "Ps. Aurelius Augustinus", "Sanctus Ambrosius",
+               "Jerome, Saint", "Hilary, Saint, Bishop of Poitiers", "Pseudo-Hilarius",
+               "Cyprian Saint, Bishop of Carthage", "Pseudo-Cyprian", "Ambrosiaster",
+               "Cassian, John", "Salvian, of Marseilles", "Faustus of Riez",
+               "Lucifer, Bishop of Cagliari", "Optatus, Saint, Bishop of Mileve",
+               "Philastrius, Saint, Bishop of Brescia", "Priscillian, Bishop of Avila",
+               "Eucherius of Lyon, Saint", "Ruricius I, Bishop of Limoges",
+               "Rufinus, of Aquileia", "Catholic Church. Pope", "Paulinus Petricordiae",
+               "Victorinus, Saint, Bishop of Poetovio", "Flavius Josephus"],
+     form: PROSE, genre: THEOLOGY}
+  - {aliases: ["Severus, Sulpicius", "Eugippius"], form: PROSE, genre: HAGIOGRAPHY}
+
+works:
+  - {aliases: ["Metamorphoses"], form: VERSE, genre: EPIC}
+  - {aliases: ["De consolatione philosophiae", "Philosophiae consolatio"],
+     form: PROSIMETRUM, genre: PHILOSOPHY,
+     note: "Alternating prose books and verse metra — the definitive prosimetrum."}
+  - {aliases: ["Satyricon"], form: PROSIMETRUM, genre: NOVEL}
+  - {aliases: ["De nuptiis Philologiae et Mercurii"], form: PROSIMETRUM, genre: TECHNICAL}
+  - {aliases: ["Hercules Oetaeus", "Hercules furens", "Medea", "Thyestes", "Phaedra",
+               "Oedipus", "Agamemnon", "Troades", "Phoenissae", "Octauia", "Octavia"],
+     form: VERSE, genre: DRAMA,
+     note: "Senecan tragedy — verse inside an otherwise prose author."}
+  - {aliases: ["Satires", "Sermones", "Ars Poetica", "Epistulae (Horace)"],
+     form: VERSE, genre: SATIRE, note: "Horace's hexameter works."}
+  - {aliases: ["Panegyrici Latini"], form: PROSE, genre: ORATORY}
+  - {aliases: ["Historia Augusta"], form: PROSE, genre: BIOGRAPHY,
+     note: "A set of imperial lives; the title pattern would otherwise read it as history."}
+  - {aliases: ["Facta et Dicta Memorabilia"], form: PROSE, genre: MISCELLANY,
+     note: "Valerius Maximus' exempla collection."}
+  - {aliases: ["Mythographus Vaticanus I", "Mythographus Vaticanus II",
+               "Mythographus Vaticanus III"], form: PROSE, genre: MISCELLANY}
+  - {aliases: ["Ephemeris belli troiani"], form: PROSE, genre: NOVEL,
+     note: "Pseudo-eyewitness Trojan romance, not history."}
+  - {aliases: ["Analytica posteriora Aristotelis latine uersa",
+               "Analytica posteriora Aristotelis latine uersa (?)"],
+     form: PROSE, genre: PHILOSOPHY}
+  - {aliases: ["Periochae Liuii"], form: PROSE, genre: HISTORY}
+  - {aliases: ["De errore profanarum religionum"], form: PROSE, genre: APOLOGETIC,
+     note: "Firmicus Maternus' Christian polemic; his Mathesis is technical astrology."}
+  - {aliases: ["Institutio Oratoria", "On Oratory", "De Oratore", "Brutus", "Orator",
+               "De Inuentione", "Rhetorica ad Herennium"], form: PROSE, genre: RHETORIC}
+  - {aliases: ["Naturalis Historia"], form: PROSE, genre: TECHNICAL}
+  - {aliases: ["De Medicina"], form: PROSE, genre: MEDICINE}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply manifest/authorities.yaml to extracted records: date and period them.
+"""Apply the curated authorities to extracted records: date, period, form, genre.
 
 Rewrites data/interim/*.jsonl in place, setting `approximate_date`, `period`,
 `date_source` and `date_confidence` per record. Interim files are build
@@ -10,11 +10,23 @@ Kept separate from extract.py deliberately: the authority list is scholarly
 metadata that will be revised many times, and re-running this takes a second
 where re-extracting takes a minute.
 
-Resolution order, most specific first:
+Dating (manifest/authorities.yaml), most specific first:
     1. works[]   — exact match on the `work` field (anonymous but datable texts)
     2. authors[] — exact match on the `author` field
     3. source_priors — a period, never a date, and marked `inferred`
     4. nothing — both fields left null, and counted
+
+Form and genre (manifest/genres.yaml), most specific first:
+    1. works[]          — exact work title
+    2. title_patterns[] — regex on the title; carries most of the load, because
+                          the largest authors are polygeneric (Cicero writes
+                          letters, speeches, rhetoric and philosophy) and the
+                          title is the reliable discriminator
+    3. authors[]        — author default, for the monogeneric majority
+    4. UNKNOWN          — recorded as such rather than guessed
+
+Form and genre are separate axes on purpose: Terentianus Maurus writes grammar
+in verse, and Boethius alternates verse with prose inside one work.
 
 Usage:
     python src/enrich.py --report        # resolve and print coverage, write nothing
@@ -24,6 +36,7 @@ Usage:
 
 import argparse
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -36,6 +49,7 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parent.parent
 AUTHORITIES = ROOT / "manifest" / "authorities.yaml"
+GENRES = ROOT / "manifest" / "genres.yaml"
 INTERIM = ROOT / "data" / "interim"
 
 
@@ -107,6 +121,52 @@ class Authority:
         return None, None, "none", "none"
 
 
+class Genres:
+    """Form and genre resolution from manifest/genres.yaml."""
+
+    def __init__(self, path: Path = GENRES):
+        with path.open(encoding="utf-8") as fh:
+            doc = yaml.safe_load(fh)
+        self.valid_forms = set(doc.get("forms") or [])
+        self.valid_genres = set(doc.get("genres") or [])
+        self.patterns = [(re.compile(p["match"], re.IGNORECASE), p)
+                         for p in (doc.get("title_patterns") or [])]
+        self.authors = self._index(doc.get("authors") or [])
+        self.works = self._index(doc.get("works") or [])
+        for entry in list(self.authors.values()) + list(self.works.values()):
+            if entry.get("form") not in self.valid_forms:
+                raise SystemExit(f"genres.yaml: bad form {entry.get('form')!r}")
+            if entry.get("genre") not in self.valid_genres:
+                raise SystemExit(f"genres.yaml: bad genre {entry.get('genre')!r}")
+
+    @staticmethod
+    def _index(entries: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        index: Dict[str, Dict[str, Any]] = {}
+        for entry in entries:
+            for alias in entry.get("aliases", []):
+                index[alias.strip().lower()] = entry
+        return index
+
+    def resolve(self, record: Dict[str, Any]) -> Tuple[str, str, str]:
+        """Return (form, genre, origin)."""
+        work = (record.get("work") or "").strip()
+        author = (record.get("author") or "").strip().lower()
+
+        entry = self.works.get(work.lower())
+        if entry:
+            return entry["form"], entry["genre"], "work"
+
+        for pattern, spec in self.patterns:
+            if work and pattern.search(work):
+                return spec.get("form", "UNKNOWN"), spec["genre"], "pattern"
+
+        entry = self.authors.get(author)
+        if entry:
+            return entry["form"], entry["genre"], "author"
+
+        return "UNKNOWN", "UNKNOWN", "none"
+
+
 # ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
@@ -133,6 +193,7 @@ def main() -> int:
     args = ap.parse_args()
 
     authority = Authority()
+    genres = Genres()
     files = sorted(INTERIM.glob("*.jsonl"))
     if not files:
         sys.exit(f"no extracted records in {INTERIM} — run src/extract.py first")
@@ -141,6 +202,9 @@ def main() -> int:
     by_origin: Counter = Counter()
     by_confidence: Counter = Counter()
     unresolved: Counter = Counter()
+    by_form: Counter = Counter()
+    by_genre: Counter = Counter()
+    by_genre_origin: Counter = Counter()
     total_words = 0
 
     for path in files:
@@ -152,7 +216,15 @@ def main() -> int:
             rec["date_source"] = origin
             rec["date_confidence"] = confidence
 
+            form, genre, gorigin = genres.resolve(rec)
+            rec["form"] = form
+            rec["genre"] = genre
+            rec["genre_source"] = gorigin
+
             words = rec.get("n_words", 0)
+            by_form[form] += words
+            by_genre[genre] += words
+            by_genre_origin[gorigin] += words
             total_words += words
             by_period[period or "UNASSIGNED"] += words
             by_origin[origin] += words
@@ -173,6 +245,9 @@ def main() -> int:
     table("period", by_period)
     table("resolved via", by_origin)
     table("confidence", by_confidence)
+    table("form", by_form)
+    table("genre", by_genre)
+    table("genre resolved via", by_genre_origin)
 
     if args.audit:
         print(f"\nunresolved authors (fell through to prior or nothing): {len(unresolved)}")
