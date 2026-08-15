@@ -55,6 +55,7 @@ VALID_TIERS = {"green", "amber", "unknown", "eval"}
 TRACKS = {
     "A": {"green"},                # redistributable: published corpus and weights
     "B": {"green", "amber"},       # research only: adds non-commercial sources
+    "eval": {"eval"},              # held-out evaluation data; never in either corpus
 }
 VALID_METHODS = {"git", "http", "zenodo", "manual"}
 VALID_PERIODS = {
@@ -105,11 +106,6 @@ def validate(manifest: Dict[str, Any]) -> List[str]:
         # An amber source with include:true is now correct — it means "wanted,
         # in Track B". What must never happen is amber reaching a Track A build,
         # and that is enforced at fetch and build time rather than here.
-        if src.get("tier") == "eval" and src.get("include"):
-            errors.append(
-                f"{where}: tier `eval` with include:true — evaluation data must "
-                f"never be mixed into pretraining"
-            )
         if src.get("tier") == "unknown" and src.get("include"):
             errors.append(
                 f"{where}: tier `unknown` with include:true — a licence nobody has "
@@ -125,15 +121,24 @@ def validate(manifest: Dict[str, Any]) -> List[str]:
 
 
 def selected(manifest: Dict[str, Any], only: Optional[str], tier: Optional[str],
-             include_all: bool) -> List[Dict[str, Any]]:
+             include_all: bool, track: str) -> List[Dict[str, Any]]:
+    """Sources to act on.
+
+    A bare `--track X` selects only what belongs to X. An explicit `--only`
+    bypasses that filter so the track guard can refuse it by name — a source
+    asked for and silently skipped is worse than one asked for and rejected.
+    """
     out = []
     for src in manifest["sources"]:
         if only and src["id"] != only:
             continue
         if tier and src.get("tier") != tier:
             continue
-        if not only and not include_all and not src.get("include"):
-            continue
+        if not only:
+            if not include_all and not src.get("include"):
+                continue
+            if src.get("tier") not in TRACKS[track]:
+                continue
         out.append(src)
     return out
 
@@ -365,7 +370,7 @@ def main() -> int:
         cmd_list(manifest)
         return 0
 
-    targets = selected(manifest, args.only, args.tier, args.include_all)
+    targets = selected(manifest, args.only, args.tier, args.include_all, args.track)
     if not targets:
         print("Nothing selected.")
         return 0
@@ -380,14 +385,23 @@ def main() -> int:
         for src in blocked:
             why = " ".join((src.get("restriction") or src.get("notes") or "").split())
             print(f"  - {src['id']} [{src['tier']}]: {why[:160]}", file=sys.stderr)
-        if args.track == "A":
+        tiers = {s.get("tier") for s in blocked}
+        if "eval" in tiers:
+            print("\nEvaluation data lives in its own track so it can never reach a\n"
+                  "training corpus by accident: re-run with --track eval.", file=sys.stderr)
+        if "unknown" in tiers:
+            print("\nTier `unknown` means the licence is unresolved, not merely\n"
+                  "restrictive. Settle the terms before fetching.", file=sys.stderr)
+        if "amber" in tiers and args.track == "A":
             print("\nTrack A is the redistributable build. Non-commercial sources belong\n"
                   "to Track B: re-run with --track B for a research build, which is NOT\n"
                   "redistributable. See feasibility.md §3.", file=sys.stderr)
-        else:
-            print("\nTier `unknown` means the licence is unresolved, not merely\n"
-                  "restrictive. Settle the terms before fetching.", file=sys.stderr)
         return 1
+
+    if args.track == "eval":
+        print("=" * 72)
+        print("EVAL TRACK — held-out data. Never mix any of this into pretraining.")
+        print("=" * 72 + "\n")
 
     if args.track == "B":
         research = [s for s in targets if s.get("tier") == "amber"]

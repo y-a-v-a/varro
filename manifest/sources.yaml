@@ -29,7 +29,7 @@
 #   green    free licence or public domain      -> Track A and Track B
 #   amber    non-commercial, terms known        -> Track B only
 #   unknown  licence unresolved                 -> neither, until settled
-#   eval     held-out evaluation data           -> neither; never pretrained on
+#   eval     held-out evaluation data           -> its own track; never pretrained on
 #
 # include — whether the source is wanted at all. An amber source with
 #   include:true is CORRECT: it means "wanted, in Track B". The guard that
@@ -268,7 +268,7 @@ sources:
     pin: null
     license: CC-BY-NC-SA-4.0
     tier: eval
-    include: false
+    include: true
     format: conllu
     period: CLASSICAL
     lang_filter: lat
@@ -286,7 +286,7 @@ sources:
     pin: null
     license: CC-BY-NC-SA-3.0
     tier: eval
-    include: false
+    include: true
     format: conllu
     period: CLASSICAL
     lang_filter: lat
