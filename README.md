@@ -505,15 +505,56 @@ python src/compare.py
 **Latin-0 and Latin-2 are directly comparable** — same held-out classical works,
 same 158.8 floor. Perplexity falls from 74.3 to 44.1, a 41% reduction.
 
-**But two variables moved at once**: model size (3.53M → 15.90M) *and* the
-two-phase schedule. This shows the combination works; it does not isolate which
-did the work. The clean ablation — 15.90M trained on classical alone — is a
-~2.5 hour run and has not been done.
+**Two variables moved at once**: model size (3.53M → 15.90M) *and* the two-phase
+schedule. The ablation below separates them.
 
 One thing the phase transition shows on its own: Romanitas reached 45.2 within
 **500 steps**, where Latin-0 needed 5,000 from random weights to reach 74.3.
 Adapting register inside a language you already know is far cheaper than
 learning the language.
+
+### The ablation: which half did the work?
+
+`ablation-no-latinitas` is 15.90M parameters on classical Latin alone, 8.6 epochs
+— Latin-0's exact schedule at Latin-2's size. Each pair now changes one variable:
+
+| run | params | corpus | ppl | |
+|---|---:|---|---:|---|
+| latin-0 | 3.53M | classical | 74.3 | |
+| ablation-no-latinitas | 15.90M | classical | 58.3 | ← **size alone: −16.0 (21.5%)** |
+| latin-2 | 15.90M | all Latin → classical | 44.1 | ← **schedule alone: −14.2 (24.3%)** |
+
+**The contributions are almost equal.** Of the 30.2-point total improvement,
+model size accounts for 53% and the two-phase schedule for 47%. Both are real;
+neither dominates.
+
+*I predicted "most of the gain from size, some from the schedule" before running
+this. The direction was right, the emphasis wrong — it is essentially 50/50.*
+
+### Overfitting: the prediction that failed
+
+I also predicted the ablation would overfit **more** than Latin-2, on the theory
+that the Latinitas phase acts as regularisation. It does the opposite:
+
+| run | train ppl | val ppl | gap | classical passes |
+|---|---:|---:|---:|---:|
+| latin-0 | 74.7 | 74.3 | 1.00× | 8.6 |
+| ablation | 46.6 | 58.3 | **1.25×** | 8.6 |
+| latin-2 | 33.0 | 44.1 | **1.34×** | 10.8 |
+
+Latin-2 — the model that saw *more* text — has the *larger* gap. The reason is
+structural and I had missed it: **`classical.train` is a subset of
+`corpus.train`**, so Phase 1 already contained the entire Phase 2 corpus. Latin-2
+therefore made ~10.8 passes over the classical text against the ablation's 8.6.
+
+So the two-phase schedule as built is not "read other Latin, then read Rome". It
+is "read everything including Rome, then read Rome again". It still wins by 14.2
+perplexity points — but part of that advantage is simply more exposure to the
+target text, not transfer from the rest of Latin.
+
+**The cleaner experiment** would exclude classical material from Phase 1
+entirely, making the two phases genuinely disjoint. That is a real open question,
+not a formality: it would separate *transfer* from *extra passes*.
 
 ### Overfitting appears at scale, as predicted
 
@@ -614,7 +655,8 @@ revisiting this.
 - [x] Evaluation harness — baselines, memorisation, versioned JSON reports
 - [x] **Latin-0 trained** — 3.53M params, held-out ppl 74.3 vs 158.8 floor (2.14×), 0% memorisation
 - [x] **Latin-2 trained** — 15.90M params, two-phase; ppl 44.1 vs 158.8 floor (3.60×), 0% memorisation
-- [ ] Ablation: 15.90M on classical alone, to separate size from schedule
+- [x] Ablation — size and schedule contribute ~53% / ~47%; both real
+- [ ] Disjoint-phase ablation: exclude classical from Phase 1, to separate transfer from extra passes
 - [ ] LATIN-XXV (~25M) once the remaining six sources roughly double the corpus
 - [ ] UD treebank syntactic probing (fetch via `--track eval`; exclude overlapping passages from training)
 - [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)

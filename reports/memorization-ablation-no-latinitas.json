@@ -1,0 +1,47 @@
+{
+  "corpus": {
+    "group_by": "author",
+    "period_filter": null,
+    "records": 909,
+    "seed": 20260815,
+    "track": "A",
+    "train_words": 16401214,
+    "validation_words": 855423,
+    "words": 17256637
+  },
+  "curve": {
+    "3": {
+      "control": 0.051181102362204724,
+      "text": 0.17832167832167833
+    },
+    "4": {
+      "control": 0.011811023622047244,
+      "text": 0.042105263157894736
+    },
+    "5": {
+      "control": 0.003937007874015748,
+      "text": 0.010526315789473684
+    },
+    "6": {
+      "control": 0.003937007874015748,
+      "text": 0.0035087719298245615
+    },
+    "8": {
+      "control": 0.003937007874015748,
+      "text": 0.0
+    },
+    "12": {
+      "control": 0.003937007874015748,
+      "text": 0.0
+    }
+  },
+  "generated": "2026-08-16T13:26:40+00:00",
+  "memorization": {
+    "fraction": 0.0,
+    "longest_verbatim_words": 0,
+    "memorised": 0,
+    "windows": 1702
+  },
+  "schema_version": 1,
+  "window": 12
+}
