@@ -53,26 +53,29 @@ what the plan assumed. The conclusions move accordingly.
 | LATE | 12,553,096 | DigilibLT + CSEL + late Perseus |
 | MEDIEVAL | 79,882 | |
 
-**Token count, now measured too** (`src/tokenizer.py`, byte-level BPE trained on the corpus):
+**Token count, remeasured 2026-08-17 on the 79M-word corpus** (`src/tokenizer.py`,
+byte-level BPE, counted over every record):
 
 | vocab | tokens/word, all | tokens/word, classical | full corpus | classical |
 |---:|---:|---:|---:|---:|
-| 2,000 | 2.348 | 2.450 | 38.5M | 10.8M |
-| **4,000** | **2.054** | **2.164** | **33.7M** | **9.5M** |
-| 8,000 | 1.834 | 1.937 | 30.1M | 8.5M |
-| 16,000 | 1.667 | 1.759 | 27.3M | 7.8M |
-| 32,000 | 1.538 | 1.620 | 25.2M | 7.1M |
+| 2,000 | 2.350 | 2.498 | 176.4M | 10.8M |
+| **4,000** | **2.038** | **2.213** | **153.0M** | **9.6M** |
+| 8,000 | 1.809 | 1.986 | 135.8M | 8.6M |
+| 16,000 | 1.640 | 1.808 | 123.1M | 7.8M |
+| 32,000 | 1.513 | 1.666 | 113.5M | 7.2M |
+| 64,000 | 1.421 | 1.551 | 106.6M | 6.7M |
 
-Counted over every record — an earlier version of this table sampled the first 400 documents, which
-in file order contained no Perseus at all and so measured late-antique prose only. The ~1.8 planning
-figure was still close: it lands between the 8k and 16k vocabularies. Classical Latin runs ~5%
-*higher* fertility than the corpus average, being older, more varied and more heavily verse. At 4k:
+**Fertility barely moved.** At 4k it went 2.054 → 2.038, a change of 0.8%, and no
+vocabulary shifted by more than 1.6% — despite the corpus growing 4.6×, gaining
+16M words of medieval Latin that previously had almost none, and 4.4M words of
+epigraphic formulae. Latin tokenises at a stable rate across fifteen centuries
+and wildly different registers. That is worth knowing: it means the words→tokens
+constant can be trusted for planning as the corpus grows further, which is not
+something that could be assumed in advance.
 
-- classical → **9.5M tokens**
-- full corpus → **33.7M tokens**
-
-Both slightly *above* the earlier estimate, which loosens the ladder a little rather than tightening
-it. Character-level, for reference: 6.91 chars/word, 113.3M characters.
+The classical figure is likewise unchanged (9.5M → 9.6M), because dedup removed
+the Wikisource copies of texts Perseus already supplied. **Latin-0's sizing is
+therefore untouched by all of this.**
 
 ### What that supports
 
@@ -81,11 +84,18 @@ epochs is Muennighoff et al. 2023 (*Scaling Data-Constrained Language Models*): 
 **~4 epochs** is worth nearly as much as fresh data, value decays sharply after, and is
 approximately zero past ~16–40.
 
-| epochs | classical only (9.5M tok) | full corpus (33.7M tok) |
+| epochs | classical only (9.6M tok) | full corpus (153.0M tok) |
 |---|---|---|
-| 4 (safe) | 38M eff. → **1.9M params** | 135M eff. → **6.7M params** |
-| 8 | 76M eff. → **3.8M params** | 270M eff. → **13.5M params** |
-| 16 (aggressive) | 152M eff. → **7.6M params** | 539M eff. → **27.0M params** |
+| 4 (safe) | 38M eff. → **1.9M params** | 612M eff. → **30.6M params** |
+| 8 | 77M eff. → **3.8M params** | 1.22B eff. → **61.2M params** |
+| 16 (aggressive) | 154M eff. → **7.7M params** | 2.45B eff. → **122.4M params** |
+
+**The full-corpus column moved by 4.5×.** LATIN-XXV at 25M parameters was sitting
+on the 16-epoch line, which feasibility itself called aggressive; it now fits
+inside **4 epochs**, the range where repeated data is worth nearly as much as
+fresh. A 60M-parameter model is defensible at 8 epochs. The ceiling that Path A's
+licensing decision imposed — 25–40M — is no longer the binding constraint;
+the corpus is.
 
 ### Conclusions, revised
 
@@ -104,11 +114,16 @@ approximately zero past ~16–40.
 - **LATIN-XXV at 25M params sits just inside the 16-epoch line** — 27.0M by the measured numbers,
   a little more headroom than the earlier (under-measured) figure suggested. The remaining six sources have not landed yet,
   so it stays feasible and gets more comfortable as they do.
-- **Vocabulary size is a parameter-budget decision, not a compression one.** At d_model=256 the
-  transformer body is ~4.7M parameters regardless of vocabulary, while the embedding table is
-  vocab×256. A 32k vocabulary costs 8.2M parameters — larger than the entire model it serves, 63%
-  of the total. At 4k it is 18%. For a model this small the vocabulary must be small, and the
-  compression gain from a larger one is not worth spending the budget on.
+- **Vocabulary: 4,000 still wins, but the reason has changed.** The original argument was
+  parameter budget — at d_model=256 a 32k table cost 8.2M parameters, more than the model it
+  served. At the size the corpus now supports (d=512, 8 layers, body 25.2M) that argument is gone:
+  4k costs 8% of the model and even 32k only 39%.
+
+  What decides it now is morphology, measured. Whole paradigm forms stored as single tokens:
+  **0/12 at 2k and 4k, 3/12 at 8k, 5/12 at 32k, and 10/12 at 64k** — where stem consistency also
+  hits 1.00, meaning every form of a stem opens with a different token. A 64k vocabulary has simply
+  memorised the inflections this project exists to watch a model learn. 4k buys that for 8% of the
+  parameter budget and 13% more tokens per epoch than 8k, which is cheap.
 - The 25–40M Path A ceiling from §3 still holds. Nothing here changes the licensing decision.
 
 Overtraining a small model on a fixed corpus remains a legitimate and interesting regime — closer to
