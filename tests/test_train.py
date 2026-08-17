@@ -22,10 +22,15 @@ SUMMARY = {"track": "A", "records": 909, "words": 17_256_637,
 @pytest.fixture
 def paths(tmp_path, monkeypatch):
     processed, reports = tmp_path / "processed", tmp_path / "reports"
+    tokenizers = processed / "tokenizers"
     processed.mkdir()
     reports.mkdir()
+    tokenizers.mkdir()
     monkeypatch.setattr(train, "PROCESSED", processed)
     monkeypatch.setattr(train, "REPORTS", reports)
+    monkeypatch.setattr(train, "TOKENIZERS", tokenizers)
+    (tokenizers / "latin-bpe-4000.json").write_text('{"merges": []}',
+                                                    encoding="utf-8")
     return processed, reports
 
 
@@ -55,14 +60,14 @@ def test_fingerprint_drops_fields_that_do_not_identify_a_build(paths):
 def test_no_baseline_is_not_a_stale_baseline(paths):
     processed, _ = paths
     write_summary(processed)
-    assert train.read_floor("corpus") == (None, "")
+    assert train.read_floor("corpus", 4000) == (None, "")
 
 
 def test_matching_fingerprint_is_quotable(paths):
     processed, reports = paths
     write_summary(processed)
     write_baseline(reports)
-    assert train.read_floor("corpus") == (195.2, "")
+    assert train.read_floor("corpus", 4000) == (195.2, "")
 
 
 def test_grown_corpus_makes_the_floor_unquotable(paths):
@@ -71,7 +76,7 @@ def test_grown_corpus_makes_the_floor_unquotable(paths):
     write_summary(processed, words=78_975_089, train_words=75_043_813,
                   records=10_192)
     write_baseline(reports)
-    floor, reason = train.read_floor("corpus")
+    floor, reason = train.read_floor("corpus", 4000)
     assert floor == 195.2
     assert "words: 17256637 -> 78975089" in reason
     assert "records" in reason and "train_words" in reason
@@ -81,10 +86,10 @@ def test_regrouped_split_makes_the_floor_unquotable(paths):
     """Same text, different held-out authors — the perplexities do not compare."""
     processed, reports = paths
     write_summary(processed, group_by="work")
-    _, reason = train.read_floor("corpus")
+    _, reason = train.read_floor("corpus", 4000)
     assert reason == ""  # no baseline yet
     write_baseline(reports)
-    assert "group_by: 'author' -> 'work'" in train.read_floor("corpus")[1]
+    assert "group_by: 'author' -> 'work'" in train.read_floor("corpus", 4000)[1]
 
 
 def test_baseline_stamped_with_another_corpus_is_rejected(paths):
@@ -94,9 +99,46 @@ def test_baseline_stamped_with_another_corpus_is_rejected(paths):
                   words=4_539_515, period_filter=["CLASSICAL"])
     write_baseline(reports, corpus="classical", perplexity=158.8,
                    corpus_name="corpus")
-    floor, reason = train.read_floor("classical")
+    floor, reason = train.read_floor("classical", 4000)
     assert floor == 158.8
     assert "corpus_name='corpus'" in reason
+
+
+def test_retrained_tokenizer_makes_the_floor_unquotable(paths):
+    """The case the corpus fingerprint cannot see.
+
+    Between the 2026-08-17 and 2026-08-18 builds the classical corpus moved by
+    three words while its floor moved 158.8 -> 149.8, because the 4k vocabulary
+    had been retrained on a corpus 4.6x larger. Corpus identical, floor not.
+    """
+    processed, reports = paths
+    write_summary(processed)
+    write_baseline(reports)
+    stale_tok = {"vocab": 4000, "sha256": "0123456789abcdef"}
+    report = json.loads((reports / "baselines-corpus.json").read_text())
+    report["tokenizer"] = stale_tok
+    (reports / "baselines-corpus.json").write_text(json.dumps(report),
+                                                   encoding="utf-8")
+    _, reason = train.read_floor("corpus", 4000)
+    assert "tokenizer:" in reason
+    assert "0123456789abcdef" in reason
+
+
+def test_matching_tokenizer_stamp_stays_quotable(paths):
+    processed, reports = paths
+    write_summary(processed)
+    write_baseline(reports)
+    report = json.loads((reports / "baselines-corpus.json").read_text())
+    report["tokenizer"] = train.tokenizer_fingerprint(4000)
+    (reports / "baselines-corpus.json").write_text(json.dumps(report),
+                                                   encoding="utf-8")
+    assert train.read_floor("corpus", 4000) == (195.2, "")
+
+
+def test_absent_tokenizer_file_fingerprints_as_none_not_a_crash(paths):
+    _, _ = paths
+    assert train.tokenizer_fingerprint(64000) == {"vocab": 64000,
+                                                  "sha256": None}
 
 
 def test_unstamped_legacy_report_falls_back_to_fingerprint_drift(paths):
@@ -104,5 +146,5 @@ def test_unstamped_legacy_report_falls_back_to_fingerprint_drift(paths):
     processed, reports = paths
     write_summary(processed, corpus="classical", records=203)
     write_baseline(reports, corpus="classical", corpus_name=None)
-    _, reason = train.read_floor("classical")
+    _, reason = train.read_floor("classical", 4000)
     assert "records: 909 -> 203" in reason

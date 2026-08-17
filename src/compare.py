@@ -45,18 +45,17 @@ def load_runs(names: List[str]) -> List[Dict[str, Any]]:
 
 
 def floor_for(corpus: str) -> tuple[float | None, Dict[str, Any] | None]:
-    """The floor for `corpus`, and a fingerprint of the build it was measured on."""
+    """The floor for `corpus`, and the whole report it came from."""
     path = REPORTS / f"baselines-{corpus}.json"
     if not path.exists():
         return None, None
     with path.open(encoding="utf-8") as fh:
         report = json.load(fh)
-    return (report["baselines"]["overall_perplexity"],
-            report.get("corpus") or None)
+    return report["baselines"]["overall_perplexity"], report
 
 
 def comparability(run: Dict[str, Any], floor: float | None,
-                  floor_fingerprint: Dict[str, Any] | None) -> str:
+                  floor_report: Dict[str, Any] | None) -> str:
     """Whether this run's perplexity may be quoted against this floor.
 
     A corpus keeps its name across rebuilds, so `baselines-corpus.json` and
@@ -69,9 +68,19 @@ def comparability(run: Dict[str, Any], floor: float | None,
     if floor is None:
         return "no-floor"
     run_fingerprint = run.get("corpus") or None
+    floor_fingerprint = (floor_report or {}).get("corpus") or None
     if run_fingerprint is None or floor_fingerprint is None:
         return "unverified"
-    return "ok" if run_fingerprint == floor_fingerprint else "stale"
+    if run_fingerprint != floor_fingerprint:
+        return "stale"
+    # The tokenizer is the other half of "same held-out text". Retraining the
+    # 4k vocabulary on a larger corpus moved the classical floor 158.8 -> 149.8
+    # while the classical corpus itself changed by three words.
+    run_tokenizer = run.get("tokenizer")
+    floor_tokenizer = (floor_report or {}).get("tokenizer")
+    if run_tokenizer is None or floor_tokenizer is None:
+        return "unverified"
+    return "ok" if run_tokenizer == floor_tokenizer else "stale"
 
 
 def memorisation_for(name: str) -> Dict[str, Any] | None:
@@ -92,10 +101,10 @@ def main() -> int:
         cfg = run["config"]
         final = run.get("final") or {}
         corpus = cfg.get("corpus", "corpus")
-        floor, floor_fingerprint = floor_for(corpus)
+        floor, floor_report = floor_for(corpus)
         ppl = final.get("val_perplexity")
         memo = memorisation_for(run["run"])
-        status = comparability(run, floor, floor_fingerprint)
+        status = comparability(run, floor, floor_report)
         rows.append({
             "name": run["run"],
             "params": run["parameters"],

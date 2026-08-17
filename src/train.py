@@ -32,6 +32,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import math
 import sys
@@ -155,11 +156,27 @@ def corpus_fingerprint(corpus: str) -> Dict[str, Any]:
     return {k: summary.get(k) for k in FINGERPRINT_KEYS}
 
 
-def read_floor(corpus: str) -> Tuple[Any, str]:
+def tokenizer_fingerprint(vocab: int) -> Dict[str, Any]:
+    """Which tokenizer these numbers were measured through.
+
+    Not redundant with the corpus fingerprint. The classical corpus moved by
+    three words between the 2026-08-17 and 2026-08-18 builds and its bigram
+    floor still went 158.8 -> 149.8, purely because the 4k vocabulary had been
+    retrained on a corpus 4.6x larger: same Latin, different merges, different
+    token stream. Perplexity compares only when both match.
+    """
+    path = TOKENIZERS / f"latin-bpe-{vocab}.json"
+    if not path.exists():
+        return {"vocab": vocab, "sha256": None}
+    return {"vocab": vocab,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest()[:16]}
+
+
+def read_floor(corpus: str, vocab: int) -> Tuple[Any, str]:
     """The bigram floor for `corpus`, and why it may not be quotable.
 
-    Returns (perplexity, ""), (perplexity, reason) if the baseline predates the
-    current build, or (None, "") if no baseline exists.
+    Returns (perplexity, ""), (perplexity, reason) if the baseline describes a
+    different build or tokenizer, or (None, "") if no baseline exists.
     """
     path = REPORTS / f"baselines-{corpus}.json"
     if not path.exists():
@@ -177,6 +194,10 @@ def read_floor(corpus: str) -> Tuple[Any, str]:
         return floor, f"stamped corpus_name={report['corpus_name']!r}"
     drift = [f"{k}: {recorded.get(k)!r} -> {current.get(k)!r}"
              for k in FINGERPRINT_KEYS if recorded.get(k) != current.get(k)]
+    recorded_tok = report.get("tokenizer")
+    current_tok = tokenizer_fingerprint(vocab)
+    if recorded_tok and recorded_tok != current_tok:
+        drift.append(f"tokenizer: {recorded_tok} -> {current_tok}")
     return floor, "; ".join(drift)
 
 
@@ -413,7 +434,7 @@ def main() -> int:
     # corpus it was measured on; if it disagrees with the corpus just trained
     # on, the floor is stale and quoting it would repeat the original mistake
     # in a form that is harder to see.
-    floor, floor_stale = read_floor(args.corpus)
+    floor, floor_stale = read_floor(args.corpus, args.vocab)
     ppl = final.get("val_perplexity", float("nan"))
     if floor and not floor_stale:
         print(f"final held-out perplexity {ppl:.1f} against the {args.corpus} "
@@ -437,6 +458,7 @@ def main() -> int:
         "config": vars(args),
         "corpus_name": args.corpus,
         "corpus": corpus_fingerprint(args.corpus),
+        "tokenizer": tokenizer_fingerprint(args.vocab),
         "parameters": n_params,
         "train_tokens": int(train_tokens.size),
         "validation_tokens": int(val_tokens.size),

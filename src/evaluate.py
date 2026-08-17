@@ -34,6 +34,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import math
 import sys
@@ -205,8 +206,26 @@ def corpus_fingerprint(corpus: str = "corpus") -> Dict[str, Any]:
              "group_by", "seed", "period_filter")}
 
 
+def tokenizer_fingerprint(vocab: int = DEFAULT_VOCAB) -> Dict[str, Any]:
+    """Which tokenizer produced these numbers.
+
+    The corpus fingerprint alone is not enough to decide whether two
+    perplexities compare. Measured 2026-08-18: the classical corpus changed by
+    three words between builds and its bigram floor still moved 158.8 -> 149.8,
+    because the 4k vocabulary had been retrained on a corpus 4.6x larger. Same
+    Latin, different merges, different token stream, different floor. A guard
+    that watched only the corpus would have called that pair comparable.
+    """
+    path = TOKENIZERS / f"latin-bpe-{vocab}.json"
+    if not path.exists():
+        return {"vocab": vocab, "sha256": None}
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+    return {"vocab": vocab, "sha256": digest}
+
+
 def write_report(name: str, payload: Dict[str, Any],
-                 corpus: str = "corpus") -> Path:
+                 corpus: str = "corpus",
+                 vocab: int = DEFAULT_VOCAB) -> Path:
     """Write a versioned report, stamped with the corpus it was measured on.
 
     The stamp must name *this* report's corpus, not the default one. It was
@@ -221,6 +240,7 @@ def write_report(name: str, payload: Dict[str, Any],
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "corpus_name": corpus,
         "corpus": corpus_fingerprint(corpus),
+        "tokenizer": tokenizer_fingerprint(vocab),
         **payload,
     }
     path = REPORTS / f"{name}.json"
@@ -395,7 +415,7 @@ def main() -> int:
         ap.print_help()
         return 0
 
-    path = write_report(name, payload, args.corpus)
+    path = write_report(name, payload, args.corpus, args.vocab)
     print(f"\nwrote {path.relative_to(ROOT)}")
     return 0
 
