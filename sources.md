@@ -10,16 +10,22 @@
 > | Perseus canonical-latinLit | 6.0M | **5,596,757** |
 > | DigilibLT | 4.0M | **6,522,099** |
 > | OGL CSEL | 5.0M | **6,039,916** |
-> | *total, post-dedup* | 15.0M | **17,271,153** |
+> | vicifons | 3.0M | **86,368,214** |
+> | edcs-sdam | 3.0M | **4,356,994** |
+> | *total, post-dedup* | 21.0M | **78,975,089** |
 >
-> The estimates held to within ~21% in aggregate. Two corrections the survey got wrong are recorded
+> The estimates held for the three TEI sources and failed badly for Vicifons,
+> which was put at 3M words and delivered 86M — Latin Wikisource hosts Migne's
+> Patrologia Latina at scale. EDCS also overshot by 45%. Two corrections the survey got wrong are recorded
 > in `manifest/sources.yaml`: the CIRCSE DigilibLT mirror is **CoNLL-U + RDF, not TEI**, and its
 > README contradicts itself on licence (CC badge says BY-NC-SA 3.0, anchor text says BY-SA 4.0 —
 > resolved as BY-SA 4.0 for the texts, so only the text layer is ingested).
 >
-> The headline finding since: of that 17.3M words, only **4,638,175 are CLASSICAL**. The ~10M
-> classical figure below is an upper bound on what survives, not on what is reachable from literary
-> repositories — see `feasibility.md` §2.
+> The headline finding since: of the 79M words now assembled, only **4,539,515
+> are CLASSICAL**. The ~10M classical figure below is an upper bound on what
+> survives, not on what is reachable from literary repositories — and the corpus
+> growing 4.6× barely moved it, because the new material is late antique and
+> medieval. See `feasibility.md` §2.
 
 Goal: assemble as close as possible to the complete surviving corpus of **Classical Latin**
 (conventionally: earliest inscriptions ~600 BC through ~AD 200, i.e. the PHI scope), restricted to

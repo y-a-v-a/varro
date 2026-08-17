@@ -119,19 +119,21 @@ can change without rebuilding the corpus.
 
 ## Corpus as measured
 
-Three of nine green sources extracted:
+Five of nine green sources extracted. **10,192 records, 78,975,089 words** after
+dedup; see [`CURRENT_STATE.md`](CURRENT_STATE.md) for the full breakdown and
+[`reports/`](reports/) for the generated figures.
 
-| Source | Period | Records | Words | vs. estimate |
-|---|---|---:|---:|---|
-| perseus-canonical-latinLit | CLASSICAL | 324 | 5,596,757 | 6.0M |
-| digiliblt | LATE | 373 | 6,522,099 | 4.0M |
-| opengreekandlatin-csel | LATE | 271 | 6,039,916 | 5.0M |
-| **total** | | **968** | **18,158,772** | 15.0M |
+| Source | records | words (pre-dedup) | vs. estimate |
+|---|---:|---:|---|
+| vicifons | 11,753 | 86,368,214 | 3.0M — a 29× miss |
+| digiliblt | 373 | 6,509,980 | 4.0M |
+| opengreekandlatin-csel | 271 | 6,036,274 | 5.0M |
+| perseus-canonical-latinLit | 324 | 5,595,104 | 6.0M |
+| edcs-sdam | 267 | 4,356,994 | 3.0M |
 
-Running ~21% ahead of the manifest's planning figures. Residual contamination
-after filtering: **0 Greek characters**, 43 English function-word hits across
-18.2M words (all verified as false positives — Latin syllables under
-grammatical discussion, hyphenation artifacts, citation abbreviations).
+Vicifons overshot because Latin Wikisource hosts Migne's *Patrologia Latina* at
+scale. Dedup removes **29.8M words (27.4%)**, far above the 4.9% seen at three
+sources, because Wikisource re-hosts much of what Perseus and CSEL supply.
 
 Editorial interventions, counted and reported by every run:
 
@@ -205,8 +207,8 @@ u/v and i/j merged); without that, Perseus's `uiri` and CSEL's `viri` look like
 different words. Documents reduce to bottom-k sketches of 5-gram hashes;
 Jaccard is estimated from sketch overlap and containment derived from it.
 
-**59 records, 884,721 words (4.9%) marked as duplicates. Surviving corpus:
-909 records, 17,256,637 words — of which 4,636,779 are CLASSICAL.**
+**2,799 records, 29.8M words (27.4%) marked as duplicates. Surviving corpus:
+10,192 records, 78,975,089 words — of which 4,539,515 are CLASSICAL.**
 
 Two relationships hide in the clusters and need opposite rules:
 
@@ -219,7 +221,7 @@ Two relationships hide in the clusters and need opposite rules:
 `--verify` is the guard against trusting an estimate: it samples 40 random
 8-word spans from each duplicate and tests literal membership in its keeper.
 Cross-edition duplicates score 50–90%, part-of-collection duplicates 100%.
-**Currently 0 of 59 fall below the 15% floor.** That is the precise claim, and it
+**At three sources, 0 of 59 fell below the 15% floor.** That is the precise claim, and it
 is weaker than "no false positives": passing establishes that the duplicate's text
 really does occur in its keeper, not that discarding the whole record was the right
 call. Deciding that needs cluster-by-cluster human review, which has not been done. It earned its place — the
@@ -274,7 +276,7 @@ Combining marks are stripped in a single NFD pass, which handles accents,
 macrons, breves, papyrological underdots (`ṃạḷẹ`) and numeral overlines
 together — ancient Latin needs none of them.
 
-**Result: a 48-character letter inventory** — a–z and A–Z minus `v/V` and `j/J`.
+**Result (on the 3-source corpus): a 48-character letter inventory** — a–z and A–Z minus `v/V` and `j/J`.
 That is *not* the classical alphabet, which had 23 letters and no case
 distinction at all; it is a modern cased inventory with the two post-classical
 letters folded away. 249 non-ASCII characters remain in 17.25M
@@ -414,6 +416,11 @@ The instrument is validated on inputs whose answer is known:
 | shuffled real words | 0.0% | 0 |
 
 An unvalidated metric is worse than none, because it gets believed.
+
+> **All model results below were measured on the earlier 17M-word corpus.** They
+> predate the Vicifons and EDCS expansion and are kept as historical record.
+> Perplexities are not comparable to anything trained on the current corpus —
+> different text, different held-out set, different tokenizer.
 
 ## Latin-0 — the first model
 
@@ -773,13 +780,13 @@ revisiting this.
 - [x] Feasibility assessment and parameter ladder (`feasibility.md`)
 - [x] Machine-readable manifest with Path A guardrails
 - [x] `fetch.py` — git / http / zenodo / manual, with lockfile
-- [x] `extract.py` — Perseus + CSEL (CTS/TEI) and DigilibLT (CoNLL-U), 18.2M words
+- [x] `extract.py` — Perseus, CSEL, DigilibLT, EDCS (JSON), Vicifons (MediaWiki)
 - [ ] `extract.py` — EDH/Papyri EpiDoc, Vicifons MediaWiki, Latin Library + Gutenberg plaintext
 - [x] Author-date authority list → per-work `period` and `approximate_date`
 - [x] Orthographic normalization — 48-letter alphabet, u/v unified across sources
-- [x] Deduplication — content-based; 0 of 59 below the verbatim floor
+- [x] Deduplication — content-based, verbatim-verified
 - [x] `build.py` — corpus with whole-work held-out split
-- [x] Tokenizer — 4k Latin BPE chosen on measured evidence; 33.7M tokens full / 9.5M classical
+- [x] Tokenizer — 4k Latin BPE chosen on measured evidence; 153.0M tokens full / 9.6M classical
 - [x] Two-track structure — A redistributable / B research, enforced in code
 - [x] `provenance.py` — attribution notice and standing audit gate
 - [x] Genre and form metadata — 97.5% resolved, two orthogonal axes

@@ -39,7 +39,7 @@ of hours, not a week. Compute is not your constraint and you should stop thinkin
 
 ## 2. The data ceiling — the core arithmetic
 
-**REVISED 2026-08-15 against measured data.** The original version of this section reasoned from
+**REVISED 2026-08-17 against the 79M-word corpus.** The original version of this section reasoned from
 an estimated ~10M classical words. Three of nine sources are now extracted, dated per work and
 deduplicated, so the classical figure is measured rather than assumed — and it is **less than half**
 what the plan assumed. The conclusions move accordingly.
@@ -48,10 +48,12 @@ what the plan assumed. The conclusions move accordingly.
 
 | | words | notes |
 |---|---:|---|
-| corpus, post-dedup | 17,256,637 | 908 records, 3 of 9 green sources |
-| **CLASSICAL** | **4,636,779** | to AD 200; essentially all of it Perseus |
-| LATE | 12,553,096 | DigilibLT + CSEL + late Perseus |
-| MEDIEVAL | 79,882 | |
+| corpus, post-dedup | 78,975,089 | 10,192 records, 5 of 9 green sources |
+| UNASSIGNED | 33,953,816 | mostly anonymous Wikisource material |
+| LATE | 24,284,319 | DigilibLT, CSEL, much of the Patrologia |
+| MEDIEVAL | 16,015,187 | was 79,882 before Vicifons |
+| **CLASSICAL** | **4,539,515** | to AD 200; essentially all of it Perseus |
+| NEOLATIN | 182,252 | |
 
 **Token count, remeasured 2026-08-17 on the 79M-word corpus** (`src/tokenizer.py`,
 byte-level BPE, counted over every record):
@@ -246,7 +248,9 @@ towards `u` because the reverse needs morphology to know which u is consonantal.
 40,672 editorial marks, 3,813 line-break hyphenations, 12,007 metrical ictus accents in Plautus,
 3,256 macrons/breves, 667 orphaned spacing diacritics and 233 homoglyphs (mostly Cyrillic, each of
 which silently split a word into two unrelated tokens). The result is a **48-letter alphabet** —
-a-z and A-Z less v/V and j/J — which is precisely classical Latin's inventory.
+a-z and A-Z less v/V and j/J. (That figure was measured on the three-source
+corpus; the wider sources brought long s, sharp s and several foreign scripts,
+which needed a further pass — see CURRENT_STATE.md.)
 
 ### 4.2 Deduplication — DONE
 Flagged already in `sources.md` §5 but worth repeating here because it interacts with the epoch
@@ -258,7 +262,7 @@ are different texts, but you probably want only one.
 
 *Implemented in `src/dedupe.py`.* Content-based (bottom-k sketches of 5-gram hashes), not
 title-based, because titles diverge across projects and — more dangerously — the same title can hide
-different texts. 59 records / 884,721 words (4.9%) marked; 0 of 59 fall below the 15% verbatim
+different texts. 2,799 records / 29.8M words (27.4%) marked at five sources; at three sources it was 59 records / 884,721 words, of which 0 fell below the 15% verbatim
 floor — which establishes that each duplicate's text really does occur in its keeper, not that
 discarding the whole record was right. That needs cluster-by-cluster human review, still undone.
 Two findings worth carrying forward: the overlap is not only cross-source (Celsus' *De Medicina*

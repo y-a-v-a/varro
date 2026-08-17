@@ -48,14 +48,16 @@ Restricted approximately to Roman antiquity, the surviving body of text is small
 is on the order of **10 million words** — Cicero, Caesar, Sallust, Livy, Virgil, Horace, Ovid,
 Seneca, Pliny, Tacitus and others.
 
-**Measured, 2026-08-15: 4,638,175 words.** Three of nine sources are extracted, dated per work and
-deduplicated. Perseus is the canonical classical source and is substantially complete for the
+**Measured, 2026-08-17: 4,539,515 words** of classical Latin, inside a corpus of
+78,975,089 words from five of nine sources. The classical figure has barely moved
+as the corpus grew 4.6×, because the new material is late antique and medieval —
+and dedup removed the Wikisource copies of texts Perseus already supplied. Perseus is the canonical classical source and is substantially complete for the
 canonical authors, so the gap to 10M does not close with another literary repository — it closes,
 partly, with the Latin Library (which overlaps Perseus heavily) plus inscriptions and papyri, and
 those are a different register: formulaic, abbreviated, epigraphic.
 
-At roughly 1.8 tokens per word for a Latin BPE tokenizer that is **~8.3M tokens** of classical
-Latin, against **~31M tokens** for the full corpus. These numbers drive the parameter ladder below;
+Measured at a 4k vocabulary: **9.6M tokens** of classical Latin, against
+**153.0M tokens** for the full corpus. These numbers drive the parameter ladder below;
 see `feasibility.md` §2 for the epoch arithmetic.
 
 **Historical Latin**
