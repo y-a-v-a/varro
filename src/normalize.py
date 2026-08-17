@@ -224,6 +224,16 @@ def normalize(text: str, uv: str = "u", diacritics: bool = False,
     # looks foreign to this filter.
     text = drop_foreign_paragraphs(text, stats)
 
+    # Whole paragraphs handled, individual characters remain: a Hebrew word
+    # quoted inside Latin theology, a Cyrillic gloss in a dictionary entry.
+    # Stripped rather than kept, for the same reason inline Greek is — the
+    # claim is that the model sees only Latin. 1,884 occurrences in 521M
+    # characters, so the cost to surrounding Latin is negligible.
+    residue = FOREIGN_SCRIPT.findall(text)
+    if residue:
+        stats["foreign_chars_stripped"] += len(residue)
+        text = FOREIGN_SCRIPT.sub("", text)
+
     swaps = [c for c in HOMOGLYPHS if c in text]
     if swaps:
         stats["homoglyphs"] += sum(text.count(c) for c in swaps)
@@ -308,6 +318,7 @@ def main() -> int:
     for key in ("hyphen_rejoined", "hyphen_space_split", "hyphen_space_joined",
                 "editorial_marks", "orphan_diacritics", "homoglyphs", "ligatures",
                 "dropped:foreign_script_paragraphs", "dropped_foreign_words",
+                "foreign_chars_stripped",
                 "records_with_diacritics"):
         if stats[key]:
             print(f"  {key:<26} {stats[key]:>9,}")
