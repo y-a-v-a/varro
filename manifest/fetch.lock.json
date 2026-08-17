@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T15:23:17+00:00",
+  "generated": "2026-08-17T13:08:13+00:00",
   "note": "Resolved versions of fetched sources. Commit this file \u2014 it is what makes the corpus reproducible and the licence trail auditable.",
   "sources": {
     "digiliblt": {
@@ -12,6 +12,47 @@
       "tier": "green",
       "url": "https://github.com/CIRCSE/digilibLT"
     },
+    "edcs-sdam": {
+      "bytes": 465523658,
+      "doi": "10.5281/zenodo.7072337",
+      "fetched": "2026-08-17T13:02:38+00:00",
+      "files": [
+        {
+          "bytes": 465523658,
+          "name": "EDCS_text_cleaned_2022-09-12.json",
+          "sha256": "5ecdb22311eb48c4d522212896cc828905f959c766ae57c89f49e069b5899d2a"
+        }
+      ],
+      "license": "CC-BY-4.0",
+      "method": "zenodo",
+      "n_files": 1,
+      "name": "EDCS Latin inscriptions \u2014 cleaned dataset (SDAM, Aarhus)",
+      "resolved_pin": "7072337",
+      "tier": "green",
+      "url": "https://zenodo.org/records/7072337"
+    },
+    "edh": {
+      "bytes": 725649986,
+      "fetched": "2026-08-17T13:04:15+00:00",
+      "license": "CC-BY-SA-4.0",
+      "method": "git",
+      "n_files": 139137,
+      "name": "Epigraphic Database Heidelberg",
+      "resolved_pin": "45f166654ab4551a1954617a0df8e56fa7724ccb",
+      "tier": "green",
+      "url": "https://github.com/epigraphic-database-heidelberg/data"
+    },
+    "latin-library": {
+      "bytes": 95978302,
+      "fetched": "2026-08-17T13:04:22+00:00",
+      "license": "public-domain",
+      "method": "git",
+      "n_files": 2145,
+      "name": "The Latin Library (CLTK mirror)",
+      "resolved_pin": "76229acaf02efd1964ac32009408a90b6f279758",
+      "tier": "green",
+      "url": "https://github.com/cltk/lat_text_latin_library"
+    },
     "opengreekandlatin-csel": {
       "bytes": 416494171,
       "fetched": "2026-08-14T15:23:17+00:00",
@@ -22,6 +63,17 @@
       "tier": "green",
       "url": "https://github.com/OpenGreekAndLatin/csel-dev"
     },
+    "papyri-idp": {
+      "bytes": 1899434330,
+      "fetched": "2026-08-17T13:08:13+00:00",
+      "license": "CC-BY-3.0",
+      "method": "git",
+      "n_files": 389521,
+      "name": "Papyri.info / Duke Databank of Documentary Papyri",
+      "resolved_pin": "c6d0e4a1c9b24a6eddf776dd9b0cf6d40cadb10b",
+      "tier": "green",
+      "url": "https://github.com/papyri/idp.data"
+    },
     "perseus-canonical-latinLit": {
       "bytes": 174711532,
       "fetched": "2026-08-12T21:20:39+00:00",
@@ -31,6 +83,24 @@
       "resolved_pin": "4620cf8ab32865b127dce42a61e80c58b4c06de9",
       "tier": "green",
       "url": "https://github.com/PerseusDL/canonical-latinLit"
+    },
+    "vicifons": {
+      "bytes": 203531435,
+      "fetched": "2026-08-17T13:03:19+00:00",
+      "files": [
+        {
+          "bytes": 203531435,
+          "name": "lawikisource-latest-pages-articles.xml.bz2",
+          "sha256": "cfa91f0b2dbef4489d94f4ff2b9bb37ce89e7c4e33ffce8312e2e751ee27f5c1"
+        }
+      ],
+      "license": "CC-BY-SA-4.0",
+      "method": "http",
+      "n_files": 1,
+      "name": "Latin Wikisource (Vicifons)",
+      "resolved_pin": "latest",
+      "tier": "green",
+      "url": "https://dumps.wikimedia.org/lawikisource/latest/lawikisource-latest-pages-articles.xml.bz2"
     }
   }
 }

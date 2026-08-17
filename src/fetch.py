@@ -207,13 +207,21 @@ def _download(url: str, target: Path) -> None:
         while chunk := resp.read(1 << 20):
             fh.write(chunk)
             done += len(chunk)
+            # Carriage-return progress only works on a terminal. Redirected to a
+            # log it emits one line per megabyte, which buried a 465MB download
+            # in several hundred lines of noise.
+            if not sys.stdout.isatty():
+                continue
             if total:
                 pct = 100 * done / total
                 print(f"\r    {done/1e6:.1f}/{total/1e6:.1f} MB ({pct:.0f}%)",
                       end="", flush=True)
             else:
                 print(f"\r    {done/1e6:.1f} MB", end="", flush=True)
-    print()
+    if sys.stdout.isatty():
+        print()
+    else:
+        print(f"    {done/1e6:.1f} MB downloaded")
 
 
 def fetch_http(src: Dict[str, Any], dest: Path) -> Dict[str, Any]:

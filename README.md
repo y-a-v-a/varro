@@ -667,6 +667,76 @@ artifact the mining did not filter.
 behaviour without any English-derived data. Scaling it means a better base model,
 which means finishing the corpus.
 
+## Step 1 — pipeline driver and the full corpus
+
+```bash
+python src/pipeline.py --status     # what is stale and why
+python src/pipeline.py              # run only what changed
+```
+
+One command rebuilds everything after adding a source or editing an authority
+file, and does only the work the change invalidated. **Fingerprints chain rather
+than inspect files**: three stages rewrite `data/interim/` in place, so
+mtime-based staleness would mark a stage stale the instant it finished. Each
+stage's fingerprint is `sha256(previous stage's fingerprint + its own config +
+its own source)`, so editing `normalize.py` invalidates normalize and everything
+after it, and nothing before.
+
+Full run over five sources: **10.3 minutes**.
+
+### The corpus, 5 of 9 sources
+
+| source | records | words |
+|---|---:|---:|
+| vicifons | 11,753 | 86,368,214 |
+| digiliblt | 373 | 6,509,980 |
+| opengreekandlatin-csel | 271 | 6,036,274 |
+| perseus-canonical-latinLit | 324 | 5,595,104 |
+| edcs-sdam | 267 | 4,356,994 |
+| **after dedup** | **10,189** | **78,984,104** |
+
+**Vicifons was estimated at 3M words and delivered 86M** — a 29× miss in
+`sources.md`. It is not junk: Latin Wikisource hosts Migne's *Patrologia Latina*
+at scale. EDCS also overshot, 4.36M against 3M.
+
+Dedup removed **29,805,223 words (27.4%)** across 923 clusters — far above the
+4.9% seen at three sources, because Wikisource re-hosts a great deal of what
+Perseus and CSEL already provide.
+
+### Dating the Patrologia
+
+86M words arrived with no author field and 82.8% of the corpus fell to
+UNASSIGNED. Two signals fixed most of it.
+
+**Migne's PL is ordered chronologically by author death**, Tertullian to
+Innocent III across 217 volumes — so a volume number dates a text without naming
+its author. Three Wikisource conventions carry it (title path, title
+parenthetical, link back to the volume), covering 22% of pages. The volume→year
+map in `authorities.yaml` is anchored on principal authors and interpolated, not
+linear: Migne gives Augustine sixteen volumes and the tenth century about six, so
+a straight line dates Jerome a century early.
+
+**The undated authors were using Latin name forms** — `Hieronymus`,
+`Ambrosius`, `Aurelius Augustinus` — while the authority file had been curated
+with library forms (`Jerome, Saint`). They had been invisible to the matcher all
+along. Adding those, plus Carolingians and popes, picked up another 4%.
+
+| period | words | |
+|---|---:|---|
+| UNASSIGNED | 33,963,083 | 43.0% |
+| LATE | 24,284,063 | 30.7% |
+| MEDIEVAL | 16,015,187 | 20.3% |
+| CLASSICAL | 4,539,519 | 5.7% |
+| NEOLATIN | 182,252 | 0.2% |
+
+From **82.8% undated to 43.0%**. Medieval Latin went from 79,882 words to 16M,
+which closes a gap open since the corpus was first surveyed. The single NEOLATIN
+entry is the *Malleus Maleficarum* (1487).
+
+Dates from the PL method carry `date_source: pl-volume` and confidence
+`inferred`. They exist to place a text on the right side of a period boundary and
+should not be cited as scholarship.
+
 ## Known limitations
 
 **Apparatus criticus in the Perseus source.** Four records (Pliny NH, three
@@ -719,7 +789,10 @@ revisiting this.
 - [x] Ablation — size and schedule contribute ~53% / ~47%; both real
 - [ ] Disjoint-phase ablation: exclude classical from Phase 1, to separate transfer from extra passes
 - [x] **Chat proof** — corpus-mined dialogue SFT; turn-taking and stopping learned
-- [ ] Pipeline driver + six remaining sources (~24M words, doubles the corpus)
+- [x] **Pipeline driver** — one idempotent command, chained fingerprints
+- [x] **5 of 9 sources** — 78.98M words after dedup; PL-volume dating for the Patrologia
+- [ ] Remaining: latin-library, papyri-idp, edh, gutenberg-latin
+- [ ] Retrain tokenizer — vocabulary and fertility were measured on the old 17M corpus
 - [ ] LATIN-XXV (~25M) on the doubled corpus
 - [ ] Real dialogue SFT on the better base, then serve
 - [ ] UD treebank syntactic probing (fetch via `--track eval`; exclude overlapping passages from training)

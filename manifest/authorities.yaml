@@ -51,6 +51,42 @@ source_priors:
   opengreekandlatin-csel: LATE        # patristic, 2nd-7th c.
 
 # ---------------------------------------------------------------------------
+# Patrologia Latina volume -> approximate year
+# ---------------------------------------------------------------------------
+#
+# Migne's PL is arranged chronologically by author death, Tertullian to
+# Innocent III across 217 volumes, so a volume number dates a text without
+# needing to know its author. On Latin Wikisource — which hosts the PL at scale
+# — a volume is recoverable for 22% of pages, and it is the ONLY dating signal
+# most of them carry.
+#
+# The mapping is anchored on the principal author of well-known volumes and
+# interpolated between them. It is NOT linear: Migne gives Augustine sixteen
+# volumes and the whole tenth century about six, so a straight line from
+# volume 1 to 217 puts Jerome a century early. Dates from this method are
+# recorded with confidence `inferred` and should never be cited as scholarship —
+# they exist to place a text on the right side of a period boundary.
+
+pl_volume_anchors:
+  - {volume: 1,   year: 220,  who: Tertullian}
+  - {volume: 4,   year: 258,  who: Cyprian}
+  - {volume: 17,  year: 397,  who: Ambrose}
+  - {volume: 30,  year: 420,  who: Jerome}
+  - {volume: 47,  year: 430,  who: Augustine}
+  - {volume: 64,  year: 524,  who: Boethius}
+  - {volume: 70,  year: 585,  who: Cassiodorus}
+  - {volume: 79,  year: 604,  who: Gregory the Great}
+  - {volume: 84,  year: 636,  who: Isidore of Seville}
+  - {volume: 95,  year: 735,  who: Bede}
+  - {volume: 101, year: 804,  who: Alcuin}
+  - {volume: 112, year: 856,  who: Rabanus Maurus}
+  - {volume: 130, year: 900,  who: late Carolingian}
+  - {volume: 139, year: 1000, who: turn of the millennium}
+  - {volume: 151, year: 1100, who: eleventh century}
+  - {volume: 180, year: 1150, who: twelfth century}
+  - {volume: 217, year: 1216, who: Innocent III}
+
+# ---------------------------------------------------------------------------
 # Authors
 # ---------------------------------------------------------------------------
 authors:
@@ -124,17 +160,17 @@ authors:
   # --- Late antique: Christian ---------------------------------------------
   - {aliases: ["Arnobius of Sicca"], canonical: Arnobius, floruit: 300, confidence: high}
   - {aliases: ["Lactantius"], canonical: Lactantius, floruit: 310, confidence: high}
-  - {aliases: ["Hilary, Saint, Bishop of Poitiers"], canonical: Hilarius Pictaviensis, floruit: 355, confidence: high}
+  - {aliases: ["Hilary, Saint, Bishop of Poitiers", "Hilarius"], canonical: Hilarius Pictaviensis, floruit: 355, confidence: high}
   - {aliases: ["Pseudo-Hilarius"], canonical: Ps.-Hilarius, floruit: 400, confidence: low}
   - {aliases: ["Lucifer, Bishop of Cagliari"], canonical: Lucifer Calaritanus, floruit: 360, confidence: high}
   - {aliases: ["Marius Victorinus"], canonical: Marius Victorinus, floruit: 360, confidence: high}
   - {aliases: ["Optatus, Saint, Bishop of Mileve"], canonical: Optatus, floruit: 370, confidence: high}
   - {aliases: ["Ambrosiaster"], canonical: Ambrosiaster, floruit: 375, confidence: high}
   - {aliases: ["Priscillian, Bishop of Avila"], canonical: Priscillianus, floruit: 380, confidence: high}
-  - {aliases: ["Sanctus Ambrosius"], canonical: Ambrosius, floruit: 380, confidence: high}
+  - {aliases: ["Sanctus Ambrosius", "Ambrosius"], canonical: Ambrosius, floruit: 380, confidence: high}
   - {aliases: ["Philastrius, Saint, Bishop of Brescia"], canonical: Philastrius, floruit: 385, confidence: high}
-  - {aliases: ["Jerome, Saint"], canonical: Hieronymus, floruit: 390, confidence: high}
-  - {aliases: ["Augustine"], canonical: Augustinus, floruit: 400, confidence: high}
+  - {aliases: ["Jerome, Saint", "Hieronymus"], canonical: Hieronymus, floruit: 390, confidence: high}
+  - {aliases: ["Augustine", "Aurelius Augustinus", "Augustinus"], canonical: Augustinus, floruit: 400, confidence: high}
   - {aliases: ["Ps. Augustinus", "Ps. Aurelius Augustinus"],
      canonical: Ps.-Augustinus, floruit: 500, confidence: low,
      note: "Pseudo-Augustinian corpus spans 5th-9th c.; 500 is a compromise anchor."}
@@ -262,7 +298,7 @@ authors:
   - {aliases: ["Sergius (Ps.-Cassiodorus)"], canonical: Ps.-Cassiodorus (Sergius), floruit: 500, confidence: low}
   - {aliases: ["Eutyches"], canonical: Eutyches grammaticus, floruit: 550, confidence: medium}
   - {aliases: ["Anonymous pilgrim of Piacenza"], canonical: Antoninus Placentinus, floruit: 570, confidence: medium}
-  - {aliases: ["Remigius, of Auxerre"], canonical: Remigius Autissiodorensis, floruit: 890, confidence: high,
+  - {aliases: ["Remigius, of Auxerre", "Remigius Antissiodorensis"], canonical: Remigius Autissiodorensis, floruit: 890, confidence: high,
      note: "c.841-908. Carolingian, arriving via CSEL whose prior is LATE — the second
             clear case of a source prior being wrong, after Ps.-Boethius."}
 
@@ -281,3 +317,25 @@ works:
   - {aliases: ["Adnotationes super Lucanum", "Adnotationes super Lucanum: supplementum"],
      floruit: 450, confidence: low, note: "Anonymous late antique scholia on Lucan."}
   - {aliases: ["Commenta Bernensia in Lucanum"], floruit: 450, confidence: low}
+  - {aliases: ["Malleus Maleficarum"], floruit: 1487, confidence: high,
+     note: "Printed 1487 — NEOLATIN, and a reminder that Wikisource's range runs
+            well past the medieval boundary."}
+
+  # --- Fourth pass: Latin name forms and the medieval church ----------------
+  # Vicifons names authors in Latin — Hieronymus, not "Jerome, Saint" — so the
+  # library forms curated for Perseus and CSEL matched almost nothing there.
+  # These are the highest-volume undated authors in that source.
+  - {aliases: ["Haymo Halberstatensis"], canonical: Haymo of Halberstadt, floruit: 850, confidence: high,
+     note: "d. 853. Three homily collections, 757k words — the largest single undated block."}
+  - {aliases: ["Atto Vercellensis"], canonical: Atto of Vercelli, floruit: 950, confidence: high}
+  - {aliases: ["Rabanus Maurus"], canonical: Hrabanus Maurus, floruit: 850, confidence: high}
+  - {aliases: ["Paschasius Radbertus"], canonical: Paschasius Radbertus, floruit: 860, confidence: high}
+  - {aliases: ["Petrus Chrysologus"], canonical: Peter Chrysologus, floruit: 445, confidence: high}
+  - {aliases: ["Leo I", "Leo Magnus"], canonical: Leo the Great, floruit: 450, confidence: high}
+  - {aliases: ["Nicolaus I"], canonical: Nicholas I, floruit: 865, confidence: high}
+  - {aliases: ["Paschalis II"], canonical: Paschal II, floruit: 1110, confidence: high}
+  - {aliases: ["Innocentius II"], canonical: Innocent II, floruit: 1140, confidence: high}
+  - {aliases: ["Eugenius III"], canonical: Eugene III, floruit: 1150, confidence: high}
+  - {aliases: ["Pius II"], canonical: Pius II, floruit: 1460, confidence: high,
+     note: "d. 1464 — past the MEDIEVAL boundary, so this lands in NEOLATIN. The
+            first author in the corpus to do so."}

@@ -66,6 +66,27 @@ class Authority:
         self.authors = self._index(doc.get("authors") or [], "authors")
         self.works = self._index(doc.get("works") or [], "works")
         self.alias_hits: Counter = Counter()
+        anchors = doc.get("pl_volume_anchors") or []
+        self.pl_anchors = sorted((a["volume"], a["year"]) for a in anchors)
+
+    def year_for_pl_volume(self, volume: Optional[int]) -> Optional[int]:
+        """Interpolate a year from Migne's chronological volume ordering.
+
+        Piecewise between anchors rather than linear across the whole range:
+        Migne gives Augustine sixteen volumes and the tenth century about six,
+        so a straight line from volume 1 to 217 dates Jerome a century early.
+        """
+        if volume is None or not self.pl_anchors:
+            return None
+        if volume <= self.pl_anchors[0][0]:
+            return self.pl_anchors[0][1]
+        if volume >= self.pl_anchors[-1][0]:
+            return self.pl_anchors[-1][1]
+        for (v0, y0), (v1, y1) in zip(self.pl_anchors, self.pl_anchors[1:]):
+            if v0 <= volume <= v1:
+                span = max(1, v1 - v0)
+                return int(round(y0 + (volume - v0) * (y1 - y0) / span))
+        return None
 
     @staticmethod
     def _index(entries: List[Dict[str, Any]], label: str) -> Dict[str, Dict[str, Any]]:
@@ -114,6 +135,13 @@ class Authority:
             period = entry.get("period")
             if period:
                 return None, period, origin, confidence
+
+        # Below author matching, above the source prior: a Patrologia Latina
+        # volume number dates a text without naming its author, which is the
+        # only signal most Wikisource pages carry.
+        year = self.year_for_pl_volume(record.get("pl_volume"))
+        if year is not None:
+            return year, self.period_for(year), "pl-volume", "inferred"
 
         prior = self.source_priors.get(record.get("source"))
         if prior:

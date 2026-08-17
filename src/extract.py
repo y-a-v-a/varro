@@ -40,7 +40,7 @@ import re
 import sys
 import unicodedata
 import xml.etree.ElementTree as ET
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
@@ -593,6 +593,17 @@ EXTRACTORS = {
 }
 
 
+def _register_late() -> None:
+    """Extractors defined after the dispatch table is first built."""
+    for name in ("extract_edcs", "extract_vicifons", "extract_latin_library"):
+        fn = globals().get(name)
+        if fn is None:
+            continue
+        EXTRACTORS[{"extract_edcs": "edcs-sdam",
+                    "extract_vicifons": "vicifons",
+                    "extract_latin_library": "latin-library"}[name]] = fn
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -618,7 +629,8 @@ def main() -> int:
         print(f"  {key:<34} {stats[key]:>9,}")
     for key in ("greek_passages", "greek_inline_runs", "dropped_english_words",
                 "duplicate_docids", "empty_after_extraction", "rejected_body_lang",
-                "parse_errors"):
+                "author_from_title", "pl_volume_found", "pages_seen", "skipped:namespace",
+                "skipped:redirect", "skipped:too_short", "parse_errors"):
         if stats[key]:
             print(f"  {key:<34} {stats[key]:>9,}")
 
@@ -635,6 +647,287 @@ def main() -> int:
     print(f"\nwrote {out.relative_to(ROOT)} — {len(records):,} records, {size/1e6:.1f} MB")
     return 0
 
+
+
+# ---------------------------------------------------------------------------
+# EDCS — Latin inscriptions, JSON
+# ---------------------------------------------------------------------------
+
+# Inscriptions are not works. 537,262 of them as individual records would swamp
+# a corpus of ~900 documents and make dedupe's all-pairs sweep intractable, so
+# they are grouped by province and then split at a word budget. The province is
+# the only grouping the dump reliably supports, and it is meaningful: epigraphic
+# formulae vary regionally.
+EDCS_WORDS_PER_DOC = 20000
+
+# `clean_text_interpretive_word` expands the abbreviations (D M -> Dis Manibus).
+# The conservative field preserves them, which is right for epigraphists and
+# wrong for a language model: `D M` is two uninformative tokens.
+EDCS_TEXT_FIELD = "clean_text_interpretive_word"
+
+
+def extract_edcs(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
+    entry = load_manifest_entry(source_id)
+    lock = load_lock_entry(source_id)
+    stats = Stats()
+    records: List[Dict[str, Any]] = []
+
+    files = sorted((RAW / source_id).glob("*.json"))
+    if not files:
+        raise RuntimeError(f"no JSON under {RAW / source_id} — fetched?")
+    with files[0].open(encoding="utf-8") as fh:
+        data = json.load(fh)
+
+    by_province: Dict[str, List[str]] = defaultdict(list)
+    for item in data:
+        stats["inscriptions_seen"] += 1
+        text = (item.get(EDCS_TEXT_FIELD) or "").strip()
+        if not text:
+            stats["empty_inscriptions"] += 1
+            continue
+        by_province[item.get("province") or "incerta"].append(" ".join(text.split()))
+
+    for province, lines in sorted(by_province.items()):
+        chunk: List[str] = []
+        words = 0
+        part = 0
+        for line in lines:
+            chunk.append(line)
+            words += len(line.split())
+            if words >= EDCS_WORDS_PER_DOC:
+                part += 1
+                records.append(_edcs_record(source_id, entry, lock, province,
+                                            part, chunk, stats, greek))
+                chunk, words = [], 0
+        if chunk:
+            part += 1
+            records.append(_edcs_record(source_id, entry, lock, province,
+                                        part, chunk, stats, greek))
+        if limit is not None and len(records) >= limit:
+            break
+
+    return records, stats
+
+
+def _edcs_record(source_id, entry, lock, province, part, lines, stats, greek):
+    text = strip_inline_greek("\n".join(lines), stats, greek)
+    text = drop_english_paragraphs(tidy(text), stats)
+    n_words = len(text.split())
+    stats["words"] += n_words
+    stats["records"] += 1
+    stats["works_seen"] += 1
+    return {
+        "id": f"{source_id}/{province.replace(' ', '_')}-{part:02d}",
+        "text": text,
+        "author": None,
+        "work": f"Inscriptiones: {province} ({part})",
+        "approximate_date": None,
+        "period": entry.get("period"),
+        "genre": None,
+        "source": source_id,
+        "source_url": entry.get("url"),
+        "source_version": lock.get("resolved_pin"),
+        "license": entry.get("license"),
+        "edition": "EDCS via SDAM cleaned release",
+        "edition_year": 2022,
+        "urn": None,
+        "language_variant": "lat",
+        "normalization": None,
+        "n_words": n_words,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Vicifons — Latin Wikisource, MediaWiki XML dump
+# ---------------------------------------------------------------------------
+
+MW_NS = "{http://www.mediawiki.org/xml/export-0.11/}"
+
+# Wikitext is markup for humans editing in a browser, not a document format.
+# Stripping order matters: templates and refs must go before link syntax, or a
+# link inside a template survives its container's removal.
+MW_COMMENT = re.compile(r"<!--.*?-->", re.S)
+MW_REF = re.compile(r"<ref[^>]*?/>|<ref.*?</ref>", re.S | re.I)
+MW_TAG = re.compile(r"<[^>]+>")
+MW_TABLE = re.compile(r"\{\|.*?\|\}", re.S)
+MW_FILE = re.compile(r"\[\[(?:File|Image|Fasciculus|Imago|Category|Categoria)"
+                     r":[^\]]*?\]\]", re.I | re.S)
+MW_PIPED = re.compile(r"\[\[[^\]|]*\|([^\]]*)\]\]")
+MW_LINK = re.compile(r"\[\[([^\]]*)\]\]")
+MW_EXTLINK = re.compile(r"\[https?://\S+\s+([^\]]*)\]")
+MW_BARE_EXT = re.compile(r"\[https?://\S+\]")
+MW_HEADING = re.compile(r"^={1,6}\s*(.*?)\s*={1,6}$", re.M)
+MW_QUOTES = re.compile(r"'{2,5}")
+MW_LISTMARK = re.compile(r"^[*#:;]+\s*", re.M)
+
+# Latin Wikisource hosts a great deal of Migne's Patrologia Latina, whose pages
+# carry column references (`131.0843C`, `131.0133D|`). They are apparatus, not
+# text, and at this volume they would become frequent tokens.
+MW_MIGNE_COL = re.compile(r"\b\d{2,3}\.\d{3,4}[A-D]?\|?")
+
+# Titles usually name the author parenthetically — "Enarrationes in Psalmos
+# (Remigius Antissiodorensis)" — which is the only author signal the dump gives.
+# Without it every page falls to a source prior and the dating authority, which
+# works by author, can never fire.
+MW_TITLE_AUTHOR = re.compile(r"^(.*?)\s*\(([^)]{3,60})\)\s*$")
+
+# Editions and volume markers that are not authors.
+MW_NOT_AUTHOR = re.compile(r"^(ed\.|PL\s|Migne|Tomus|vol\.|liber|pars)", re.I)
+
+
+def strip_templates(text: str) -> str:
+    """Remove {{...}} including nesting, which a regex cannot do reliably."""
+    out, depth, i = [], 0, 0
+    while i < len(text):
+        if text.startswith("{{", i):
+            depth += 1
+            i += 2
+        elif text.startswith("}}", i) and depth:
+            depth -= 1
+            i += 2
+        else:
+            if not depth:
+                out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
+def strip_wikitext(text: str) -> str:
+    text = MW_COMMENT.sub(" ", text)
+    text = MW_REF.sub(" ", text)
+    text = MW_TABLE.sub(" ", text)
+    text = strip_templates(text)
+    text = MW_FILE.sub(" ", text)
+    text = MW_PIPED.sub(r"\1", text)
+    text = MW_LINK.sub(r"\1", text)
+    text = MW_EXTLINK.sub(r"\1", text)
+    text = MW_BARE_EXT.sub(" ", text)
+    text = MW_TAG.sub(" ", text)
+    text = MW_HEADING.sub(r"\n\n\1\n\n", text)
+    text = MW_QUOTES.sub("", text)
+    text = MW_LISTMARK.sub("", text)
+    text = MW_MIGNE_COL.sub(" ", text)
+    return text
+
+
+# Wikisource splits long works across subpages: "Homiliae (Haymo)/4".
+MW_SUBPAGE = re.compile(r"/\d+\s*$")
+
+# Migne's Patrologia Latina is arranged CHRONOLOGICALLY by author death, from
+# Tertullian to Innocent III, so a volume number is a date. Three conventions
+# carry it on Latin Wikisource; the link is by far the most common, because
+# works transcribed from PL cite the volume they came from.
+PL_TITLE_PATH = re.compile(r"^Patrologia Latina/(\d{1,3})\b")
+PL_TITLE_PAREN = re.compile(r"\(PL\s*0*(\d{1,3})\)", re.I)
+PL_LINK = re.compile(r"\[\[Patrologia Latina/(\d{1,3})")
+
+
+def pl_volume(title: str, raw: str) -> Optional[int]:
+    for pattern, subject in ((PL_TITLE_PATH, title), (PL_TITLE_PAREN, title),
+                             (PL_LINK, raw)):
+        match = pattern.search(subject or "")
+        if match:
+            volume = int(match.group(1))
+            if 1 <= volume <= 217:
+                return volume
+    return None
+
+
+def title_author(title: str) -> Tuple[str, Optional[str]]:
+    """Split "Work (Author)" into its parts, where the parenthetical is a name."""
+    title = MW_SUBPAGE.sub("", title or "").strip()
+    match = MW_TITLE_AUTHOR.match(title)
+    if not match:
+        return title, None
+    work, candidate = match.group(1).strip(), match.group(2).strip()
+    if MW_NOT_AUTHOR.match(candidate) or candidate.isdigit():
+        return title, None
+    return (work or title), candidate
+
+
+def extract_vicifons(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
+    """One record per main-namespace page.
+
+    Only namespace 0 is content. Everything else is machinery — templates, help
+    pages, author index stubs, MediaWiki interface strings — and the interface
+    strings are in English, so ingesting other namespaces would breach the
+    project's central claim, not merely add noise.
+    """
+    import bz2
+
+    entry = load_manifest_entry(source_id)
+    lock = load_lock_entry(source_id)
+    stats = Stats()
+    records: List[Dict[str, Any]] = []
+
+    dumps = sorted((RAW / source_id).glob("*.xml.bz2"))
+    if not dumps:
+        raise RuntimeError(f"no dump under {RAW / source_id} — fetched?")
+
+    with bz2.open(dumps[0], "rb") as fh:
+        title = ns = None
+        for event, elem in ET.iterparse(fh, events=("end",)):
+            tag = localname(elem.tag)
+            if tag == "title":
+                title = (elem.text or "").strip()
+            elif tag == "ns":
+                ns = (elem.text or "").strip()
+            elif tag == "page":
+                elem.clear()
+                continue
+            elif tag == "text":
+                stats["pages_seen"] += 1
+                raw = elem.text or ""
+                elem.clear()
+                if ns != "0":
+                    stats["skipped:namespace"] += 1
+                    continue
+                if raw.lstrip().upper().startswith("#REDIRECT") or \
+                        raw.lstrip().upper().startswith("#REDIRECTIO"):
+                    stats["skipped:redirect"] += 1
+                    continue
+
+                text = strip_inline_greek(tidy(strip_wikitext(raw)), stats, greek)
+                text = drop_english_paragraphs(text, stats)
+                if len(text.split()) < 50:
+                    stats["skipped:too_short"] += 1
+                    continue
+
+                n_words = len(text.split())
+                stats["words"] += n_words
+                stats["records"] += 1
+                stats["works_seen"] += 1
+                work, author = title_author(title or "")
+                if author:
+                    stats["author_from_title"] += 1
+                volume = pl_volume(title or "", raw)
+                if volume:
+                    stats["pl_volume_found"] += 1
+                records.append({
+                    "id": f"{source_id}/{(title or 'untitled').replace(' ', '_')[:90]}",
+                    "text": text,
+                    "author": author,
+                    "work": work,
+                    "approximate_date": None,
+                    "period": entry.get("period"),
+                    "genre": None,
+                    "source": source_id,
+                    "source_url": entry.get("url"),
+                    "source_version": lock.get("resolved_pin"),
+                    "license": entry.get("license"),
+                    "edition": "Latin Wikisource",
+                    "edition_year": None,
+                    "urn": None,
+                    "pl_volume": volume,
+                    "language_variant": "lat",
+                    "normalization": None,
+                    "n_words": n_words,
+                })
+                if limit is not None and len(records) >= limit:
+                    break
+    return records, stats
+
+_register_late()
 
 if __name__ == "__main__":
     sys.exit(main())

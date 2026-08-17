@@ -197,10 +197,18 @@ def main() -> int:
     print(f"  train          {len(train):,} records, {tw:,} words")
     print(f"  validation     {len(val):,} records, {vw:,} words "
           f"({100 * vw / (tw + vw):.1f}%), held out by {args.group_by}")
-    shared = {r.get("author") for r in train} & {r.get("author") for r in val}
+    # None is not an author. Counting it as one made an all-anonymous corpus
+    # look 61% leaked when named-author leakage was actually zero — a metric
+    # that cries wolf stops being read.
+    named_train = {r.get("author") for r in train if r.get("author")}
+    shared = {r.get("author") for r in val if r.get("author")} & named_train
     leaked = sum(r["n_words"] for r in val if r.get("author") in shared)
-    print(f"  author overlap {len(shared)} author(s), {leaked:,} validation words "
-          f"({100 * leaked / vw:.1f}%)" if vw else "")
+    anonymous = sum(r["n_words"] for r in val if not r.get("author"))
+    if vw:
+        print(f"  author overlap {len(shared)} named author(s), {leaked:,} "
+              f"validation words ({100 * leaked / vw:.1f}%)")
+        print(f"  anonymous      {anonymous:,} validation words "
+              f"({100 * anonymous / vw:.1f}%) — each held out as its own group")
     if args.period:
         print(f"  period filter  {', '.join(args.period)}")
     print("\nexcluded:")
