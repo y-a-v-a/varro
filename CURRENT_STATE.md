@@ -1,7 +1,31 @@
 # Current state — pick-up notes
 
-Written 2026-08-17 as a handoff into a fresh session. `README.md` explains how
-things work; this file says where they stand, what is stale, and what to do next.
+Written 2026-08-17 as a handoff into a fresh session; updated 2026-08-18.
+`README.md` explains how things work; this file says where they stand, what is
+stale, and what to do next.
+
+---
+
+## Update 2026-08-18 — test suite added, two extraction fixes pending a rebuild
+
+- **`tests/` now holds a pytest suite** (104 tests, ~0.2s, no corpus/network/MLX
+  needed): `.venv/bin/pytest`. It covers the pure logic of normalize, dedupe,
+  extract, enrich, build's validation split, dialogue mining, the evaluation
+  instruments, fetch/provenance guards, pipeline fingerprints, and a miniature
+  BPE round-trip. pytest is in `requirements.txt`.
+- **Two bugs the tests surfaced were fixed, and `data/interim/` predates them:**
+  1. `normalize.py` — the inline foreign-script strip ran *before* the homoglyph
+     map, so the Cyrillic homoglyph repairs were dead code (`mаle` → `mle`
+     instead of `male`). The map now runs first; the paragraph-level foreign
+     drop still precedes both, as its comment requires.
+  2. `extract.py` — with `--greek tag`, markup-tagged Greek was wrapped in a
+     second, nested `<GRAECUM>` by the inline pass. Inline tagging now skips
+     already-tagged spans. (Default policy is `drop`, so existing data is only
+     affected if it was extracted with `tag`.)
+- **Action: run `python src/pipeline.py` before the next training run.** The
+  stage fingerprints cover the scripts themselves, so extract-onward will
+  re-run automatically. Expected impact is small (~130 homoglyph occurrences),
+  but the corpus on disk was produced by the old code until this is done.
 
 ---
 
@@ -172,8 +196,11 @@ it finished.
   report FAILED while behaving perfectly.
 - **Baselines are corpus-specific.** Quoting the full-corpus floor against a
   classical-corpus model overstated latin-0 by 23%.
-- **Run the foreign-script filter before the homoglyph map**, or whole Cyrillic
-  paragraphs get laundered into pseudo-Latin.
+- **Ordering around the homoglyph map is delicate.** The paragraph-level
+  foreign-script drop must run before it, or whole Cyrillic paragraphs get
+  laundered into pseudo-Latin — but the inline character strip must run *after*
+  it, or the homoglyph repairs become dead code (fixed 2026-08-18; see the
+  update at the top).
 - **`docs/external-review-2026-08-15.md`** is an independent review by OpenAI
   Codex that found five real bugs. Worth re-reading before trusting any claim in
   this repo.

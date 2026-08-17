@@ -1,1 +1,4 @@
 PyYAML>=6.0
+
+# tests
+pytest>=8

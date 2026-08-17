@@ -202,6 +202,8 @@ GREEK_SCRIPT_RANGE = "Ͱ-Ͽἀ-῿"
 GREEK_RUN = re.compile(
     rf"\S*[{GREEK_SCRIPT_RANGE}]\S*(?:[ \t]+\S*[{GREEK_SCRIPT_RANGE}]\S*)*"
 )
+# Spans the markup pass already tagged; the inline pass must not wrap them again.
+GREEK_TAGGED = re.compile(r"(<GRAECUM>.*?</GRAECUM>)", re.S)
 
 
 def strip_inline_greek(text: str, stats: Stats, greek: str) -> str:
@@ -224,7 +226,12 @@ def strip_inline_greek(text: str, stats: Stats, greek: str) -> str:
             return ""
         return f"<GRAECUM> {match.group(0)} </GRAECUM>"
 
-    return GREEK_RUN.sub(replace, text)
+    # Segments already inside <GRAECUM> markers pass through untouched, so
+    # markup-tagged Greek is not wrapped a second time.
+    return "".join(
+        segment if segment.startswith("<GRAECUM>")
+        else GREEK_RUN.sub(replace, segment)
+        for segment in GREEK_TAGGED.split(text))
 
 
 WS_INLINE = re.compile(r"[ \t\r\f\v]+")

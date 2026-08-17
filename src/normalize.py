@@ -224,7 +224,16 @@ def normalize(text: str, uv: str = "u", diacritics: bool = False,
     # looks foreign to this filter.
     text = drop_foreign_paragraphs(text, stats)
 
-    # Whole paragraphs handled, individual characters remain: a Hebrew word
+    # Whole paragraphs handled, individual characters remain. Repairable
+    # homoglyphs first: a stray Cyrillic letter inside a Latin word is OCR
+    # damage, and stripping it before the map runs would delete a letter the
+    # map exists to restore (`mаle` must become `male`, not `mle`).
+    swaps = [c for c in HOMOGLYPHS if c in text]
+    if swaps:
+        stats["homoglyphs"] += sum(text.count(c) for c in swaps)
+        text = text.translate({ord(c): HOMOGLYPHS[c] for c in swaps})
+
+    # What still remains has no confident Latin equivalent: a Hebrew word
     # quoted inside Latin theology, a Cyrillic gloss in a dictionary entry.
     # Stripped rather than kept, for the same reason inline Greek is — the
     # claim is that the model sees only Latin. 1,884 occurrences in 521M
@@ -233,11 +242,6 @@ def normalize(text: str, uv: str = "u", diacritics: bool = False,
     if residue:
         stats["foreign_chars_stripped"] += len(residue)
         text = FOREIGN_SCRIPT.sub("", text)
-
-    swaps = [c for c in HOMOGLYPHS if c in text]
-    if swaps:
-        stats["homoglyphs"] += sum(text.count(c) for c in swaps)
-        text = text.translate({ord(c): HOMOGLYPHS[c] for c in swaps})
 
     if uv == "u":
         text = text.translate(FOLD_U)
