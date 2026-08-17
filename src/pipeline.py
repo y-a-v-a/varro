@@ -219,6 +219,10 @@ def main() -> int:
             downstream = True
         reason = ("forced" if args.force else
                   "upstream changed" if downstream and not stale and run else
+                  # A stale stage that is skipped anyway was skipped by a flag,
+                  # not because it is current — saying "inputs changed" next to
+                  # "skip" reads as a contradiction.
+                  "stale, held back by --from/--skip-fetch" if stale and not run else
                   "inputs changed" if stale else "up to date")
         plan.append((stage, fingerprint, run, reason))
 

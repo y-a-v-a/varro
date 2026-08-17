@@ -285,7 +285,10 @@ def main() -> int:
     sizes: List[int] = []
     sorted_sketches: List[Tuple[int, ...]] = []
     set_sketches: List[Set[int]] = []
-    for rec in records:
+    sketch_heartbeat = max(1, len(records) // 10)
+    for done, rec in enumerate(records, 1):
+        if done % sketch_heartbeat == 0:
+            print(f"  sketched {done:,}/{len(records):,}", flush=True)
         tokens = fold(rec["text"])
         s, cardinality = sketch(tokens)
         sizes.append(cardinality)
@@ -310,8 +313,16 @@ def main() -> int:
     print(f"candidate pairs after prefilter: {len(candidates):,} "
           f"(of {len(records)*(len(records)-1)//2:,} possible)", flush=True)
 
+    # A heartbeat, because this loop is the long pole and used to run silent:
+    # at five sources it scores over a million pairs and says nothing for
+    # minutes, which is indistinguishable from a hang to anything watching.
     pairs: List[Tuple[float, float, int, int]] = []
-    for i, j in candidates:
+    heartbeat = max(1, len(candidates) // 20)
+    for scored, (i, j) in enumerate(candidates, 1):
+        if scored % heartbeat == 0:
+            print(f"  scoring pairs: {scored:,}/{len(candidates):,} "
+                  f"({scored/len(candidates):.0%}), {len(pairs):,} above threshold",
+                  flush=True)
         est = jaccard(sorted_sketches[i], sorted_sketches[j],
                       set_sketches[i], set_sketches[j])
         cont = containment(est, sizes[i], sizes[j])
