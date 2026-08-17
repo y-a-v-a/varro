@@ -226,15 +226,63 @@ That provenance later makes unusual experiments possible — and, since no prope
 historical Latin corpus currently exists, the corpus is a contribution in its own right,
 independent of the models trained on it.
 
-## What not to do initially
+## The target, revised 2026-08-17
+
+The original plan ended at a base model and said explicitly: *don't optimise for building a useful
+chatbot yet*. That "yet" has now arrived — the goal is **usable weights behind a simple chat app**,
+and a rerunnable pipeline that absorbs corpus growth.
+
+That changes the destination, and it is worth being exact about what is and is not reachable.
+
+**Not reachable, at any corpus size:** a Latin assistant that answers questions correctly. Knowing
+things requires having read about them, and all surviving Latin — even the full 1,500-year tradition —
+is orders of magnitude short of what that takes. No amount of engineering fixes this.
+
+**Reachable, and more interesting:** a **Latin interlocutor**. You write Latin; it writes Latin back,
+in register, taking its turn. It will not know facts. It will hold a conversational shape. That is an
+honest description of the artefact and a better one than a bad assistant.
+
+### The instruction-data problem, and the way through it
+
+There is no Latin instruction-tuning dataset, under any licence. Translating an English one would
+compromise the purity thesis: the model would never see English, but its conversational behaviour
+would be derived from it.
+
+The corpus solves this itself. **22% of it is already dialogue-shaped**, and 54,222 question→answer
+pairs are directly extractable:
+
+| genre | words | dialogue form |
+|---|---:|---|
+| EPISTOLOGRAPHY | 1,847,671 | letters — real request and response |
+| GRAMMAR | 866,918 | catechism; Donatus' *Ars minor* is literally Q&A |
+| PHILOSOPHY | 752,682 | Ciceronian dialogue |
+| DRAMA | 289,580 | stage turns, with speaker names preserved |
+
+Instruction-tuning on Plautus and Donatus rather than translated chat logs is, as far as we can tell,
+new — and it keeps the claim "trained only on Latin" true through the SFT stage, not just
+pretraining.
+
+### Revised route
+
+| step | | status |
+|---|---|---|
+| 0 | Dialogue-SFT proof on the existing model — does turn-taking emerge at all? | in progress |
+| 1 | Pipeline driver + the six remaining sources (~24M words, doubles the corpus) | next |
+| 2 | LATIN-XXV at 25M, now properly justified rather than 16-epoch aggressive | |
+| 3 | Real dialogue SFT on the better base | |
+| 4 | Serve it — MLX, safetensors, a laptop | |
+
+Step 0 comes first on the plan's own principle: establish the smallest interesting result before
+investing in the corpus work that would serve it.
+
+## What not to do
 
 Don't begin with a 500M parameter model.
-Don't instruction-tune immediately.
-Don't mix English explanations or translations into the pretraining corpus.
-Don't spend months constructing the definitive Latin corpus before establishing that the basic
-experiment works.
+Don't mix English explanations or translations into the corpus — including the instruction data.
 Don't include non-commercially-licensed sources in anything intended for publication.
-And don't optimize for building a useful chatbot yet.
+Don't promise an assistant. Promise an interlocutor.
+
+~~Don't instruction-tune immediately.~~ Superseded: instruction data now comes from the corpus itself.
 
 First establish the smallest interesting result.
 

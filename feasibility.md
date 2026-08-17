@@ -298,10 +298,31 @@ minimal but real eval suite:
 - **Morphological well-formedness** — sample generations, check agreement and case government.
   LASLA's manually-verified annotations are the reference standard here, licence permitting.
 
-### 4.7 No Latin instruction data exists — OPEN, deliberately out of scope
-The plan wisely defers SFT/DPO. Worth noting *why* it will stay hard: there is no instruction-tuning
-dataset in Latin under any licence. Writing one yourself, in Latin, is the only purity-preserving
-option — and that is a substantial project in its own right. Keep it out of scope.
+### 4.7 No Latin instruction data exists — REOPENED 2026-08-17, and solvable
+Originally filed as out of scope: there is no instruction-tuning dataset in Latin under any licence,
+and writing one by hand is a project in itself. Translating an English set would preserve the letter
+of the purity claim (the model still sees no English) while breaking its spirit — the conversational
+behaviour would be English behaviour wearing Latin.
+
+**The third option was missed: mine the dialogue the corpus already contains.** Latin has an
+unusually rich conversational literature, and 22% of the corpus is dialogue-shaped —
+**54,222 question→answer pairs are directly extractable**, concentrated in theology (12,709),
+letters (6,357), drama (6,134), philosophy (3,531) and grammar (3,087).
+
+Drama is the highest-quality signal because `<speaker>` markup survived extraction, so turns carry
+their speaker:
+
+    Staphyla   Nam cur me miseram uerberas?
+    Euclio     Ut misera sis atque ut te dignam mala malam aetatem exigas.
+
+Grammar is the most instruction-like: Donatus' *Ars minor* is a catechism, question and answer, for
+its entire length — a second-century Latin teacher's instruction dataset, written for exactly this
+purpose fourteen hundred years early.
+
+**Scale honesty.** SFT changes behaviour, not knowledge. A 25M-parameter model fine-tuned on this
+will take conversational turns in grammatical Latin and will not know anything. The deliverable is an
+interlocutor, not an assistant, and the writeup should say so plainly rather than let a demo imply
+otherwise.
 
 ---
 
