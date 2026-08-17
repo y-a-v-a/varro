@@ -24,6 +24,24 @@ WHY FINGERPRINTS CHAIN RATHER THAN LOOK AT FILES
     not the fetched bytes. If an upstream repository changes under a floating
     pin, re-run with --force. The lockfile is what makes that detectable.
 
+WHY THE LOCKFILE IS PROJECTED RATHER THAN HASHED
+    fetch.py rewrites manifest/fetch.lock.json on every run, stamping a fresh
+    `generated` and a fresh per-source `fetched` even when every resolved_pin
+    comes back identical. Hashing the file's bytes therefore marked extract
+    stale after every fetch, and — because fingerprints chain — every stage
+    after it too. "Run only what changed" quietly became "rebuild the whole
+    corpus, always". Extract is keyed instead on a projection of the lockfile
+    that keeps what determines its output (pins, checksums, licence, tier) and
+    drops the timestamps.
+
+WHY A STAGE IS FINGERPRINTED AGAIN AFTER IT RUNS
+    fetch mutates the lockfile, which is an input to the stage after it, so a
+    plan computed up front describes the inputs as they were *before* the run.
+    Recording those would be wrong in both directions: unchanged pins would
+    look changed, and — worse — a pin that genuinely moved during the fetch
+    would be recorded under its old value, marking a stale build fresh. Each
+    stage is therefore re-fingerprinted at the moment its result is recorded.
+
 Usage:
     python src/pipeline.py --status         # what is stale and why
     python src/pipeline.py                  # run what is needed
@@ -39,7 +57,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / "data" / "pipeline.state.json"
@@ -50,12 +68,16 @@ class Stage:
     """One pipeline step: what invalidates it, and how to run it."""
 
     def __init__(self, name: str, script: str, config: List[str],
-                 argv: Optional[List[List[str]]] = None, note: str = ""):
+                 argv: Optional[List[List[str]]] = None, note: str = "",
+                 derived: Optional[Callable[[], str]] = None):
         self.name = name
         self.script = script
         self.config = config
         self.argv = argv or [[]]
         self.note = note
+        # For an input whose bytes churn without its meaning changing. Called
+        # at fingerprint time, never cached, so it sees the file as it is now.
+        self.derived = derived
 
     def fingerprint(self, previous: str) -> str:
         h = hashlib.sha256()
@@ -65,6 +87,8 @@ class Stage:
             h.update(rel.encode())
             h.update(path.read_bytes() if path.exists() else b"<missing>")
         h.update(json.dumps(self.argv, sort_keys=True).encode())
+        if self.derived is not None:
+            h.update(self.derived().encode())
         return h.hexdigest()[:16]
 
     def run(self) -> None:
@@ -93,13 +117,45 @@ def extractable_sources() -> List[str]:
                   if s in fetched and "error" not in fetched[s])
 
 
+LOCKFILE_IDENTITY_KEYS = ("resolved_pin", "license", "tier", "method", "url",
+                          "n_files", "bytes")
+
+
+def lockfile_identity() -> str:
+    """What in the lockfile determines what extraction will produce.
+
+    Everything that fixes the fetched bytes — the resolved commit for a git
+    source, the checksums for a downloaded one, and the licence and tier that
+    decide whether it may enter the corpus at all. Deliberately excluded:
+    `generated`, `fetched`, and the display `name`, all of which fetch.py
+    rewrites on every run without any change to what was fetched.
+    """
+    lock = ROOT / "manifest" / "fetch.lock.json"
+    if not lock.exists():
+        return "<missing>"
+    try:
+        with lock.open(encoding="utf-8") as fh:
+            sources = json.load(fh).get("sources", {})
+    except (json.JSONDecodeError, OSError):
+        # A corrupt lockfile must not silently fingerprint as "unchanged".
+        return f"<unreadable:{lock.stat().st_size if lock.exists() else 0}>"
+    identity = {
+        name: {**{k: rec.get(k) for k in LOCKFILE_IDENTITY_KEYS},
+               "files": sorted((f.get("name"), f.get("sha256"), f.get("bytes"))
+                               for f in rec.get("files", []))}
+        for name, rec in sources.items()
+    }
+    return json.dumps(identity, sort_keys=True)
+
+
 def build_stages() -> List[Stage]:
     sources = extractable_sources()
     return [
         Stage("fetch", "src/fetch.py", ["manifest/sources.yaml"],
               note="idempotent: existing clones are updated, not re-cloned"),
-        Stage("extract", "src/extract.py", ["manifest/fetch.lock.json"],
+        Stage("extract", "src/extract.py", [],
               argv=[["--source", s] for s in sources] or [["--help"]],
+              derived=lockfile_identity,
               note=f"{len(sources)} source(s) with an extractor"),
         Stage("enrich", "src/enrich.py",
               ["manifest/authorities.yaml", "manifest/genres.yaml"],
@@ -180,8 +236,13 @@ def main() -> int:
 
     print()
     started = time.time()
-    for stage, fingerprint, run, _ in plan:
+    # The chain is rebuilt as we go: a stage that ran is fingerprinted again
+    # afterwards, so inputs it or an earlier stage rewrote (fetch rewrites the
+    # lockfile) are recorded as they ended up, not as they were at plan time.
+    chained = ""
+    for stage, planned, run, _ in plan:
         if not run:
+            chained = planned
             continue
         print(f"[{stage.name}]", flush=True)
         try:
@@ -193,7 +254,8 @@ def main() -> int:
             save_state({"stages": recorded,
                         "updated": datetime.now(timezone.utc).isoformat(timespec="seconds")})
             return 1
-        recorded[stage.name] = fingerprint
+        chained = stage.fingerprint(chained)
+        recorded[stage.name] = chained
         save_state({"stages": recorded,
                     "updated": datetime.now(timezone.utc).isoformat(timespec="seconds")})
         print()
