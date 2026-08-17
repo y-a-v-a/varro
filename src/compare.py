@@ -21,6 +21,15 @@ REPORTS = ROOT / "reports"
 
 FLOOR_NOTE = "bigram floor from reports/baselines-*.json"
 
+MARKS = {"ok": "", "stale": "!", "unverified": "?", "no-floor": "-"}
+
+EXPLANATIONS = {
+    "stale": "measured on a different build of this corpus than the current floor",
+    "unverified": "report predates corpus fingerprinting — build unknown, "
+                  "assume it differs",
+    "no-floor": "no baseline for this corpus — run evaluate.py --baselines",
+}
+
 
 def load_runs(names: List[str]) -> List[Dict[str, Any]]:
     paths = ([REPORTS / f"train-{n}.json" for n in names] if names
@@ -35,12 +44,34 @@ def load_runs(names: List[str]) -> List[Dict[str, Any]]:
     return runs
 
 
-def floor_for(corpus: str) -> float | None:
+def floor_for(corpus: str) -> tuple[float | None, Dict[str, Any] | None]:
+    """The floor for `corpus`, and a fingerprint of the build it was measured on."""
     path = REPORTS / f"baselines-{corpus}.json"
     if not path.exists():
-        return None
+        return None, None
     with path.open(encoding="utf-8") as fh:
-        return json.load(fh)["baselines"]["overall_perplexity"]
+        report = json.load(fh)
+    return (report["baselines"]["overall_perplexity"],
+            report.get("corpus") or None)
+
+
+def comparability(run: Dict[str, Any], floor: float | None,
+                  floor_fingerprint: Dict[str, Any] | None) -> str:
+    """Whether this run's perplexity may be quoted against this floor.
+
+    A corpus keeps its name across rebuilds, so `baselines-corpus.json` and
+    `train-latin-2.json` can describe entirely different text. Every model
+    trained before the corpus grew to 79M words is in exactly that position:
+    same corpus name, different corpus, incomparable perplexity. Printing
+    those side by side under one `x floor` column is the mistake this guard
+    exists to prevent.
+    """
+    if floor is None:
+        return "no-floor"
+    run_fingerprint = run.get("corpus") or None
+    if run_fingerprint is None or floor_fingerprint is None:
+        return "unverified"
+    return "ok" if run_fingerprint == floor_fingerprint else "stale"
 
 
 def memorisation_for(name: str) -> Dict[str, Any] | None:
@@ -61,9 +92,10 @@ def main() -> int:
         cfg = run["config"]
         final = run.get("final") or {}
         corpus = cfg.get("corpus", "corpus")
-        floor = floor_for(corpus)
+        floor, floor_fingerprint = floor_for(corpus)
         ppl = final.get("val_perplexity")
         memo = memorisation_for(run["run"])
+        status = comparability(run, floor, floor_fingerprint)
         rows.append({
             "name": run["run"],
             "params": run["parameters"],
@@ -71,14 +103,15 @@ def main() -> int:
             "tokens": run["train_tokens"],
             "epochs": run["epochs"],
             "ppl": ppl,
-            "floor": floor,
-            "gain": (floor / ppl) if (floor and ppl) else None,
+            "floor": floor if status == "ok" else None,
+            "gain": (floor / ppl) if (status == "ok" and ppl) else None,
             "memo": (memo or {}).get("memorization", {}).get("fraction"),
             "hours": (final.get("elapsed_s") or 0) / 3600,
+            "status": status,
         })
 
     head = (f"{'run':<22} {'params':>9} {'corpus':>10} {'tokens':>12} {'ep':>5} "
-            f"{'ppl':>8} {'floor':>8} {'x floor':>8} {'memo':>6} {'hours':>6}")
+            f"{'ppl':>8} {'floor':>8} {'x floor':>8} {'memo':>6} {'hours':>6}  ")
     print(head)
     print("-" * len(head))
     for r in rows:
@@ -86,12 +119,22 @@ def main() -> int:
         floor = f"{r['floor']:.1f}" if r["floor"] else "-"
         gain = f"{r['gain']:.2f}x" if r["gain"] else "-"
         memo = f"{r['memo']:.1%}" if r["memo"] is not None else "-"
+        mark = MARKS[r["status"]]
         print(f"{r['name'][:22]:<22} {r['params']/1e6:>8.2f}M {r['corpus'][:10]:>10} "
               f"{r['tokens']:>12,} {r['epochs']:>5.1f} {ppl:>8} {floor:>8} "
-              f"{gain:>8} {memo:>6} {r['hours']:>6.1f}")
+              f"{gain:>8} {memo:>6} {r['hours']:>6.1f}  {mark}")
     print(f"\n  ppl      held-out perplexity, lower is better")
     print(f"  x floor  how many times better than the {FLOOR_NOTE}")
     print(f"  memo     share of 12-word windows found verbatim in training text")
+
+    flagged = {r["status"] for r in rows} - {"ok"}
+    if flagged:
+        print()
+        for status in ("stale", "unverified", "no-floor"):
+            if status in flagged:
+                print(f"  {MARKS[status]:<3} {EXPLANATIONS[status]}")
+        print("\n  Perplexities in flagged rows are held-out scores over different\n"
+              "  text and do not compare with each other or with the current floor.")
     return 0
 
 
