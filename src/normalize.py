@@ -63,6 +63,12 @@ VERSION = "v1"
 LIGATURES = {
     "æ": "ae", "Æ": "Ae", "œ": "oe", "Œ": "Oe",
     "ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl", "ﬅ": "st",
+    # Early printing, which Wikisource transcribes faithfully. The long s is
+    # the single most common non-ASCII letter in the corpus at 12,308
+    # occurrences — left alone it becomes a second, rarer `s` in the vocabulary.
+    "ſ": "s", "ẞ": "SS", "ß": "ss",
+    # Typographic ordinals from scanned title pages, not letters.
+    "ª": "a", "º": "o",
 }
 
 # Editorial marks: deleted outright, the text they enclose retained. Brackets
@@ -126,6 +132,39 @@ WS_AROUND = re.compile(r"[ \t]*\n[ \t]*")
 WS_BLANK = re.compile(r"\n{3,}")
 
 
+# Scripts that are neither Latin nor Greek. Greek has its own policy — it is
+# quoted inside Latin deliberately — while these are simply other languages that
+# arrived with the wider sources: Slavonic, Hebrew and Armenian pages on
+# Wikisource. Small in volume, but the project's central claim is that the model
+# sees only Latin, and a claim is not "mostly".
+FOREIGN_SCRIPT = re.compile(
+    r"[\u0400-\u052F"      # Cyrillic and supplement
+    r"\u0530-\u058F"       # Armenian
+    r"\u0590-\u05FF"       # Hebrew
+    r"\u0600-\u06FF"       # Arabic
+    r"\u3000-\u9FFF"       # CJK
+    r"\uAC00-\uD7AF]"      # Hangul
+)
+
+
+def drop_foreign_paragraphs(text: str, stats: Counter) -> str:
+    """Remove paragraphs written in a script that is not Latin.
+
+    Paragraph-level on purpose: a stray Cyrillic letter inside a Latin word is
+    OCR damage and belongs to the homoglyph map, whereas a paragraph of Cyrillic
+    is a different language and belongs nowhere in this corpus.
+    """
+    kept = []
+    for para in text.split("\n\n"):
+        letters = [c for c in para if c.isalpha()]
+        if letters and len(FOREIGN_SCRIPT.findall(para)) / len(letters) > 0.15:
+            stats["dropped:foreign_script_paragraphs"] += 1
+            stats["dropped_foreign_words"] += len(para.split())
+            continue
+        kept.append(para)
+    return "\n\n".join(kept)
+
+
 def strip_marks(text: str) -> str:
     """Remove every combining mark. Latin needs none of them."""
     decomposed = unicodedata.normalize("NFD", text)
@@ -178,6 +217,12 @@ def normalize(text: str, uv: str = "u", diacritics: bool = False,
         if orphans:
             stats["orphan_diacritics"] += len(orphans)
             text = text.translate({ord(c): None for c in set(orphans)})
+
+    # Before the homoglyph map, not after: that map turns stray Cyrillic into
+    # Latin to repair OCR damage inside words, and running it first would
+    # launder an entire Cyrillic paragraph into pseudo-Latin that no longer
+    # looks foreign to this filter.
+    text = drop_foreign_paragraphs(text, stats)
 
     swaps = [c for c in HOMOGLYPHS if c in text]
     if swaps:
@@ -261,8 +306,9 @@ def main() -> int:
     print(f"words            {words_before:,} -> {words_after:,} "
           f"({words_after - words_before:+,})")
     for key in ("hyphen_rejoined", "hyphen_space_split", "hyphen_space_joined",
-                "editorial_marks", "orphan_diacritics",
-                "homoglyphs", "ligatures", "records_with_diacritics"):
+                "editorial_marks", "orphan_diacritics", "homoglyphs", "ligatures",
+                "dropped:foreign_script_paragraphs", "dropped_foreign_words",
+                "records_with_diacritics"):
         if stats[key]:
             print(f"  {key:<26} {stats[key]:>9,}")
 

@@ -39,7 +39,11 @@ ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
 OUT = PROCESSED / "tokenizers"
 
-DEFAULT_VOCABS = [2000, 4000, 8000, 16000, 32000]
+# 64k added when the corpus reached 79M words. The original sweep stopped at 32k
+# because at d_model=256 that vocabulary already cost more parameters than the
+# model it served — an argument that weakens once the corpus supports a model
+# large enough to absorb the embedding table.
+DEFAULT_VOCABS = [2000, 4000, 8000, 16000, 32000, 64000]
 
 # Period tags are injected at training time from the `period` field, so the
 # tokenizer must reserve them rather than discover them from the text.
