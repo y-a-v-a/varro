@@ -606,6 +606,67 @@ vocabulary is recognisably poetic — `umeros`, `nigra`, `frigidus`, `dulci flau
 pinna` are hexameter furniture. Neither sustains an argument. The grammar
 improved; the meaning did not arrive.
 
+## Step 0 — the chat proof
+
+Does dialogue mined from the corpus turn a base model into one that takes a turn?
+Run before investing in corpus growth, on the plan's own principle: smallest
+interesting result first.
+
+```bash
+python src/dialogue.py          # mine turn-pairs -> data/processed/dialogue.jsonl
+python src/sft.py               # fine-tune latin-2 -> latin-2-chat
+python src/sft.py --chat        # talk to it
+```
+
+**54,536 pairs, no English anywhere in the chain** — 8,495 dramatic turns with
+speakers intact, 46,041 question→answer sentences. Donatus' *Ars minor* is a
+catechism front to back, which makes it effectively a second-century Latin
+teacher's instruction dataset, written for this purpose fourteen centuries early.
+
+Loss is masked to the response only: training on prompt tokens would teach the
+model to generate questions as readily as answers. Every example ends in
+`<|endoftext|>`, in the loss, so **stopping is learned rather than truncated at
+inference**. 35 minutes on top of the base model.
+
+### What it learned
+
+| | |
+|---|---|
+| Turn-taking | ✅ one turn per prompt, every time |
+| Stopping | ✅ ends its turn; no run-on |
+| Register matching | ✅ genuinely surprising — see below |
+| Being correct | ❌ as predicted, and not fixable by scale |
+
+```
+> Quid agis?                    (colloquial, Plautine)
+< Atque hexamycophantias, te emere audio, nam et parasitus parasitust.
+
+> Quot sunt partes orationis?   (Donatus' opening catechism question)
+< Donatiuae, participia, casus, figuraetima.
+
+> Quid est ueritas?             (theological)
+< cum eadem in illo esse non possit, quae in eum sunt facta.
+```
+
+**The register matching is the real finding.** A colloquial question draws a
+Plautine answer — `parasitus parasitust` is comic doubling, and
+`hexamycophantias` is exactly the kind of mock-Greek compound Plautus invents.
+A theological question draws theological syntax. And asked Donatus' own question,
+the model replies with *parts-of-speech vocabulary* — `participia`, `casus`,
+`figurae`.
+
+The correct answer is `Octo`. It got that wrong while getting the **domain**
+right, which is the clearest demonstration available of the distinction this
+project keeps running into: it has learned what the question is *about* without
+learning what is *true*.
+
+Not everything works. `Vnde uenis?` → `' inquit 'qualis.` is broken — a quotation
+artifact the mining did not filter.
+
+**Verdict: the direction is viable.** Corpus-mined dialogue produces conversational
+behaviour without any English-derived data. Scaling it means a better base model,
+which means finishing the corpus.
+
 ## Known limitations
 
 **Apparatus criticus in the Perseus source.** Four records (Pliny NH, three
@@ -657,7 +718,10 @@ revisiting this.
 - [x] **Latin-2 trained** — 15.90M params, two-phase; ppl 44.1 vs 158.8 floor (3.60×), 0% memorisation
 - [x] Ablation — size and schedule contribute ~53% / ~47%; both real
 - [ ] Disjoint-phase ablation: exclude classical from Phase 1, to separate transfer from extra passes
-- [ ] LATIN-XXV (~25M) once the remaining six sources roughly double the corpus
+- [x] **Chat proof** — corpus-mined dialogue SFT; turn-taking and stopping learned
+- [ ] Pipeline driver + six remaining sources (~24M words, doubles the corpus)
+- [ ] LATIN-XXV (~25M) on the doubled corpus
+- [ ] Real dialogue SFT on the better base, then serve
 - [ ] UD treebank syntactic probing (fetch via `--track eval`; exclude overlapping passages from training)
 - [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)
 
