@@ -1,7 +1,9 @@
 """evaluate.py — n-gram baseline maths and the memorisation instrument."""
 
+import json
 import math
 
+import evaluate
 from evaluate import NgramBaseline, build_haystack, memorisation, perplexity
 
 WORDS = ("arma uirumque cano troiae qui primus ab oris italiam fato profugus "
@@ -56,3 +58,42 @@ def test_text_shorter_than_window_is_unscored():
 def test_haystack_normalises_internal_whitespace():
     haystack = build_haystack([{"text": "arma  uirumque\ncano"}])
     assert "arma uirumque cano" in haystack
+
+
+# --- report provenance ------------------------------------------------------
+
+def _fixture(tmp_path, monkeypatch):
+    processed, reports = tmp_path / "processed", tmp_path / "reports"
+    processed.mkdir()
+    monkeypatch.setattr(evaluate, "PROCESSED", processed)
+    monkeypatch.setattr(evaluate, "REPORTS", reports)
+    for name, words in (("corpus", 78_975_089), ("classical", 4_539_515)):
+        (processed / f"{name}.summary.json").write_text(
+            json.dumps({"track": "A", "words": words, "seed": 20260815}),
+            encoding="utf-8")
+    return reports
+
+
+def test_report_is_stamped_with_its_own_corpus(tmp_path, monkeypatch):
+    """It stamped the full corpus onto every report, whatever --corpus said."""
+    reports = _fixture(tmp_path, monkeypatch)
+    path = evaluate.write_report("baselines-classical", {"baselines": {}},
+                                 "classical")
+    report = json.loads(path.read_text(encoding="utf-8"))
+    assert report["corpus_name"] == "classical"
+    assert report["corpus"]["words"] == 4_539_515
+
+
+def test_report_defaults_to_the_full_corpus(tmp_path, monkeypatch):
+    reports = _fixture(tmp_path, monkeypatch)
+    report = json.loads(
+        evaluate.write_report("baselines-corpus", {"baselines": {}})
+        .read_text(encoding="utf-8"))
+    assert report["corpus_name"] == "corpus"
+    assert report["corpus"]["words"] == 78_975_089
+
+
+def test_missing_summary_gives_an_empty_fingerprint_not_a_wrong_one(
+        tmp_path, monkeypatch):
+    _fixture(tmp_path, monkeypatch)
+    assert evaluate.corpus_fingerprint("nonesuch") == {}

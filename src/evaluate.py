@@ -205,12 +205,22 @@ def corpus_fingerprint(corpus: str = "corpus") -> Dict[str, Any]:
              "group_by", "seed", "period_filter")}
 
 
-def write_report(name: str, payload: Dict[str, Any]) -> Path:
+def write_report(name: str, payload: Dict[str, Any],
+                 corpus: str = "corpus") -> Path:
+    """Write a versioned report, stamped with the corpus it was measured on.
+
+    The stamp must name *this* report's corpus, not the default one. It was
+    hardcoded to the full corpus until 2026-08-18, so every
+    `baselines-classical.json` claimed to have been measured on the full
+    corpus's 17.2M words — the exact confusion that produced the wrong floor
+    for Latin-0. A fingerprint that names the wrong corpus is worse than none.
+    """
     REPORTS.mkdir(parents=True, exist_ok=True)
     report = {
         "schema_version": SCHEMA_VERSION,
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "corpus": corpus_fingerprint(),
+        "corpus_name": corpus,
+        "corpus": corpus_fingerprint(corpus),
         **payload,
     }
     path = REPORTS / f"{name}.json"
@@ -385,7 +395,7 @@ def main() -> int:
         ap.print_help()
         return 0
 
-    path = write_report(name, payload)
+    path = write_report(name, payload, args.corpus)
     print(f"\nwrote {path.relative_to(ROOT)}")
     return 0
 

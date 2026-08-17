@@ -139,6 +139,47 @@ def parameter_count(model: nn.Module) -> int:
     return sum(v.size for _, v in tree_flatten(model.parameters()))
 
 
+# The subset of a corpus summary that identifies *which build* it is. Two
+# builds that agree on all of these are the same held-out split over the same
+# text, which is the only condition under which their perplexities compare.
+FINGERPRINT_KEYS = ("track", "records", "words", "train_words",
+                    "validation_words", "group_by", "seed", "period_filter")
+
+
+def corpus_fingerprint(corpus: str) -> Dict[str, Any]:
+    path = PROCESSED / f"{corpus}.summary.json"
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8") as fh:
+        summary = json.load(fh)
+    return {k: summary.get(k) for k in FINGERPRINT_KEYS}
+
+
+def read_floor(corpus: str) -> Tuple[Any, str]:
+    """The bigram floor for `corpus`, and why it may not be quotable.
+
+    Returns (perplexity, ""), (perplexity, reason) if the baseline predates the
+    current build, or (None, "") if no baseline exists.
+    """
+    path = REPORTS / f"baselines-{corpus}.json"
+    if not path.exists():
+        return None, ""
+    with path.open(encoding="utf-8") as fh:
+        report = json.load(fh)
+    floor = report.get("baselines", {}).get("overall_perplexity")
+    recorded = report.get("corpus") or {}
+    current = corpus_fingerprint(corpus)
+    if not recorded or not current:
+        return floor, ""
+    # An older report may name the wrong corpus entirely: `corpus_name` was
+    # only added when that bug was fixed, so its absence is itself suspicious.
+    if report.get("corpus_name") not in (None, corpus):
+        return floor, f"stamped corpus_name={report['corpus_name']!r}"
+    drift = [f"{k}: {recorded.get(k)!r} -> {current.get(k)!r}"
+             for k in FINGERPRINT_KEYS if recorded.get(k) != current.get(k)]
+    return floor, "; ".join(drift)
+
+
 # ---------------------------------------------------------------------------
 # Data
 # ---------------------------------------------------------------------------
@@ -365,15 +406,24 @@ def main() -> int:
     # splits as this run. Quoting a floor computed on a different corpus
     # compares perplexities over different held-out text, which is meaningless
     # — and it flattered Latin-0 by 23% before this was caught.
-    floor_path = REPORTS / f"baselines-{args.corpus}.json"
-    floor = None
-    if floor_path.exists():
-        with floor_path.open(encoding="utf-8") as fh:
-            floor = json.load(fh)["baselines"]["overall_perplexity"]
+    #
+    # Matching by filename is not enough: the corpus changes under a fixed
+    # name every time a source lands, so `baselines-corpus.json` can describe
+    # a corpus three rebuilds old. The baseline carries a fingerprint of the
+    # corpus it was measured on; if it disagrees with the corpus just trained
+    # on, the floor is stale and quoting it would repeat the original mistake
+    # in a form that is harder to see.
+    floor, floor_stale = read_floor(args.corpus)
     ppl = final.get("val_perplexity", float("nan"))
-    if floor:
+    if floor and not floor_stale:
         print(f"final held-out perplexity {ppl:.1f} against the {args.corpus} "
               f"bigram floor of {floor:.1f}  ({floor/ppl:.2f}x better)")
+    elif floor_stale:
+        print(f"final held-out perplexity {ppl:.1f}")
+        print(f"  NOT quoting the floor: reports/baselines-{args.corpus}.json was "
+              f"measured on a different build of `{args.corpus}`\n"
+              f"  ({floor_stale}) — re-run evaluate.py --baselines "
+              f"--corpus {args.corpus}")
     else:
         print(f"final held-out perplexity {ppl:.1f} "
               f"(no baseline for `{args.corpus}` — run evaluate.py --baselines "
@@ -385,6 +435,8 @@ def main() -> int:
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "run": args.name,
         "config": vars(args),
+        "corpus_name": args.corpus,
+        "corpus": corpus_fingerprint(args.corpus),
         "parameters": n_params,
         "train_tokens": int(train_tokens.size),
         "validation_tokens": int(val_tokens.size),
