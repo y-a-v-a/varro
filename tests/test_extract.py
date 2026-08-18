@@ -152,6 +152,40 @@ def test_strip_wikitext():
         "Uerba prima et secunda Caput finis"
 
 
+def test_interwiki_links_are_dropped_not_unwrapped():
+    """The leak that put English into a corpus defined by containing none.
+
+    Traced from every Thai character in the built corpus back to *Adeste
+    Fideles* and *Jingle Bells*, whose interwiki footers survived as bare text
+    because the link rules strip brackets and keep what is inside them.
+    """
+    raw = ("Adeste fideles\n"
+           "[[en:O come all ye faithful]]\n"
+           "[[th:ขอเชิญท่านผู้วางใจ]]\n"
+           "[[zh-cn:齊來宗主信徒]]\n"
+           "[[:fr:Peuple fidèle]]\n")
+    assert " ".join(strip_wikitext(raw).split()) == "Adeste fideles"
+
+
+def test_interwiki_pattern_spares_latin_wikisource_namespaces():
+    """Namespaces are capitalised Latin words, language codes are not."""
+    raw = "[[Liber:Vergilius]] [[Pagina:Codex.djvu/12]] [[Auctor:Cicero]]"
+    kept = " ".join(strip_wikitext(raw).split())
+    assert "Liber:Vergilius" in kept
+    assert "Auctor:Cicero" in kept
+
+
+def test_interwiki_pattern_spares_ordinary_wikilinks():
+    raw = "uide [[De bello Gallico]] et [[Aeneis|carmen]]"
+    assert " ".join(strip_wikitext(raw).split()) == \
+        "uide De bello Gallico et carmen"
+
+
+def test_piped_interwiki_link_is_dropped_whole():
+    raw = "Finis [[en:Utopia|the English one]] finis"
+    assert " ".join(strip_wikitext(raw).split()) == "Finis finis"
+
+
 def test_title_author_splits_parenthetical_name():
     assert title_author("Enarrationes in Psalmos (Remigius Antissiodorensis)") == \
         ("Enarrationes in Psalmos", "Remigius Antissiodorensis")

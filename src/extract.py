@@ -759,6 +759,19 @@ MW_TAG = re.compile(r"<[^>]+>")
 MW_TABLE = re.compile(r"\{\|.*?\|\}", re.S)
 MW_FILE = re.compile(r"\[\[(?:File|Image|Fasciculus|Imago|Category|Categoria)"
                      r":[^\]]*?\]\]", re.I | re.S)
+
+# Interwiki language links — `[[en:Jingle Bells]]`, `[[th:...]]`, `[[zh-cn:...]]`
+# — sit at the foot of a page and point at the same work on another language's
+# wiki. The link rules below would strip only the brackets and keep the text,
+# which puts foreign titles into the corpus and, in 125 measured cases, English
+# ones: the model's defining claim is that it never sees English. Found by
+# tracing every Thai character in the corpus back to *Adeste Fideles* and
+# *Jingle Bells*; 620 occurrences across 287 of 9,894 records.
+#
+# Deliberately narrow. Language codes are lowercase and two or three letters,
+# so this cannot touch Latin Wikisource's own namespaces, which are capitalised
+# Latin words — Pagina:, Liber:, Auctor:, Categoria:.
+MW_INTERWIKI = re.compile(r"\[\[:?[a-z]{2,3}(?:-[a-z]{2,4})*:[^\]]*\]\]")
 MW_PIPED = re.compile(r"\[\[[^\]|]*\|([^\]]*)\]\]")
 MW_LINK = re.compile(r"\[\[([^\]]*)\]\]")
 MW_EXTLINK = re.compile(r"\[https?://\S+\s+([^\]]*)\]")
@@ -805,6 +818,7 @@ def strip_wikitext(text: str) -> str:
     text = MW_TABLE.sub(" ", text)
     text = strip_templates(text)
     text = MW_FILE.sub(" ", text)
+    text = MW_INTERWIKI.sub(" ", text)
     text = MW_PIPED.sub(r"\1", text)
     text = MW_LINK.sub(r"\1", text)
     text = MW_EXTLINK.sub(r"\1", text)
