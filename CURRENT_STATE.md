@@ -6,6 +6,122 @@ stale, and what to do next.
 
 ---
 
+## Update 2026-08-18 (night) — corpus rebuilt, floors restated, LATIN-XXV training
+
+The rebuild the previous update asked for has been done, and everything
+downstream of it re-measured. **LATIN-XXV Phase 1 is training now.**
+
+### The rebuild changed almost nothing, which is the result
+
+| | before | after |
+|---|---:|---:|
+| records | 10,192 | **10,194** |
+| words | 78,975,089 | **78,974,350** |
+| CLASSICAL | 4,539,515 | **4,539,518** |
+| duplicates | 2,799 rec / 29,805,223 w | **2,794 rec / 29,804,101 w** |
+
+A net −739 words. The homoglyph-ordering fix was worth about what the previous
+update predicted. Every `resolved_pin` in the lockfile came back identical, so
+the difference is the code fixes and nothing else.
+
+**Token counts are unchanged**: 2.038 tok/word overall, 2.213 classical,
+152,985,050 train tokens, 9.6M classical, 0/12 paradigm forms stored whole.
+The whole of `feasibility.md` §2 stands as written.
+
+### New floors — the old ones are dead
+
+| corpus | old | **new** |
+|---|---:|---:|
+| full | 195.2 | **174.5** |
+| classical | 158.8 | **149.8** |
+
+The full-corpus floor fell because a bigram trained on 4.5× more text is
+simply better. **The classical floor fell for a different and more instructive
+reason**: that corpus changed by *three words*, but the 4k vocabulary had been
+retrained on a corpus 4.6× larger, so the merges differ and the same Latin
+becomes a different token stream. A perplexity is comparable only when the
+corpus *and* the tokenizer match — see the guards below.
+
+### LATIN-XXV, and the constraint nobody had measured
+
+Running: **27.49M params** (dim 512, 8 layers, 8 heads, ctx 512), batch 16,
+74,700 steps = **4.0 epochs, 22.3 tokens/param**. ETA ~24h at 7,300 tok/s.
+
+The interesting finding is why batch 16 and not 32. Throughput at this size is
+governed by **activation memory, not parameter count**, and this machine has a
+cliff:
+
+| batch × ctx | effective tok/s |
+|---|---:|
+| 8 × 512 | 7,272 |
+| **16 × 512** | **7,347** |
+| 24 × 512 | ~8,780 (eval-inflated) |
+| 32 × 512 | **~735** |
+
+Batch 32 is **13× slower per token** — it stops fitting and falls into swap.
+The first probe at batch 32 ran 45 minutes without completing 100 steps while
+holding 7.5GB on a 16GB machine. Throughput is otherwise flat from batch 8 to
+16, so batch 16 is peak speed at half the memory of the wall. The exact cliff
+position depends on what else is resident, which is itself worth knowing:
+**this is not a machine on which the config can be assumed.**
+
+### Corpus purity, measured rather than asserted
+
+The letter inventory is **86 letters and 246 distinct characters**, not the 48
+README quotes from the three-source corpus. Measured properly: **38 distinct
+non-Latin letters, 765 occurrences in 75,043,073 training words** — one per
+~98,000. Most are not contamination: 198 are Roman numeral apostrophus
+(`HS ccciↄↄↄ`), 267 are eth/thorn (Ammianus describing a letter's *shape*, a
+Gothic *Skeireins* passage in the Patrologia), 172 are one OCR artifact in
+Kepler's *Somnium*, 31 are mojibake Greek in Perseus' *Adversus Marcionem*.
+
+**One genuine leak.** Every Thai character traces to Wikisource interwiki
+language links that survived extraction — and alongside them English:
+`en:Jingle Bells`, `en:O come all ye faithful`. Extent: **287 records of 9,894
+carry an `xx:Title` pattern, 620 occurrences**, of which 125 are `en:`; only
+*Utopia* shows the classic multi-language block. Left in deliberately for now —
+8 per million words moves no measurement, and fixing the extractor invalidates
+extract-onward. **It is a categorical claim, so it should be fixed before
+publication.**
+
+### Bugs found and fixed tonight
+
+1. **`evaluate.py` stamped every report with the full corpus's fingerprint**
+   regardless of `--corpus`, because `write_report` called
+   `corpus_fingerprint()` with its default argument. `baselines-classical.json`
+   claimed 17.2M words while measuring 4.5M.
+2. **`train.py` located the floor by filename alone.** A corpus keeps its name
+   across rebuilds. It now compares fingerprints and refuses to quote on drift.
+3. **`compare.py` would have tabulated the old models against the new floor** in
+   one tidy `x floor` column. Rows now carry `ok` / `!` / `?`.
+4. **The lockfile's timestamps invalidated the entire pipeline.** `extract` was
+   fingerprinted on the *bytes* of `fetch.lock.json`, which `fetch.py` rewrites
+   every run — so one fetch marked all six downstream stages stale and "run only
+   what changed" was silently "rebuild everything, always". Now keyed on a
+   projection (pins, checksums, licence, tier), and each stage is
+   re-fingerprinted after it runs, since fetch mutates its successor's input.
+   **Verified: a refetch that rewrites the lockfile now leaves 0 of 7 stale.**
+5. **The tokenizer is half the identity of a perplexity** — see the classical
+   floor above. Reports now carry a tokenizer hash and the guards check it.
+6. **dedupe ran silent** through 12,988 sketches and 1,105,761 pair scores. Two
+   rebuild attempts were reaped at exactly that point. Both loops now report.
+
+Tests: **132**, still no corpus/network needed; `tests/test_train.py` skips
+without MLX.
+
+### Left undone, deliberately
+
+- **Both baselines need re-running** to pick up the tokenizer stamp (21s + 8min).
+  Deferred rather than compete for memory with the training run.
+- **`dedupe.py --verify` has not been run at five sources.** README's "0 of 59
+  below the 15% floor" was measured at three; there are now 2,794 duplicates, so
+  that claim covers ~2% of what is being discarded.
+- Long-running work must be launched **detached** — macOS has no `setsid`, so
+  see `scratchpad/detach.py`. Anything left in the caller's process group gets
+  reaped, which is what killed the first two rebuild attempts.
+
+---
+
 ## Update 2026-08-18 — test suite added, two extraction fixes pending a rebuild
 
 - **`tests/` now holds a pytest suite** (104 tests, ~0.2s, no corpus/network/MLX

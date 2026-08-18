@@ -283,6 +283,27 @@ letters folded away. 249 non-ASCII characters remain in 17.25M
 words, deliberately left visible rather than guessed at (Roman-numeral
 apostrophus `ↄ Ↄ`, and three stray OCR artifacts).
 
+**On the 79M-word corpus the inventory is 86 letters and 246 distinct
+characters** (measured 2026-08-18). The larger figure is mostly not
+contamination. Non-Latin letters total **38 distinct, 765 occurrences in
+75,043,073 training words** — one per ~98,000:
+
+| | occurrences | what it is |
+|---|---:|---|
+| `ↄ Ↄ` | 198 | Roman numeral apostrophus — Cicero's `HS ccciↄↄↄ`. Kept deliberately |
+| `ð Þ þ` | 267 | Ammianus describing a letter's *shape*; a Gothic *Skeireins* in the Patrologia |
+| `ᶃ` | 172 | one OCR artifact, in Kepler's *Somnium* |
+| `µ` | 31 | mojibake — Greek double-encoded in Perseus' *Adversus Marcionem* |
+| `ꞩ` | 4 | Punic transliteration in EDCS inscriptions |
+| Thai, N'Ko, Hebrew | 31 | Wikisource interwiki link residue |
+
+That last row leads to the one genuine purity leak found so far: Vicifons
+interwiki language links survive extraction, and they bring English with them
+(`en:Jingle Bells`). **287 records of 9,894 carry an `xx:Title` pattern, 620
+occurrences, 125 of them `en:`.** Eight per million words, so it changes no
+measurement — but "no English" is a categorical claim, and this should be fixed
+in the extractor before anything is published.
+
 Plautus' *Amphitruo*, which opened this project as
 `Mercvrivs / Vt vos in vostris voltis mercimoniis`, now reads:
 
@@ -381,8 +402,17 @@ perplexities over different text and means nothing.
 
 | corpus | bigram floor |
 |---|---:|
-| full (33.7M tokens) | 195.2 |
-| classical (9.5M tokens) | 158.8 |
+| full (153.0M tokens) | **174.5** |
+| classical (9.6M tokens) | **149.8** |
+
+*(Restated 2026-08-18 on the rebuilt corpus. The previous figures — 195.2 and
+158.8 — were measured on the 17M-word corpus and must not be quoted against
+anything trained since. The classical corpus changed by three words between
+those two measurements and its floor still moved 9 points, because the 4k
+vocabulary had been retrained: same Latin, different merges, different token
+stream. Reports now carry both a corpus and a tokenizer fingerprint, and
+`train.py` and `compare.py` refuse to quote a floor across either kind of
+drift.)*
 
 Classical Latin is the easier of the two for a bigram, which is why using the
 full-corpus figure to judge a classical-corpus model overstated its margin.
@@ -799,8 +829,12 @@ revisiting this.
 - [x] **Pipeline driver** — one idempotent command, chained fingerprints
 - [x] **5 of 9 sources** — 78.98M words after dedup; PL-volume dating for the Patrologia
 - [ ] Remaining: latin-library, papyri-idp, edh, gutenberg-latin
-- [ ] Retrain tokenizer — vocabulary and fertility were measured on the old 17M corpus
-- [ ] LATIN-XXV (~25M) on the doubled corpus
+- [x] **Retrain tokenizer** — 4k rebuilt on the 79M corpus: 2.038 tok/word, 153.0M tokens, 0/12 forms memorised
+- [x] **Restate the floors** — 174.5 full / 149.8 classical; the 17M-corpus figures are retired
+- [x] **Report fingerprinting** — corpus *and* tokenizer stamped; stale floors refused rather than quoted
+- [ ] **LATIN-XXV (27.49M)** — Phase 1 *Latinitas* training since 2026-08-18, 4.0 epochs, 22.3 tok/param
+- [ ] Phase 2 *Romanitas*, then memorisation and `compare.py`
+- [ ] Strip Wikisource interwiki links — 620 occurrences, 125 of them English
 - [ ] Real dialogue SFT on the better base, then serve
 - [ ] UD treebank syntactic probing (fetch via `--track eval`; exclude overlapping passages from training)
 - [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)
