@@ -79,10 +79,13 @@ Kepler's *Somnium*, 31 are mojibake Greek in Perseus' *Adversus Marcionem*.
 language links that survived extraction — and alongside them English:
 `en:Jingle Bells`, `en:O come all ye faithful`. Extent: **287 records of 9,894
 carry an `xx:Title` pattern, 620 occurrences**, of which 125 are `en:`; only
-*Utopia* shows the classic multi-language block. Left in deliberately for now —
-8 per million words moves no measurement, and fixing the extractor invalidates
-extract-onward. **It is a categorical claim, so it should be fixed before
-publication.**
+*Utopia* shows the classic multi-language block.
+
+**Fixed in `extract.py` (`MW_INTERWIKI`), but not yet applied to the corpus.**
+`data/` predates it, and so does the running LATIN-XXV. `pipeline.py --status`
+correctly reports extract onward stale; rebuilding is ~35 minutes and wants a
+free machine. Eight occurrences per million words moves no perplexity, but "no
+English" is a categorical claim and a small numerator does not defend it.
 
 ### Bugs found and fixed tonight
 

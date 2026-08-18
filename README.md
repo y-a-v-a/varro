@@ -301,8 +301,9 @@ That last row leads to the one genuine purity leak found so far: Vicifons
 interwiki language links survive extraction, and they bring English with them
 (`en:Jingle Bells`). **287 records of 9,894 carry an `xx:Title` pattern, 620
 occurrences, 125 of them `en:`.** Eight per million words, so it changes no
-measurement — but "no English" is a categorical claim, and this should be fixed
-in the extractor before anything is published.
+measurement — but "no English" is a categorical claim, and a small numerator
+does not defend it. **Fixed in `extract.py` (`MW_INTERWIKI`); the corpus on
+disk predates the fix and needs a rebuild to pick it up.**
 
 Plautus' *Amphitruo*, which opened this project as
 `Mercvrivs / Vt vos in vostris voltis mercimoniis`, now reads:
@@ -834,7 +835,7 @@ revisiting this.
 - [x] **Report fingerprinting** — corpus *and* tokenizer stamped; stale floors refused rather than quoted
 - [ ] **LATIN-XXV (27.49M)** — Phase 1 *Latinitas* training since 2026-08-18, 4.0 epochs, 22.3 tok/param
 - [ ] Phase 2 *Romanitas*, then memorisation and `compare.py`
-- [ ] Strip Wikisource interwiki links — 620 occurrences, 125 of them English
+- [x] Strip Wikisource interwiki links — 620 occurrences, 125 English; **needs a rebuild to take effect**
 - [ ] Real dialogue SFT on the better base, then serve
 - [ ] UD treebank syntactic probing (fetch via `--track eval`; exclude overlapping passages from training)
 - [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)
