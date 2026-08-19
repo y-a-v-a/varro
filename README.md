@@ -399,6 +399,28 @@ Byte-level BPE is used throughout: it cannot emit `<unk>`, which matters because
 249 stray non-ASCII characters survived normalization deliberately. Round-trip is
 verified on held-out works, exact modulo a documented leading space.
 
+## Training recipes
+
+A run is a recipe in `configs/`, not a line of shell history:
+
+```bash
+python src/train.py --config latin-xxv --phase latin-xxv-latinitas
+python src/train.py --config latin-xxv --phase latin-xxv        # phase 2
+python src/train.py --config latin-0 --dim 256 --heads 8        # CLI still wins
+```
+
+**A recipe states epochs, never steps**, and that is the whole point of it. A
+step count is meaningless the moment the corpus changes: 74,700 steps was four
+passes over 153.0M tokens, and on a corpus half again as large the same number
+is 2.7 passes with nothing to say the model is now undertrained. `train.py`
+derives steps from `epochs × train_tokens ÷ (batch × context)`, so the same
+recipe re-run after new sources land trains the same *model*, not the same
+arithmetic. Every run's report records which recipe and how many epochs it
+asked for.
+
+`configs/latin-xxv.yaml` reproduces the flagship exactly — 74,700 steps, 4.0
+epochs, 22.3 tokens per parameter — and there is a test asserting it still does.
+
 ## Evaluation
 
 Built **before** any model exists, deliberately. An evaluation written afterwards

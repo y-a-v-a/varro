@@ -184,3 +184,104 @@ def test_exact_multiple_has_no_short_tail():
     """Why every run before LATIN-XXV escaped this: 5000/250, 16000/250, 1750/250."""
     assert set(block_sizes(5000, 250)) == {250}
     assert set(block_sizes(1750, 250)) == {250}
+
+
+# --- recipes ----------------------------------------------------------------
+#
+# A recipe states EPOCHS, never steps. A step count means something different
+# every time the corpus changes — 74,700 steps was four passes over 153M
+# tokens, and on a corpus half again as large it is 2.7 passes with nothing
+# to say the model is now undertrained.
+
+def test_steps_are_derived_from_epochs_and_the_corpus_in_hand():
+    assert train.steps_for_epochs(4.0, 152_985_050, 16, 512) == 74_700
+    assert train.steps_for_epochs(3.0, 9_562_431, 16, 512) == 3_502
+
+
+def test_the_same_recipe_asks_for_more_steps_on_a_bigger_corpus():
+    """The property that makes a recipe survive corpus growth."""
+    small = train.steps_for_epochs(4.0, 100_000_000, 16, 512)
+    large = train.steps_for_epochs(4.0, 200_000_000, 16, 512)
+    assert large == 2 * small
+
+
+def test_a_bigger_batch_needs_proportionally_fewer_steps():
+    assert train.steps_for_epochs(4.0, 152_985_050, 32, 512) == \
+        train.steps_for_epochs(4.0, 152_985_050, 16, 512) // 2
+
+
+def test_epochs_never_round_down_to_nothing():
+    assert train.steps_for_epochs(0.0001, 1000, 16, 512) == 1
+
+
+def recipe(tmp_path, body):
+    (tmp_path / "r.yaml").write_text(body, encoding="utf-8")
+    return str(tmp_path / "r.yaml")
+
+
+RECIPE = """
+name: demo
+defaults:
+  dim: 512
+  heads: 8
+  batch: 16
+phases:
+  - name: phase-one
+    corpus: corpus
+    epochs: 4.0
+    lr: 2.5e-4
+  - name: phase-two
+    corpus: classical
+    init_from: phase-one
+    epochs: 3.0
+    batch: 8
+"""
+
+
+def test_defaults_merge_into_each_phase(tmp_path):
+    settings, name = train.load_recipe(recipe(tmp_path, RECIPE), "phase-one")
+    assert name == "phase-one"
+    assert settings["dim"] == 512 and settings["heads"] == 8
+    assert settings["corpus"] == "corpus" and settings["epochs"] == 4.0
+
+
+def test_a_phase_overrides_the_defaults_it_disagrees_with(tmp_path):
+    settings, _ = train.load_recipe(recipe(tmp_path, RECIPE), "phase-two")
+    assert settings["batch"] == 8        # phase wins
+    assert settings["dim"] == 512        # default carries through
+    assert settings["init_from"] == "phase-one"
+
+
+def test_first_phase_is_the_default(tmp_path):
+    _, name = train.load_recipe(recipe(tmp_path, RECIPE), None)
+    assert name == "phase-one"
+
+
+def test_unknown_phase_names_the_alternatives(tmp_path):
+    with pytest.raises(SystemExit) as excinfo:
+        train.load_recipe(recipe(tmp_path, RECIPE), "phase-three")
+    assert "phase-one" in str(excinfo.value) and "phase-two" in str(excinfo.value)
+
+
+def test_a_recipe_with_no_phases_is_an_error(tmp_path):
+    with pytest.raises(SystemExit):
+        train.load_recipe(recipe(tmp_path, "name: empty\nphases: []\n"), None)
+
+
+def test_missing_recipe_is_an_error(tmp_path):
+    with pytest.raises(SystemExit):
+        train.load_recipe(str(tmp_path / "absent.yaml"), None)
+
+
+def test_shipped_recipes_reproduce_the_runs_that_were_actually_made():
+    """configs/ is the record of what produced the checkpoints in reports/."""
+    settings, name = train.load_recipe("latin-xxv", "latin-xxv-latinitas")
+    assert name == "latin-xxv-latinitas"
+    assert settings["dim"] == 512 and settings["layers"] == 8
+    assert settings["batch"] == 16 and settings["epochs"] == 4.0
+    assert train.steps_for_epochs(settings["epochs"], 152_985_050,
+                                  settings["batch"], settings["context"]) == 74_700
+
+    second, _ = train.load_recipe("latin-xxv", "latin-xxv")
+    assert second["init_from"] == "latin-xxv-latinitas"
+    assert second["corpus"] == "classical"
