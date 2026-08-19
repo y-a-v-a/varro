@@ -1,0 +1,1876 @@
+{
+  "corpus": "classical",
+  "documents": [
+    {
+      "author": "Apuleius",
+      "id": "perseus-canonical-latinLit/phi1212.phi002.perseus-lat1",
+      "n_words": 53289,
+      "period": "CLASSICAL",
+      "perplexity": 42.95850731490169,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2279,
+      "work": "Metamorphoses"
+    },
+    {
+      "author": "Terentianus Maurus",
+      "id": "digiliblt/dlt000580",
+      "n_words": 21122,
+      "period": "CLASSICAL",
+      "perplexity": 42.88430810761218,
+      "source": "digiliblt",
+      "tokens_scored": 2369,
+      "work": "De litteris, de syllabis, de metris"
+    },
+    {
+      "author": "Apuleius",
+      "id": "perseus-canonical-latinLit/phi1212.phi001.perseus-lat1",
+      "n_words": 21450,
+      "period": "CLASSICAL",
+      "perplexity": 39.22342576324477,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2447,
+      "work": "Apologia"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi011.perseus-lat2",
+      "n_words": 2925,
+      "period": "CLASSICAL",
+      "perplexity": 38.85174725545555,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2561,
+      "work": "Apocolocyntosis"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo014.perseus-lat2",
+      "n_words": 7741,
+      "period": "CLASSICAL",
+      "perplexity": 38.35149553432337,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2460,
+      "work": "Caligula"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo015.perseus-lat2",
+      "n_words": 6508,
+      "period": "CLASSICAL",
+      "perplexity": 37.92718970264056,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2433,
+      "work": "Divus Claudius"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo016.perseus-lat2",
+      "n_words": 7900,
+      "period": "CLASSICAL",
+      "perplexity": 36.98889510622784,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2538,
+      "work": "Nero"
+    },
+    {
+      "author": "Florus",
+      "id": "digiliblt/dlt000536",
+      "n_words": 921,
+      "period": "CLASSICAL",
+      "perplexity": 36.9603426710545,
+      "source": "digiliblt",
+      "tokens_scored": 1790,
+      "work": "Vergilius orator an poeta"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/stoa0255.stoa007.perseus-lat2",
+      "n_words": 8529,
+      "period": "CLASSICAL",
+      "perplexity": 36.08363709638883,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2507,
+      "work": "De consolatione ad Marciam"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo019.perseus-lat2",
+      "n_words": 2399,
+      "period": "CLASSICAL",
+      "perplexity": 34.92387719174776,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2445,
+      "work": "Vitellius"
+    },
+    {
+      "author": "Tacitus, Cornelius",
+      "id": "perseus-canonical-latinLit/phi1351.phi002.perseus-lat1",
+      "n_words": 5521,
+      "period": "CLASSICAL",
+      "perplexity": 34.53104670077348,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2488,
+      "work": "Germania"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi013.perseus-lat2",
+      "n_words": 47710,
+      "period": "CLASSICAL",
+      "perplexity": 34.16332593497511,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2387,
+      "work": "De Beneficiis"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi024.perseus-lat2",
+      "n_words": 8503,
+      "period": "CLASSICAL",
+      "perplexity": 34.10623075033902,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2182,
+      "work": "Pro M. Caelio"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi011.perseus-lat2",
+      "n_words": 13801,
+      "period": "CLASSICAL",
+      "perplexity": 33.891839596708316,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2227,
+      "work": "De Lege Agraria"
+    },
+    {
+      "author": "Apuleius",
+      "id": "perseus-canonical-latinLit/phi1212.phi003.perseus-lat2",
+      "n_words": 7852,
+      "period": "CLASSICAL",
+      "perplexity": 33.68922270478379,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2603,
+      "work": "Florida"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo011.perseus-lat2",
+      "n_words": 9752,
+      "period": "CLASSICAL",
+      "perplexity": 33.405023509147036,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2352,
+      "work": "Divus Julius"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi014.perseus-lat2",
+      "n_words": 10571,
+      "period": "CLASSICAL",
+      "perplexity": 33.38412375687937,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2152,
+      "work": "Pro L. Murena"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi059.perseus-lat1",
+      "n_words": 9831,
+      "period": "CLASSICAL",
+      "perplexity": 32.75403434051965,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2343,
+      "work": "Letters to Brutus"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi014.perseus-lat2",
+      "n_words": 8623,
+      "period": "CLASSICAL",
+      "perplexity": 32.74249734529576,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2483,
+      "work": "De Clementia"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/stoa0255.stoa014.perseus-lat2",
+      "n_words": 7533,
+      "period": "CLASSICAL",
+      "perplexity": 32.61078911310114,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2276,
+      "work": "De Vita Beata"
+    },
+    {
+      "author": "Florus, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1242.phi001.perseus-lat1",
+      "n_words": 26359,
+      "period": "CLASSICAL",
+      "perplexity": 32.42667643087857,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2509,
+      "work": "Epitome Rerum Romanorum"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi052.perseus-lat2",
+      "n_words": 9316,
+      "period": "CLASSICAL",
+      "perplexity": 32.39147649686416,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2124,
+      "work": "De Amicitia"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi008.perseus-lat2",
+      "n_words": 10370,
+      "period": "CLASSICAL",
+      "perplexity": 31.958863579925847,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2065,
+      "work": "Pro A. Caecina"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo021.perseus-lat2",
+      "n_words": 1486,
+      "period": "CLASSICAL",
+      "perplexity": 31.89600951329996,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2398,
+      "work": "Divus Titus"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi034.perseus-lat2",
+      "n_words": 3903,
+      "period": "CLASSICAL",
+      "perplexity": 31.806899211750352,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2220,
+      "work": "Pro Rege Deiotaro"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi016.perseus-lat2",
+      "n_words": 3119,
+      "period": "CLASSICAL",
+      "perplexity": 31.541420323808094,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2093,
+      "work": "Pro Archia Poeta"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo017.perseus-lat2",
+      "n_words": 2853,
+      "period": "CLASSICAL",
+      "perplexity": 30.807829311161935,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2432,
+      "work": "Galba"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo020.perseus-lat2",
+      "n_words": 3199,
+      "period": "CLASSICAL",
+      "perplexity": 30.681661265222868,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2425,
+      "work": "Divus Vespasianus"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi041.perseus-lat2",
+      "n_words": 1577,
+      "period": "CLASSICAL",
+      "perplexity": 30.61772935049957,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2221,
+      "work": "De Optimo Genere Oratorum"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi027.perseus-lat2",
+      "n_words": 10876,
+      "period": "CLASSICAL",
+      "perplexity": 30.545342755921652,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2189,
+      "work": "In L. Calpurnium Pisonem"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi002.perseus-lat2",
+      "n_words": 13291,
+      "period": "CLASSICAL",
+      "perplexity": 30.475799240133174,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2159,
+      "work": "Pro S. Roscio Amerino"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi029.perseus-lat2",
+      "n_words": 2967,
+      "period": "CLASSICAL",
+      "perplexity": 30.2634730560488,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2212,
+      "work": "Pro M. Scauro"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi021.perseus-lat2",
+      "n_words": 7519,
+      "period": "CLASSICAL",
+      "perplexity": 30.235995157709514,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2197,
+      "work": "De Haruspicum Responso In P. Clodium"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo013.perseus-lat2",
+      "n_words": 9281,
+      "period": "CLASSICAL",
+      "perplexity": 30.006317450685327,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2460,
+      "work": "Tiberius"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi035.perseus-lat2",
+      "n_words": 52482,
+      "period": "CLASSICAL",
+      "perplexity": 29.968920322346168,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2250,
+      "work": "Philippicae"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi033.perseus-lat2",
+      "n_words": 3276,
+      "period": "CLASSICAL",
+      "perplexity": 29.954793601637036,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2181,
+      "work": "Pro Q. Ligario"
+    },
+    {
+      "author": "Tacitus, Cornelius",
+      "id": "perseus-canonical-latinLit/phi1351.phi001.perseus-lat1",
+      "n_words": 6741,
+      "period": "CLASSICAL",
+      "perplexity": 29.94619607463746,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2460,
+      "work": "Agricola"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo018.perseus-lat2",
+      "n_words": 1664,
+      "period": "CLASSICAL",
+      "perplexity": 29.80467450509058,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2426,
+      "work": "Otho"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi028.perseus-lat2",
+      "n_words": 11598,
+      "period": "CLASSICAL",
+      "perplexity": 29.793436051180894,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2163,
+      "work": "Pro Cn. Plancio"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi001.perseus-lat2",
+      "n_words": 8636,
+      "period": "CLASSICAL",
+      "perplexity": 29.470096508039724,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2194,
+      "work": "Pro P. Quinctio"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi058.perseus-lat1",
+      "n_words": 18991,
+      "period": "CLASSICAL",
+      "perplexity": 29.13342223925595,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2381,
+      "work": "Letters to his brother Quintus"
+    },
+    {
+      "author": "Quintilian",
+      "id": "perseus-canonical-latinLit/phi1002.phi001.perseus-lat2",
+      "n_words": 172355,
+      "period": "CLASSICAL",
+      "perplexity": 29.064268094182616,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2325,
+      "work": "Institutio Oratoria"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi072.perseus-lat1",
+      "n_words": 4209,
+      "period": "CLASSICAL",
+      "perplexity": 28.933611727988175,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2323,
+      "work": "Timaeus"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo022.perseus-lat2",
+      "n_words": 3553,
+      "period": "CLASSICAL",
+      "perplexity": 28.902140569838654,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2451,
+      "work": "Domitianus"
+    },
+    {
+      "author": "Pliny, the Younger",
+      "id": "perseus-canonical-latinLit/phi1318.phi001.perseus-lat1",
+      "n_words": 67070,
+      "period": "CLASSICAL",
+      "perplexity": 28.85986116460758,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2390,
+      "work": "Epistulae"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi039.perseus-lat2",
+      "n_words": 25040,
+      "period": "CLASSICAL",
+      "perplexity": 28.807837739267587,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2199,
+      "work": "Brutus"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi032.perseus-lat2",
+      "n_words": 2768,
+      "period": "CLASSICAL",
+      "perplexity": 28.766296261945445,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2092,
+      "work": "Pro M. Marcello"
+    },
+    {
+      "author": "Tacitus, Cornelius",
+      "id": "perseus-canonical-latinLit/phi1351.phi004.perseus-lat2",
+      "n_words": 51391,
+      "period": "CLASSICAL",
+      "perplexity": 28.760642095983354,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2505,
+      "work": "Historiae"
+    },
+    {
+      "author": "Seneca the Elder",
+      "id": "perseus-canonical-latinLit/phi1014.phi004.perseus-lat1",
+      "n_words": 138,
+      "period": "CLASSICAL",
+      "perplexity": 28.723698523267732,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 304,
+      "work": "Fragmenta"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi015.perseus-lat2",
+      "n_words": 119433,
+      "period": "CLASSICAL",
+      "perplexity": 28.687990460774238,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2278,
+      "work": "Epistulae"
+    },
+    {
+      "author": "Suetonius",
+      "id": "perseus-canonical-latinLit/phi1348.abo012.perseus-lat2",
+      "n_words": 13818,
+      "period": "CLASSICAL",
+      "perplexity": 28.662216815933245,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2399,
+      "work": "Divus Augustus"
+    },
+    {
+      "author": "Pliny, the Elder",
+      "id": "perseus-canonical-latinLit/phi0978.phi001.perseus-lat2",
+      "n_words": 401200,
+      "period": "CLASSICAL",
+      "perplexity": 28.64164944144449,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2676,
+      "work": "Naturalis Historia"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi038.perseus-lat2",
+      "n_words": 9819,
+      "period": "CLASSICAL",
+      "perplexity": 28.18413923485948,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2032,
+      "work": "Partitiones Oratoriae"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo025.perseus-lat2",
+      "n_words": 3578,
+      "period": "CLASSICAL",
+      "perplexity": 28.103052998674464,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2336,
+      "work": "Atticus"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi009.perseus-lat2",
+      "n_words": 6675,
+      "period": "CLASSICAL",
+      "perplexity": 28.076567482899964,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2091,
+      "work": "De Imperio Cn. Pompei Ad Quirites"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi004.perseus-lat2",
+      "n_words": 5823,
+      "period": "CLASSICAL",
+      "perplexity": 27.96402218195058,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2170,
+      "work": "Divinatio in Q. Caecilium"
+    },
+    {
+      "author": "Festus (Sextus Pompeius Festus)",
+      "id": "digiliblt/dlt000185",
+      "n_words": 35686,
+      "period": "CLASSICAL",
+      "perplexity": 27.888285614114597,
+      "source": "digiliblt",
+      "tokens_scored": 2491,
+      "work": "Pauli Diaconi Epitome"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi017.perseus-lat2",
+      "n_words": 10925,
+      "period": "CLASSICAL",
+      "perplexity": 27.850915206917023,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2249,
+      "work": "Pro L. Flacco"
+    },
+    {
+      "author": "Julius Caesar",
+      "id": "perseus-canonical-latinLit/phi0448.phi002.perseus-lat3",
+      "n_words": 32341,
+      "period": "CLASSICAL",
+      "perplexity": 27.82015374116718,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2169,
+      "work": "Civil War"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/stoa0255.stoa004.perseus-lat2",
+      "n_words": 6337,
+      "period": "CLASSICAL",
+      "perplexity": 27.645131403889255,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2509,
+      "work": "De Brevitate Vitae"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi031.perseus-lat2",
+      "n_words": 10489,
+      "period": "CLASSICAL",
+      "perplexity": 27.63030568112506,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2246,
+      "work": "Pro T. Annio Milone"
+    },
+    {
+      "author": "Sallust",
+      "id": "perseus-canonical-latinLit/phi0631.phi001.perseus-lat3",
+      "n_words": 10683,
+      "period": "CLASSICAL",
+      "perplexity": 27.606602262096164,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2263,
+      "work": "Catilinae Coniuratio"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/stoa0255.stoa009.perseus-lat2",
+      "n_words": 5436,
+      "period": "CLASSICAL",
+      "perplexity": 27.356171864911698,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2409,
+      "work": "De Constantia"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/stoa0255.stoa008.perseus-lat2",
+      "n_words": 5805,
+      "period": "CLASSICAL",
+      "perplexity": 27.326831435606877,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2426,
+      "work": "De consolatione ad Polybium"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/stoa0255.stoa013.perseus-lat2",
+      "n_words": 7763,
+      "period": "CLASSICAL",
+      "perplexity": 27.14581594890964,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2499,
+      "work": "De Tranquilitate Animi"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi055.perseus-lat1",
+      "n_words": 33845,
+      "period": "CLASSICAL",
+      "perplexity": 26.907184418321368,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2151,
+      "work": "De Officiis"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/stoa0255.stoa006.perseus-lat2",
+      "n_words": 6940,
+      "period": "CLASSICAL",
+      "perplexity": 26.851544498475842,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2511,
+      "work": "De consolatione ad Helviam"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi015.perseus-lat2",
+      "n_words": 9293,
+      "period": "CLASSICAL",
+      "perplexity": 26.723420807034103,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2218,
+      "work": "Pro P. Sulla"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi022.perseus-lat2",
+      "n_words": 16761,
+      "period": "CLASSICAL",
+      "perplexity": 26.71350681931634,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2181,
+      "work": "Pro P. Sestio"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi057.perseus-lat1",
+      "n_words": 128179,
+      "period": "CLASSICAL",
+      "perplexity": 26.62420403307281,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2500,
+      "work": "Letters to Atticus"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi043.perseus-lat2",
+      "n_words": 21926,
+      "period": "CLASSICAL",
+      "perplexity": 26.554361006132492,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2181,
+      "work": "De Republica"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi040.perseus-lat2",
+      "n_words": 18315,
+      "period": "CLASSICAL",
+      "perplexity": 26.46889096327169,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2121,
+      "work": "Orator"
+    },
+    {
+      "author": "Sallust",
+      "id": "perseus-canonical-latinLit/phi0631.phi002.perseus-lat3",
+      "n_words": 21250,
+      "period": "CLASSICAL",
+      "perplexity": 26.467999520735003,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2351,
+      "work": "Bellum Iugurthinum"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/stoa0255.stoa012.perseus-lat2",
+      "n_words": 4293,
+      "period": "CLASSICAL",
+      "perplexity": 26.36883404566686,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2502,
+      "work": "De Providentia"
+    },
+    {
+      "author": "Tacitus, Cornelius",
+      "id": "perseus-canonical-latinLit/phi1351.phi003.perseus-lat1",
+      "n_words": 9307,
+      "period": "CLASSICAL",
+      "perplexity": 26.334271107402607,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2418,
+      "work": "Dialogus"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi026.perseus-lat2",
+      "n_words": 6785,
+      "period": "CLASSICAL",
+      "perplexity": 26.08744230270548,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2050,
+      "work": "Pro L. Cornelio Balbo"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi020.perseus-lat2",
+      "n_words": 15119,
+      "period": "CLASSICAL",
+      "perplexity": 26.017949326600842,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2123,
+      "work": "De Domo Sua Ad Pontifices"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/stoa0255.stoa011.perseus-lat2",
+      "n_words": 2022,
+      "period": "CLASSICAL",
+      "perplexity": 25.978530268582457,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2430,
+      "work": "De Otio Sapientis"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo013.perseus-lat2",
+      "n_words": 652,
+      "period": "CLASSICAL",
+      "perplexity": 25.87205342443301,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 1411,
+      "work": "Timotheus"
+    },
+    {
+      "author": "Valerius Maximus",
+      "id": "perseus-canonical-latinLit/phi1038.phi001.perseus-lat1",
+      "n_words": 79712,
+      "period": "CLASSICAL",
+      "perplexity": 25.866543735397222,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2498,
+      "work": "Facta et Dicta Memorabilia"
+    },
+    {
+      "author": "Pseudo-Caesar",
+      "id": "perseus-canonical-latinLit/phi0430.phi001.perseus-lat1",
+      "n_words": 6084,
+      "period": "CLASSICAL",
+      "perplexity": 25.809705420630923,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2189,
+      "work": "De Bello Hispaniensi"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi010.perseus-lat2",
+      "n_words": 20827,
+      "period": "CLASSICAL",
+      "perplexity": 25.784814935761904,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2148,
+      "work": "Pro A. Cluentio"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi023.perseus-lat2",
+      "n_words": 4474,
+      "period": "CLASSICAL",
+      "perplexity": 25.762566519961982,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2262,
+      "work": "Against Vatinius"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi036.perseus-lat2",
+      "n_words": 31900,
+      "period": "CLASSICAL",
+      "perplexity": 25.62469734631306,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2042,
+      "work": "De Inventione"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo008.perseus-lat2",
+      "n_words": 600,
+      "period": "CLASSICAL",
+      "perplexity": 25.521781683448445,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 1243,
+      "work": "Thrasybulus"
+    },
+    {
+      "author": "Pseudo-Caesar",
+      "id": "perseus-canonical-latinLit/phi0426.phi001.perseus-lat1",
+      "n_words": 12990,
+      "period": "CLASSICAL",
+      "perplexity": 25.340568846910312,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2178,
+      "work": "De Bello Africo"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi051.perseus-lat1",
+      "n_words": 8257,
+      "period": "CLASSICAL",
+      "perplexity": 25.187485075610716,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2448,
+      "work": "De Senectute"
+    },
+    {
+      "author": "Curtius Rufus, Quintus",
+      "id": "perseus-canonical-latinLit/phi0860.phi001.perseus-lat2",
+      "n_words": 74386,
+      "period": "CLASSICAL",
+      "perplexity": 25.16911227118592,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2354,
+      "work": "Historiarum Alexandri Magni"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/stoa0255.stoa010.perseus-lat2",
+      "n_words": 23166,
+      "period": "CLASSICAL",
+      "perplexity": 25.163916939663356,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2512,
+      "work": "De Ira"
+    },
+    {
+      "author": "Seneca the Elder",
+      "id": "perseus-canonical-latinLit/phi1014.phi003.perseus-lat1",
+      "n_words": 10091,
+      "period": "CLASSICAL",
+      "perplexity": 25.11309130822378,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2610,
+      "work": "Suasoriae"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi030.perseus-lat2",
+      "n_words": 4074,
+      "period": "CLASSICAL",
+      "perplexity": 25.03764013890165,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2235,
+      "work": "Pro C. Rabirio Postumo"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi019.perseus-lat2",
+      "n_words": 4332,
+      "period": "CLASSICAL",
+      "perplexity": 25.028926534449706,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2121,
+      "work": "Cum Senatui Gratias Egit"
+    },
+    {
+      "author": "Titus Livius (Livy)",
+      "id": "perseus-canonical-latinLit/phi0914.phi001.perseus-lat2",
+      "n_words": 515118,
+      "period": "CLASSICAL",
+      "perplexity": 25.006394555443876,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2465,
+      "work": "Ab urbe condita"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi037.perseus-lat2",
+      "n_words": 61624,
+      "period": "CLASSICAL",
+      "perplexity": 24.95646926553511,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2180,
+      "work": "On Oratory"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi003.perseus-lat2",
+      "n_words": 4758,
+      "period": "CLASSICAL",
+      "perplexity": 24.902883597354265,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2452,
+      "work": "Pro Q. Roscio Comoedo"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo001.perseus-lat2",
+      "n_words": 1337,
+      "period": "CLASSICAL",
+      "perplexity": 24.712408310820077,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2400,
+      "work": "Miltiades"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo018.perseus-lat2",
+      "n_words": 2289,
+      "period": "CLASSICAL",
+      "perplexity": 24.692057349594972,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2379,
+      "work": "Eumenes"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo016.perseus-lat2",
+      "n_words": 713,
+      "period": "CLASSICAL",
+      "perplexity": 24.61151059626422,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 1550,
+      "work": "Pelopidas"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi006.perseus-lat2",
+      "n_words": 3437,
+      "period": "CLASSICAL",
+      "perplexity": 24.27899880786129,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2194,
+      "work": "Pro M. Tullio"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi007.perseus-lat2",
+      "n_words": 4541,
+      "period": "CLASSICAL",
+      "perplexity": 23.9610583929506,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2064,
+      "work": "Pro Fonteio"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi025.perseus-lat2",
+      "n_words": 5123,
+      "period": "CLASSICAL",
+      "perplexity": 23.869411132669807,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2134,
+      "work": "De Provinciis Consularibus"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo017.perseus-lat2",
+      "n_words": 1390,
+      "period": "CLASSICAL",
+      "perplexity": 23.802197581311862,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2385,
+      "work": "Agesilaus"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo010.perseus-lat2",
+      "n_words": 1484,
+      "period": "CLASSICAL",
+      "perplexity": 23.785761564494578,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2405,
+      "work": "Dion"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi012.perseus-lat2",
+      "n_words": 3552,
+      "period": "CLASSICAL",
+      "perplexity": 23.67251367899308,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2259,
+      "work": "Pro C. Rabirio Perduellionis Reo Ad Quirites"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi003.perseus-lat2",
+      "n_words": 4092,
+      "period": "CLASSICAL",
+      "perplexity": 23.570212442214714,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2935,
+      "work": "Phoenissae"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo019.perseus-lat2",
+      "n_words": 533,
+      "period": "CLASSICAL",
+      "perplexity": 23.513727121138555,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 1109,
+      "work": "Phocion"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo011.perseus-lat2",
+      "n_words": 410,
+      "period": "CLASSICAL",
+      "perplexity": 23.449223944472642,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 887,
+      "work": "Iphicrates"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo007.perseus-lat2",
+      "n_words": 2021,
+      "period": "CLASSICAL",
+      "perplexity": 23.287571834812596,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2422,
+      "work": "Alcibiades"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi042.perseus-lat2",
+      "n_words": 6835,
+      "period": "CLASSICAL",
+      "perplexity": 23.259645801016703,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2100,
+      "work": "Topica"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo005.perseus-lat2",
+      "n_words": 537,
+      "period": "CLASSICAL",
+      "perplexity": 23.242753086137444,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 1153,
+      "work": "Cimon"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo014.perseus-lat2",
+      "n_words": 1822,
+      "period": "CLASSICAL",
+      "perplexity": 23.196190121130872,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2384,
+      "work": "Datames"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo015.perseus-lat2",
+      "n_words": 1669,
+      "period": "CLASSICAL",
+      "perplexity": 23.108806938779956,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2402,
+      "work": "Epaminondas"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo004.perseus-lat2",
+      "n_words": 882,
+      "period": "CLASSICAL",
+      "perplexity": 23.0917994875342,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 1882,
+      "work": "Pausanias"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi018.perseus-lat2",
+      "n_words": 2641,
+      "period": "CLASSICAL",
+      "perplexity": 23.020367650223033,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2104,
+      "work": "Cum Populo Gratias Egit"
+    },
+    {
+      "author": "Phaedrus",
+      "id": "perseus-canonical-latinLit/phi0975.phi001.perseus-lat2",
+      "n_words": 11550,
+      "period": "CLASSICAL",
+      "perplexity": 22.96507549981626,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2876,
+      "work": "Fabulae"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo020.perseus-lat2",
+      "n_words": 828,
+      "period": "CLASSICAL",
+      "perplexity": 22.954899786224814,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 1764,
+      "work": "Timoleon"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo012.perseus-lat2",
+      "n_words": 489,
+      "period": "CLASSICAL",
+      "perplexity": 22.520095714553776,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 1075,
+      "work": "Chabrias"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo009.perseus-lat2",
+      "n_words": 736,
+      "period": "CLASSICAL",
+      "perplexity": 22.429412001309558,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 1563,
+      "work": "Conon"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi013.perseus-lat2",
+      "n_words": 12609,
+      "period": "CLASSICAL",
+      "perplexity": 21.989316840351883,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2242,
+      "work": "In Catilinam"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi001.perseus-lat2",
+      "n_words": 7620,
+      "period": "CLASSICAL",
+      "perplexity": 21.812712436476907,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3130,
+      "work": "Hercules Furens"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo024.perseus-lat2",
+      "n_words": 440,
+      "period": "CLASSICAL",
+      "perplexity": 21.664115842506067,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 944,
+      "work": "Cato"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi007.perseus-lat2",
+      "n_words": 5567,
+      "period": "CLASSICAL",
+      "perplexity": 21.477744351825027,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3121,
+      "work": "Agamemnon"
+    },
+    {
+      "author": "Julius Caesar",
+      "id": "perseus-canonical-latinLit/phi0448.phi001.perseus-lat2",
+      "n_words": 51314,
+      "period": "CLASSICAL",
+      "perplexity": 21.47687532751657,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2344,
+      "work": "Gallic War"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi005.perseus-lat2",
+      "n_words": 7114,
+      "period": "CLASSICAL",
+      "perplexity": 21.03547387247602,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3125,
+      "work": "Phaedra"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi053.perseus-lat1",
+      "n_words": 27808,
+      "period": "CLASSICAL",
+      "perplexity": 20.972811320133257,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2335,
+      "work": "De Divinatione"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo006.perseus-lat2",
+      "n_words": 540,
+      "period": "CLASSICAL",
+      "perplexity": 20.685654279620614,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 1163,
+      "work": "Lysander"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo002.perseus-lat2",
+      "n_words": 1713,
+      "period": "CLASSICAL",
+      "perplexity": 20.34080342424031,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2418,
+      "work": "Themistocles"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi056.perseus-lat1",
+      "n_words": 123190,
+      "period": "CLASSICAL",
+      "perplexity": 20.240373044136867,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2367,
+      "work": "Letters to his Friends"
+    },
+    {
+      "author": "Cicero, Marcus Tullius",
+      "id": "perseus-canonical-latinLit/phi0474.phi005.perseus-lat2",
+      "n_words": 100255,
+      "period": "CLASSICAL",
+      "perplexity": 20.2200900855991,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2273,
+      "work": "In C. Verrem"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi002.perseus-lat2",
+      "n_words": 6816,
+      "period": "CLASSICAL",
+      "perplexity": 20.1701819393412,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3150,
+      "work": "Troades Furens"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo003.perseus-lat2",
+      "n_words": 343,
+      "period": "CLASSICAL",
+      "perplexity": 19.837088510614052,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 710,
+      "work": "Aristides"
+    },
+    {
+      "author": "Ovid",
+      "id": "perseus-canonical-latinLit/phi0959.phi009.perseus-lat2",
+      "n_words": 20799,
+      "period": "CLASSICAL",
+      "perplexity": 19.682304478441242,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2770,
+      "work": "Ex Ponto"
+    },
+    {
+      "author": "Pseudo-Caesar",
+      "id": "perseus-canonical-latinLit/phi0428.phi001.perseus-lat1",
+      "n_words": 10409,
+      "period": "CLASSICAL",
+      "perplexity": 19.444767598558627,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2193,
+      "work": "De Bello Alexandrino"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi008.perseus-lat2",
+      "n_words": 6297,
+      "period": "CLASSICAL",
+      "perplexity": 19.14867288680501,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3068,
+      "work": "Thyestes"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi003.perseus-lat2",
+      "n_words": 6899,
+      "period": "CLASSICAL",
+      "perplexity": 19.06354859927749,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3037,
+      "work": "Aulularia"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi009.perseus-lat2",
+      "n_words": 11274,
+      "period": "CLASSICAL",
+      "perplexity": 19.05798091704601,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3179,
+      "work": "Hercules Oetaeus"
+    },
+    {
+      "author": "Gellius, Aulus",
+      "id": "perseus-canonical-latinLit/phi1254.phi001.perseus-lat2",
+      "n_words": 113577,
+      "period": "CLASSICAL",
+      "perplexity": 18.97085787871516,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2355,
+      "work": "Noctes Atticae"
+    },
+    {
+      "author": "Vitruvius Pollio",
+      "id": "perseus-canonical-latinLit/phi1056.phi001.perseus-lat1",
+      "n_words": 57189,
+      "period": "CLASSICAL",
+      "perplexity": 18.806514595142495,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2325,
+      "work": "On Architecture"
+    },
+    {
+      "author": "Statius, P. Papinius (Publius Papinius)",
+      "id": "perseus-canonical-latinLit/phi1020.phi001.perseus-lat2",
+      "n_words": 62806,
+      "period": "CLASSICAL",
+      "perplexity": 18.729885046068176,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2964,
+      "work": "Thebais"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi004.perseus-lat2",
+      "n_words": 5664,
+      "period": "CLASSICAL",
+      "perplexity": 18.441742700134913,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3166,
+      "work": "Medea"
+    },
+    {
+      "author": "Nepos, Cornelius",
+      "id": "perseus-canonical-latinLit/phi0588.abo021.perseus-lat2",
+      "n_words": 443,
+      "period": "CLASSICAL",
+      "perplexity": 18.361649879357962,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 978,
+      "work": "De Regibus"
+    },
+    {
+      "author": "Columella, Lucius Junius Moderatus",
+      "id": "perseus-canonical-latinLit/phi0845.phi002.perseus-lat3",
+      "n_words": 78047,
+      "period": "CLASSICAL",
+      "perplexity": 18.29555132440615,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2329,
+      "work": "Res Rustica"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi006.perseus-lat2",
+      "n_words": 5940,
+      "period": "CLASSICAL",
+      "perplexity": 18.23271299350747,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3219,
+      "work": "Oedipus"
+    },
+    {
+      "author": "Ovid",
+      "id": "perseus-canonical-latinLit/phi0959.phi006.perseus-lat2",
+      "n_words": 77677,
+      "period": "CLASSICAL",
+      "perplexity": 18.214773303417,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2892,
+      "work": "Metamorphoses"
+    },
+    {
+      "author": "Tibullus",
+      "id": "perseus-canonical-latinLit/phi0660.phi001.perseus-lat2",
+      "n_words": 12369,
+      "period": "CLASSICAL",
+      "perplexity": 18.023489020105313,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2940,
+      "work": "Elegiae"
+    },
+    {
+      "author": "Valerius Flaccus, Gaius",
+      "id": "perseus-canonical-latinLit/phi1035.phi001.perseus-lat2",
+      "n_words": 37239,
+      "period": "CLASSICAL",
+      "perplexity": 18.020447687208357,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2935,
+      "work": "Argonautica"
+    },
+    {
+      "author": "P. Vergilius Maro (Virgil)",
+      "id": "perseus-canonical-latinLit/phi0690.phi002.perseus-lat2",
+      "n_words": 14139,
+      "period": "CLASSICAL",
+      "perplexity": 17.92352284418763,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2957,
+      "work": "Georgics"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi005.perseus-lat2",
+      "n_words": 8684,
+      "period": "CLASSICAL",
+      "perplexity": 17.857987672201226,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2962,
+      "work": "Captivi"
+    },
+    {
+      "author": "Ovid",
+      "id": "perseus-canonical-latinLit/phi0959.phi007.perseus-lat2",
+      "n_words": 31211,
+      "period": "CLASSICAL",
+      "perplexity": 17.844310875369366,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2896,
+      "work": "Fasti"
+    },
+    {
+      "author": "Martial",
+      "id": "perseus-canonical-latinLit/phi1294.phi002.perseus-lat2",
+      "n_words": 58179,
+      "period": "CLASSICAL",
+      "perplexity": 17.677101902298677,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3010,
+      "work": "Epigrammata"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi002.perseus-lat2",
+      "n_words": 8077,
+      "period": "CLASSICAL",
+      "perplexity": 17.658303710187237,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3110,
+      "work": "Asinaria"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi020.perseus-lat2",
+      "n_words": 8253,
+      "period": "CLASSICAL",
+      "perplexity": 17.62399720897123,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3012,
+      "work": "Truculentus"
+    },
+    {
+      "author": "Statius, P. Papinius (Publius Papinius)",
+      "id": "perseus-canonical-latinLit/phi1020.phi002.perseus-lat2",
+      "n_words": 25125,
+      "period": "CLASSICAL",
+      "perplexity": 17.57012161654638,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2990,
+      "work": "Silvae"
+    },
+    {
+      "author": "Silius Italicus, Tiberius Catius",
+      "id": "perseus-canonical-latinLit/phi1345.phi001.perseus-lat2",
+      "n_words": 76285,
+      "period": "CLASSICAL",
+      "perplexity": 17.541102872974143,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2930,
+      "work": "Punica"
+    },
+    {
+      "author": "Lucretius",
+      "id": "perseus-canonical-latinLit/phi0550.phi001.perseus-lat1",
+      "n_words": 48744,
+      "period": "CLASSICAL",
+      "perplexity": 17.43136543989783,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2581,
+      "work": "De Rerum Natura"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi019.perseus-lat2",
+      "n_words": 9876,
+      "period": "CLASSICAL",
+      "perplexity": 17.416789323815344,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3040,
+      "work": "Trinummus"
+    },
+    {
+      "author": "Propertius, Sextus",
+      "id": "perseus-canonical-latinLit/phi0620.phi001.perseus-lat3",
+      "n_words": 25311,
+      "period": "CLASSICAL",
+      "perplexity": 17.409841941359627,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2944,
+      "work": "Elegiae"
+    },
+    {
+      "author": "Statius, P. Papinius (Publius Papinius)",
+      "id": "perseus-canonical-latinLit/phi1020.phi003.perseus-lat2",
+      "n_words": 7285,
+      "period": "CLASSICAL",
+      "perplexity": 17.254353423264924,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2967,
+      "work": "Achilleis"
+    },
+    {
+      "author": "Ovid",
+      "id": "perseus-canonical-latinLit/phi0959.phi008.perseus-lat2",
+      "n_words": 22833,
+      "period": "CLASSICAL",
+      "perplexity": 17.180093409918076,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2836,
+      "work": "Tristia"
+    },
+    {
+      "author": "P. Vergilius Maro (Virgil)",
+      "id": "perseus-canonical-latinLit/phi0690.phi003.perseus-lat2",
+      "n_words": 63304,
+      "period": "CLASSICAL",
+      "perplexity": 17.16220951253246,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2890,
+      "work": "Aeneid"
+    },
+    {
+      "author": "Ovid",
+      "id": "perseus-canonical-latinLit/phi0959.phi003.perseus-lat2",
+      "n_words": 613,
+      "period": "CLASSICAL",
+      "perplexity": 17.02353515381222,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 1602,
+      "work": "Medicamina faciei femineae"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi012.perseus-lat2",
+      "n_words": 12756,
+      "period": "CLASSICAL",
+      "perplexity": 16.522657012882945,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3002,
+      "work": "Miles Gloriosus"
+    },
+    {
+      "author": "Seneca, Lucius Annaeus",
+      "id": "perseus-canonical-latinLit/phi1017.phi010.perseus-lat2",
+      "n_words": 5230,
+      "period": "CLASSICAL",
+      "perplexity": 16.504777105498754,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3069,
+      "work": "Octavia"
+    },
+    {
+      "author": "Ovid",
+      "id": "perseus-canonical-latinLit/phi0959.phi010.perseus-lat2",
+      "n_words": 4493,
+      "period": "CLASSICAL",
+      "perplexity": 15.803559199370984,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2961,
+      "work": "Ibis"
+    },
+    {
+      "author": "P. Vergilius Maro (Virgil)",
+      "id": "perseus-canonical-latinLit/phi0690.phi001.perseus-lat2",
+      "n_words": 5722,
+      "period": "CLASSICAL",
+      "perplexity": 15.523502490542146,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3122,
+      "work": "Eclogues"
+    },
+    {
+      "author": "Ovid",
+      "id": "perseus-canonical-latinLit/phi0959.phi004.perseus-lat2",
+      "n_words": 14892,
+      "period": "CLASSICAL",
+      "perplexity": 15.445237143516573,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2995,
+      "work": "Ars Amatoria"
+    },
+    {
+      "author": "Gaius",
+      "id": "digiliblt/dlt000645",
+      "n_words": 45178,
+      "period": "CLASSICAL",
+      "perplexity": 15.389735710517508,
+      "source": "digiliblt",
+      "tokens_scored": 2022,
+      "work": "Gai Institutionum commentarii quattuor"
+    },
+    {
+      "author": "Ovid",
+      "id": "perseus-canonical-latinLit/phi0959.phi002.perseus-lat2",
+      "n_words": 25922,
+      "period": "CLASSICAL",
+      "perplexity": 15.163712968090675,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2997,
+      "work": "Epistulae"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi009.perseus-lat2",
+      "n_words": 6507,
+      "period": "CLASSICAL",
+      "perplexity": 15.104339716332829,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3049,
+      "work": "Epidicus"
+    },
+    {
+      "author": "Ovid",
+      "id": "perseus-canonical-latinLit/phi0959.phi005.perseus-lat2",
+      "n_words": 5245,
+      "period": "CLASSICAL",
+      "perplexity": 14.534508712726995,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2939,
+      "work": "Remedia amoris"
+    },
+    {
+      "author": "Ovid",
+      "id": "perseus-canonical-latinLit/phi0959.phi001.perseus-lat2",
+      "n_words": 15840,
+      "period": "CLASSICAL",
+      "perplexity": 14.517635951549117,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2955,
+      "work": "Amores"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi006.perseus-lat2",
+      "n_words": 7767,
+      "period": "CLASSICAL",
+      "perplexity": 13.660921461200708,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3184,
+      "work": "Casina"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi001.perseus-lat2",
+      "n_words": 9852,
+      "period": "CLASSICAL",
+      "perplexity": 13.525952452580272,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3121,
+      "work": "Amphitruo"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi018.perseus-lat2",
+      "n_words": 6230,
+      "period": "CLASSICAL",
+      "perplexity": 13.108084828282399,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3320,
+      "work": "Stichus"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi016.perseus-lat2",
+      "n_words": 11071,
+      "period": "CLASSICAL",
+      "perplexity": 13.018192202487938,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3130,
+      "work": "Pseudolus"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi017.perseus-lat2",
+      "n_words": 11885,
+      "period": "CLASSICAL",
+      "perplexity": 12.995552275592383,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3294,
+      "work": "Rudens"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi007.perseus-lat2",
+      "n_words": 5237,
+      "period": "CLASSICAL",
+      "perplexity": 12.866128103481353,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3233,
+      "work": "Cistellaria"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi014.perseus-lat2",
+      "n_words": 7885,
+      "period": "CLASSICAL",
+      "perplexity": 12.742822267043003,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3225,
+      "work": "Persa"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi004.perseus-lat2",
+      "n_words": 9854,
+      "period": "CLASSICAL",
+      "perplexity": 11.691243270503113,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3218,
+      "work": "Bacchides"
+    },
+    {
+      "author": "Phaedrus",
+      "id": "vicifons/Fabulae_(Phaedrus)",
+      "n_words": 59,
+      "period": "CLASSICAL",
+      "perplexity": 11.170958487304379,
+      "source": "vicifons",
+      "tokens_scored": 193,
+      "work": "Fabulae"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi008.perseus-lat2",
+      "n_words": 6191,
+      "period": "CLASSICAL",
+      "perplexity": 11.101902624423383,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3355,
+      "work": "Curculio"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi010.perseus-lat2",
+      "n_words": 9533,
+      "period": "CLASSICAL",
+      "perplexity": 11.070209366469735,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3255,
+      "work": "Menaechmi"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi011.perseus-lat2",
+      "n_words": 8562,
+      "period": "CLASSICAL",
+      "perplexity": 10.191518978827395,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3293,
+      "work": "Mercator"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi013.perseus-lat2",
+      "n_words": 9619,
+      "period": "CLASSICAL",
+      "perplexity": 9.169597172037498,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3426,
+      "work": "Mostellaria"
+    },
+    {
+      "author": "Plautus, Titus Maccius",
+      "id": "perseus-canonical-latinLit/phi0119.phi015.perseus-lat2",
+      "n_words": 11042,
+      "period": "CLASSICAL",
+      "perplexity": 9.149309620331081,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 3390,
+      "work": "Poenulus"
+    },
+    {
+      "author": "Celsus, Aulus Cornelius",
+      "id": "perseus-canonical-latinLit/phi0836.phi002.perseus-lat6",
+      "n_words": 103533,
+      "period": "CLASSICAL",
+      "perplexity": 7.994553501848821,
+      "source": "perseus-canonical-latinLit",
+      "tokens_scored": 2943,
+      "work": "De Medicina"
+    }
+  ],
+  "max_chars": 8000,
+  "model": "latin-xxv",
+  "quantiles": {
+    "0.01": 9.149309620331081,
+    "0.25": 18.441742700134913,
+    "0.5": 25.006394555443876,
+    "0.75": 28.766296261945445,
+    "0.95": 34.92387719174776,
+    "0.99": 42.88430810761218
+  },
+  "split": "train"
+}
