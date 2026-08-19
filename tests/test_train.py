@@ -148,3 +148,39 @@ def test_unstamped_legacy_report_falls_back_to_fingerprint_drift(paths):
     write_baseline(reports, corpus="classical", corpus_name=None)
     _, reason = train.read_floor("classical", 4000)
     assert "records: 909 -> 203" in reason
+
+
+# --- reporting blocks -------------------------------------------------------
+
+def block_sizes(steps, eval_every):
+    """Sizes of the blocks the training loop averages train loss over."""
+    sizes, since = [], 0
+    for step in range(steps):
+        since += 1
+        if train.is_report_step(step, steps, eval_every):
+            sizes.append(since)
+            since = 0
+    return sizes
+
+
+def test_blocks_tile_the_run_exactly():
+    for steps, every in ((5000, 250), (74700, 500), (3500, 250), (7, 3), (1, 500)):
+        assert sum(block_sizes(steps, every)) == steps
+
+
+def test_final_block_is_short_when_steps_is_not_a_multiple():
+    """The case that corrupted LATIN-XXV's reported train/val gap.
+
+    74,700 steps at eval_every 500 leaves a 200-step tail. Dividing that tail
+    by 500 scaled the final train loss to 0.4x — 3.12 was reported as 1.25,
+    and the train/val gap as 7.25x where the truth was 1.12x.
+    """
+    sizes = block_sizes(74_700, 500)
+    assert sizes[-1] == 200
+    assert all(s == 500 for s in sizes[:-1])
+
+
+def test_exact_multiple_has_no_short_tail():
+    """Why every run before LATIN-XXV escaped this: 5000/250, 16000/250, 1750/250."""
+    assert set(block_sizes(5000, 250)) == {250}
+    assert set(block_sizes(1750, 250)) == {250}

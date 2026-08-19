@@ -136,6 +136,16 @@ def load_checkpoint(name: str, model, optimizer) -> Tuple[int, List[Dict]]:
     return saved["step"], saved.get("history", [])
 
 
+def is_report_step(step: int, steps: int, eval_every: int) -> bool:
+    """Whether step (0-based) closes a reporting block.
+
+    The last block is closed by reaching the end, not by the interval, so it is
+    short whenever `steps` is not a multiple of `eval_every`. Anything
+    averaging over a block must divide by what it actually accumulated.
+    """
+    return (step + 1) % eval_every == 0 or step == steps - 1
+
+
 def parameter_count(model: nn.Module) -> int:
     return sum(v.size for _, v in tree_flatten(model.parameters()))
 
@@ -388,6 +398,7 @@ def main() -> int:
         print(f"resumed {args.name} at step {start_step:,}")
     started = time.time()
     running = 0.0
+    since_report = 0
 
     for step in range(start_step, args.steps):
         optimizer.learning_rate = lr_at(step)
@@ -396,10 +407,18 @@ def main() -> int:
         optimizer.update(model, grads)
         mx.eval(model.parameters(), optimizer.state)
         running += loss.item()
+        since_report += 1
 
-        if (step + 1) % args.eval_every == 0 or step == args.steps - 1:
-            train_loss = running / min(args.eval_every, step - start_step + 1)
-            running = 0.0
+        if is_report_step(step, args.steps, args.eval_every):
+            # Divide by what was actually accumulated. The final report is
+            # triggered by `step == args.steps - 1` rather than by the
+            # interval, so when steps is not a multiple of eval_every the
+            # last block is short. Dividing by eval_every regardless scaled
+            # the final train loss by (short block / eval_every) — on the
+            # 74,700-step LATIN-XXV run that turned a real 3.12 into 1.25
+            # and reported a 7.25x train/val gap where the truth was 1.12x.
+            train_loss = running / max(1, since_report)
+            running, since_report = 0.0, 0
             val_loss = evaluate_split(model, val_tokens, args.batch, args.context)
             elapsed = time.time() - started
             rate = (step + 1) * tokens_per_step / elapsed
