@@ -145,6 +145,10 @@
     "words": 78974350
   },
   "corpus_name": "corpus",
-  "generated": "2026-08-17T23:15:34+00:00",
-  "schema_version": 1
+  "generated": "2026-08-19T01:34:50+00:00",
+  "schema_version": 1,
+  "tokenizer": {
+    "sha256": "24d1515e65807859",
+    "vocab": 4000
+  }
 }

@@ -77,6 +77,10 @@
     "words": 4539518
   },
   "corpus_name": "classical",
-  "generated": "2026-08-17T23:15:55+00:00",
-  "schema_version": 1
+  "generated": "2026-08-19T01:26:57+00:00",
+  "schema_version": 1,
+  "tokenizer": {
+    "sha256": "24d1515e65807859",
+    "vocab": 4000
+  }
 }
