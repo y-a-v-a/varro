@@ -58,6 +58,21 @@ TRACKS = {
     "eval": {"eval"},              # held-out evaluation data; never in either corpus
 }
 VALID_METHODS = {"git", "http", "zenodo", "manual"}
+
+# How a source's text came to be text. Not a licence question and not a quality
+# one: it is about whether a later model would be learning from an earlier
+# model's output.
+#
+#   transcribed      keyed or proofread by people
+#   ocr              machine-read, possibly machine-corrected by a third party
+#   model-corrected  corrected by a model from THIS project — the feedback risk
+#   unknown          not established; treated as suspect, like tier: unknown
+#
+# `unknown` is not a placeholder to be filled in later with a guess. The Latin
+# Library carries it because sources.md says its provenance is inconsistent and
+# it has known OCR errors, and a source whose provenance nobody has established
+# should say so rather than claim to be transcribed.
+VALID_TEXT_PROVENANCE = {"transcribed", "ocr", "model-corrected", "unknown"}
 VALID_PERIODS = {
     "CLASSICAL", "LATE", "MEDIEVAL", "NEOLATIN", "MIXED", "DOCUMENTARY",
 }
@@ -102,6 +117,17 @@ def validate(manifest: Dict[str, Any]) -> List[str]:
             errors.append(f"{where}: method must be one of {sorted(VALID_METHODS)}")
         if "period" in src and src["period"] not in VALID_PERIODS:
             errors.append(f"{where}: period must be one of {sorted(VALID_PERIODS)}")
+        # Required, and deliberately with no default. A source that does not
+        # say how its text was produced should fail the validator rather than
+        # be silently assumed to be human-transcribed — that assumption is
+        # exactly the one that would let model-corrected text in unnoticed.
+        provenance = src.get("text_provenance")
+        if provenance is None:
+            errors.append(f"{where}: text_provenance is required "
+                          f"(one of {sorted(VALID_TEXT_PROVENANCE)})")
+        elif provenance not in VALID_TEXT_PROVENANCE:
+            errors.append(f"{where}: text_provenance must be one of "
+                          f"{sorted(VALID_TEXT_PROVENANCE)}, not {provenance!r}")
 
         # An amber source with include:true is now correct — it means "wanted,
         # in Track B". What must never happen is amber reaching a Track A build,

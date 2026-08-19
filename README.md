@@ -209,6 +209,45 @@ So the corpus available for Latin-0 / Latin-1 is **4.9M classical words**, of
 which 4.66M are high-confidence dated. The remaining 13.3M is Latin-2 Phase 1
 (*Latinitas*) material.
 
+## Text provenance
+
+Every source declares **how its text came to be text**, and every record carries it:
+
+| class | meaning |
+|---|---|
+| `transcribed` | keyed or proofread by people |
+| `ocr` | machine-read, possibly machine-corrected by a third party |
+| `model-corrected` | corrected by a model from *this* project |
+| `unknown` | not established |
+
+This is not a licence question and not a quality one. It exists because training a
+model on text an earlier model corrected is a feedback loop, and repeated without
+guardrails it narrows the corpus toward whatever the model already believed — the
+symptom being that everything looks cleaner while growing less various.
+
+**The corpus already contains OCR-derived text.** Open Greek and Latin's CSEL is
+machine-corrected OCR — about 6M words, there since the third source landed — so
+labelling makes *"what does this model look like without OCR-derived text?"* a
+question that can be answered rather than argued about. The Latin Library carries
+`unknown` because `sources.md` records its provenance as inconsistent, and a source
+nobody has established should say so rather than claim to be transcribed.
+
+```bash
+python src/build.py --report                          # the mix, always printed
+python src/build.py --exclude-provenance model-corrected
+python src/build.py --max-share model-corrected=0.15  # admit it in a proportion
+```
+
+`text_provenance` is **required** in the manifest with no default: a source that does
+not say how its text was produced fails the validator, because assuming it was
+human-transcribed is exactly the assumption that would let model-corrected text in
+unnoticed. A record with no provenance counts as `unknown`, never as transcribed.
+
+Capping is deterministic and reported: whole records are dropped smallest-first, so
+the cap is met by shedding the least text, and the build says how much it shed. The
+caps are solved together rather than in sequence — one class's budget counts the
+others in its denominator, so applying them one at a time never converges.
+
 ## Deduplication
 
 `src/dedupe.py` finds works repeated across and within sources — Tertullian's

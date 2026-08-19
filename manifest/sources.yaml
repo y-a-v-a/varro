@@ -62,6 +62,7 @@ sources:
     tier: green
     include: true
     format: tei-capitains
+    text_provenance: transcribed    # curated digital editions, human-keyed
     period: CLASSICAL
     lang_filter: lat       # repo also ships English translations — filter on @xml:lang
     est_words: 6000000
@@ -79,6 +80,7 @@ sources:
     tier: green
     include: true
     format: txt
+    text_provenance: unknown    # sources.md: inconsistent provenance, known OCR/typing errors
     period: MIXED
     lang_filter: lat
     est_words: 15000000
@@ -97,6 +99,7 @@ sources:
     tier: green
     include: true
     format: txt
+    text_provenance: transcribed    # Distributed Proofreaders; sources.md notes it is proofread, not OCR
     period: MIXED
     lang_filter: lat
     est_words: 500000
@@ -121,6 +124,7 @@ sources:
     tier: green
     include: true
     format: conllu
+    text_provenance: transcribed    # digital library of edited texts
     period: LATE
     lang_filter: lat
     est_words: 4000000
@@ -151,6 +155,7 @@ sources:
     tier: green
     include: true
     format: tei-capitains
+    text_provenance: ocr    # the manifest's own note: machine-corrected OCR of CSEL volumes
     period: LATE
     lang_filter: lat
     est_words: 5000000
@@ -174,6 +179,7 @@ sources:
     tier: green
     include: true
     format: epidoc-xml
+    text_provenance: transcribed    # epigraphic database, human-entered readings
     period: DOCUMENTARY
     lang_filter: lat
     est_words: 2000000
@@ -192,6 +198,7 @@ sources:
     tier: green
     include: true
     format: edcs-json
+    text_provenance: transcribed    # epigraphic database, human-entered readings
     period: DOCUMENTARY
     lang_filter: lat
     est_words: 3000000
@@ -209,6 +216,7 @@ sources:
     tier: green
     include: true
     format: epidoc-xml
+    text_provenance: transcribed    # editorial transcriptions of documentary papyri
     period: DOCUMENTARY
     lang_filter: lat
     est_words: 500000
@@ -230,6 +238,7 @@ sources:
     tier: green
     include: true
     format: mediawiki-xml
+    text_provenance: transcribed    # Wikisource: human-typed and proofread
     period: MIXED
     lang_filter: lat
     est_words: 3000000
@@ -247,6 +256,7 @@ sources:
     tier: green
     include: false
     format: txt
+    text_provenance: unknown    # not established
     period: MIXED
     lang_filter: lat
     est_words: 9900000
@@ -270,6 +280,7 @@ sources:
     tier: eval
     include: true
     format: conllu
+    text_provenance: transcribed    # gold-standard treebank
     period: CLASSICAL
     lang_filter: lat
     est_words: 30000
@@ -288,6 +299,7 @@ sources:
     tier: eval
     include: true
     format: conllu
+    text_provenance: transcribed    # gold-standard treebank
     period: CLASSICAL
     lang_filter: lat
     est_words: 200000
@@ -310,6 +322,7 @@ sources:
     tier: amber
     include: true
     format: tei-xml
+    text_provenance: unknown    # heterogeneous origin, not established per text
     period: MIXED
     est_words: 226000000
     restriction: >
@@ -330,6 +343,7 @@ sources:
     tier: amber
     include: true
     format: txt
+    text_provenance: transcribed    # manually verified lemmatisation implies keyed text
     period: CLASSICAL
     est_words: 1630825
     restriction: >
@@ -348,6 +362,7 @@ sources:
     tier: amber
     include: true
     format: html
+    text_provenance: unknown    # not established
     period: MIXED
     est_words: 10000000
     restriction: >
@@ -363,6 +378,7 @@ sources:
     tier: unknown
     include: false
     format: txt
+    text_provenance: unknown    # aggregated from other collections
     period: MIXED
     est_words: 8000000
     restriction: >
@@ -381,6 +397,7 @@ sources:
     tier: unknown
     include: false
     format: tei-xml
+    text_provenance: unknown    # not established
     period: CLASSICAL
     est_words: 4000000
     restriction: >
