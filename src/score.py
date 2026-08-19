@@ -81,6 +81,46 @@ def window_plan(n_tokens: int, context: int,
     return plans
 
 
+# Thresholds, calibrated on the 2026-08-19 audit of the 79M-word corpus
+# rather than chosen. See classify() for what each one separates.
+DEFAULT_CEILING = 70.0
+DEFAULT_FLOOR = 3.0
+DEFAULT_FLOOR_VARIETY = 0.05
+
+
+def classify(perplexity_value: Optional[float], distinct_ratio: Optional[float],
+             ceiling: float = DEFAULT_CEILING, floor: float = DEFAULT_FLOOR,
+             floor_variety: float = DEFAULT_FLOOR_VARIETY) -> str:
+    """Whether a document looks like Latin, foreign/corrupt, or degenerate.
+
+    Two tails, and the low one is the larger problem. High perplexity catches
+    text that is not Latin — the audit found a Lorem ipsum stub at 212, a
+    macaronic German carol, a treatise on French pronunciation. Low
+    perplexity catches text that carries no information: navigation indexes,
+    placeholder pages of bare dashes, an EDCS record whose middle is
+    `Legio XXII Primigenia` repeated for 20,000 words.
+
+    Low perplexity ALONE is not evidence of that, which is why the floor test
+    also requires low lexical variety. Genuinely formulaic Latin — epigraphy,
+    liturgy, legal boilerplate — is predictable and legitimate. Measured on
+    the corpus, degenerate documents sit at 0.006-0.022 distinct tokens per
+    token while the least varied legitimate document reaches 0.129 and the
+    median is 0.395, so 0.05 separates them with room on both sides.
+
+    The ceiling sits above the corpus's own p99 of 61.4 and far below the
+    495.8 that English scores, so it flags what does not belong without
+    condemning difficult Latin.
+    """
+    if perplexity_value is None:
+        return "ok"
+    if perplexity_value > ceiling:
+        return "surprising"
+    if (perplexity_value < floor and distinct_ratio is not None
+            and distinct_ratio < floor_variety):
+        return "degenerate"
+    return "ok"
+
+
 def perplexity(logprobs: List[float]) -> Optional[float]:
     if not logprobs:
         return None
@@ -249,21 +289,18 @@ def cmd_period_fit(args, model, tok, cfg) -> None:
 
 
 def cmd_audit(args, model, tok, cfg) -> Dict[str, Any]:
-    """Score every document in a split and rank by surprisal.
+    """Score every document in a split and flag both tails.
 
-    High perplexity is not proof of damage — a genuinely unusual text scores
-    badly too — so this reports a ranking to be read, not a verdict. It is
-    aimed at what does not belong in a Latin corpus at all: OCR garbage,
-    mojibake, editorial apparatus, surviving foreign text.
+    Not a ranking to browse — a gate. Documents outside either threshold are
+    findings, and --check turns the word share they account for into an exit
+    code, the way provenance.py --check does for licensing.
     """
     path = PROCESSED / f"{args.audit}.{args.split}.jsonl"
     if not path.exists():
         sys.exit(f"missing {path.relative_to(ROOT)} — run src/build.py")
 
-    records = []
     with path.open(encoding="utf-8") as fh:
-        for line in fh:
-            records.append(json.loads(line))
+        records = [json.loads(line) for line in fh]
     if args.limit:
         records = records[:args.limit]
 
@@ -271,13 +308,15 @@ def cmd_audit(args, model, tok, cfg) -> Dict[str, Any]:
     for n, record in enumerate(records, 1):
         text = record["text"]
         # A long document is sampled rather than read whole: the point is a
-        # comparable estimate per document, not an exact one. The slice is
-        # taken from the middle because front matter — titles, salutations,
-        # editorial headers — is unrepresentative of the body.
+        # comparable estimate per document, not an exact one. The slice comes
+        # from the middle because front matter — titles, salutations,
+        # editorial headers — is unrepresentative of the body. It is also
+        # where the EDCS repetition artifact hides, which a prefix would miss.
         if args.max_chars and len(text) > args.max_chars:
             middle = len(text) // 2
             half = args.max_chars // 2
             text = text[middle - half:middle + half]
+
         # 43% of the full corpus has period UNASSIGNED, and there is no
         # <UNASSIGNED> token — train.py silently prefixes nothing for those,
         # so scoring has to do the same or it would charge the model for a
@@ -285,39 +324,76 @@ def cmd_audit(args, model, tok, cfg) -> Dict[str, Any]:
         period = args.period or record.get("period")
         if not cfg.get("period_tags") or period not in PERIODS:
             period = None
+
         result = score_text(model, tok, text, cfg["context"], period)
         if result["perplexity"] is None:
             continue
-        scored.append({"id": record.get("id"), "author": record.get("author"),
-                       "work": record.get("work"), "source": record.get("source"),
-                       "period": record.get("period"),
-                       "n_words": record.get("n_words"),
-                       "tokens_scored": result["n_tokens"],
-                       "perplexity": result["perplexity"]})
-        if n % 25 == 0 or n == len(records):
+        body = result["ids"][result["prefix_len"]:]
+        distinct = len(set(body)) / len(body) if body else None
+        scored.append({
+            "id": record.get("id"), "author": record.get("author"),
+            "work": record.get("work"), "source": record.get("source"),
+            "period": record.get("period"), "n_words": record.get("n_words"),
+            "tokens_scored": result["n_tokens"],
+            "perplexity": result["perplexity"],
+            "distinct_ratio": distinct,
+            "verdict": classify(result["perplexity"], distinct,
+                                args.ceiling_ppl, args.floor_ppl,
+                                args.floor_variety),
+        })
+        if n % 250 == 0 or n == len(records):
             print(f"  scored {n:,}/{len(records):,}", flush=True)
 
     values = sorted(s["perplexity"] for s in scored)
     quantiles = {q: values[min(len(values) - 1, int(len(values) * q))]
                  for q in (0.01, 0.25, 0.5, 0.75, 0.95, 0.99)}
-    print(f"\n{len(scored):,} documents scored")
+    total_words = sum(s["n_words"] or 0 for s in scored)
+    print(f"\n{len(scored):,} documents, {total_words:,} words")
     print("  " + "  ".join(f"p{int(q*100)} {v:.1f}" for q, v in quantiles.items()))
 
-    scored.sort(key=lambda s: -s["perplexity"])
-    print(f"\nmost surprising {min(args.worst, len(scored))} — read these first:")
-    print(f"  {'ppl':>9}  {'words':>9}  {'source':<26} work")
-    for s in scored[:args.worst]:
-        print(f"  {s['perplexity']:>9.1f}  {(s['n_words'] or 0):>9,}  "
-              f"{(s['source'] or '?')[:26]:<26} {(s['work'] or s['id'] or '?')[:40]}")
+    tails = {
+        "surprising": ("NOT LATIN, OR DAMAGED", f"perplexity > {args.ceiling_ppl:g}",
+                       lambda s: -s["perplexity"]),
+        "degenerate": ("NO INFORMATION", f"perplexity < {args.floor_ppl:g} and "
+                       f"distinct tokens < {args.floor_variety:g}",
+                       lambda s: s["perplexity"]),
+    }
+    summary: Dict[str, Any] = {}
+    for verdict, (title, rule, order) in tails.items():
+        hits = sorted([s for s in scored if s["verdict"] == verdict], key=order)
+        words = sum(s["n_words"] or 0 for s in hits)
+        share = words / total_words if total_words else 0.0
+        summary[verdict] = {"documents": len(hits), "words": words, "share": share}
+        print(f"\n{title} — {rule}")
+        print(f"  {len(hits):,} documents, {words:,} words ({share:.2%})")
+        if hits:
+            print(f"  {'ppl':>8} {'distinct':>9} {'words':>9}  {'source':<22} work")
+        for s in hits[:args.worst]:
+            print(f"  {s['perplexity']:>8.2f} {(s['distinct_ratio'] or 0):>9.3f} "
+                  f"{(s['n_words'] or 0):>9,}  {(s['source'] or '?')[:22]:<22} "
+                  f"{(s['work'] or s['id'] or '?')[:38]}")
+        if len(hits) > args.worst:
+            print(f"  ... and {len(hits) - args.worst:,} more (full list in --out)")
 
-    print(f"\nleast surprising {min(5, len(scored))} — the model's home turf:")
-    for s in scored[-5:][::-1]:
-        print(f"  {s['perplexity']:>9.1f}  {(s['n_words'] or 0):>9,}  "
-              f"{(s['source'] or '?')[:26]:<26} {(s['work'] or s['id'] or '?')[:40]}")
+    flagged_words = sum(v["words"] for v in summary.values())
+    flagged_share = flagged_words / total_words if total_words else 0.0
+    print(f"\ntotal flagged: {flagged_words:,} words ({flagged_share:.2%}) "
+          f"of {total_words:,}")
+
+    ok = flagged_share <= args.budget
+    if args.check:
+        verdict = "PASS" if ok else "FAIL"
+        print(f"{verdict}: flagged {flagged_share:.2%}, budget {args.budget:.2%}")
 
     return {"corpus": args.audit, "split": args.split, "model": args.name,
-            "max_chars": args.max_chars, "quantiles": quantiles,
-            "documents": scored}
+            "max_chars": args.max_chars,
+            "thresholds": {"ceiling_ppl": args.ceiling_ppl,
+                           "floor_ppl": args.floor_ppl,
+                           "floor_variety": args.floor_variety,
+                           "budget": args.budget},
+            "quantiles": quantiles, "total_words": total_words,
+            "flagged": summary, "flagged_share": flagged_share,
+            "passed": ok, "documents": scored}
 
 
 def main() -> int:
@@ -339,7 +415,24 @@ def main() -> int:
                     help="characters sampled per document when auditing "
                          "(0 for the whole text)")
     ap.add_argument("--worst", type=int, default=20,
-                    help="how many outliers to print")
+                    help="how many of each tail to print")
+    ap.add_argument("--check", action="store_true",
+                    help="gate mode: exit non-zero if the flagged word share "
+                         "exceeds --budget")
+    ap.add_argument("--ceiling-ppl", type=float, default=DEFAULT_CEILING,
+                    help=f"above this a document is not Latin, or is damaged "
+                         f"(default {DEFAULT_CEILING:g}; the corpus p99 is 61.4 "
+                         f"and English scores ~496)")
+    ap.add_argument("--floor-ppl", type=float, default=DEFAULT_FLOOR,
+                    help=f"below this, with low variety, a document carries no "
+                         f"information (default {DEFAULT_FLOOR:g})")
+    ap.add_argument("--floor-variety", type=float, default=DEFAULT_FLOOR_VARIETY,
+                    help=f"distinct tokens per token; degenerate documents "
+                         f"measure 0.006-0.022, legitimate ones 0.129 and up "
+                         f"(default {DEFAULT_FLOOR_VARIETY:g})")
+    ap.add_argument("--budget", type=float, default=0.005,
+                    help="share of words that may be flagged before --check "
+                         "fails (default 0.005)")
     ap.add_argument("--out", help="write a JSON report here")
     args = ap.parse_args()
 
@@ -364,6 +457,11 @@ def main() -> int:
         Path(args.out).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n",
                                   encoding="utf-8")
         print(f"\nwrote {args.out}")
+
+    # Non-zero on a failed gate, so this can sit in a build the way
+    # provenance.py --check does.
+    if args.check and payload is not None and not payload.get("passed", True):
+        return 1
     return 0
 
 
