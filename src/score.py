@@ -93,12 +93,21 @@ def classify(perplexity_value: Optional[float], distinct_ratio: Optional[float],
              floor_variety: float = DEFAULT_FLOOR_VARIETY) -> str:
     """Whether a document looks like Latin, foreign/corrupt, or degenerate.
 
-    Two tails, and the low one is the larger problem. High perplexity catches
-    text that is not Latin — the audit found a Lorem ipsum stub at 212, a
-    macaronic German carol, a treatise on French pronunciation. Low
-    perplexity catches text that carries no information: navigation indexes,
-    placeholder pages of bare dashes, an EDCS record whose middle is
-    `Legio XXII Primigenia` repeated for 20,000 words.
+    High perplexity catches text that is not Latin — the audit found a Lorem
+    ipsum stub filed as De Oratore at 212, a macaronic German carol, a
+    treatise on French pronunciation. Low perplexity catches text carrying
+    almost no information: Wikisource navigation indexes, placeholder pages
+    whose entire content is bare dashes.
+
+    The low tail needs a human, because it does not separate defect from
+    fact. EDCS chunks of Roman epigraphy land there too, and they are not a
+    bug: brick stamps and lead water-pipe stamps were mass-produced with
+    identical text, so `Legio XXII Primigenia` really does occur hundreds of
+    times over. Checked against the raw dump — 34 distinct records carry
+    `Officina Marciana`, and the extracted document has 23 occurrences, so
+    nothing is being duplicated. Genuinely repetitive, genuinely Latin, and
+    still close to worthless as training data. This flags it; it does not
+    presume to say which of those it is.
 
     Low perplexity ALONE is not evidence of that, which is why the floor test
     also requires low lexical variety. Genuinely formulaic Latin — epigraphy,
