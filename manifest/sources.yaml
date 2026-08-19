@@ -61,7 +61,7 @@ sources:
     license: CC-BY-SA-4.0
     tier: green
     include: true
-    format: tei-xml
+    format: tei-capitains
     period: CLASSICAL
     lang_filter: lat       # repo also ships English translations — filter on @xml:lang
     est_words: 6000000
@@ -150,7 +150,7 @@ sources:
     license: CC-BY-SA-4.0
     tier: green
     include: true
-    format: tei-xml
+    format: tei-capitains
     period: LATE
     lang_filter: lat
     est_words: 5000000
@@ -191,7 +191,7 @@ sources:
     license: CC-BY-4.0
     tier: green
     include: true
-    format: json
+    format: edcs-json
     period: DOCUMENTARY
     lang_filter: lat
     est_words: 3000000

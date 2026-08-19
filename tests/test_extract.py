@@ -4,10 +4,11 @@ import textwrap
 
 import pytest
 
-from extract import (Stats, _greek_ratio, assemble, drop_english_paragraphs,
-                     extract_tei_body, looks_english, parse_conllu, pl_volume,
-                     strip_inline_greek, strip_templates, strip_wikitext, tidy,
-                     title_author)
+from extract import (CORPUS_TIERS, FORMAT_EXTRACTORS, Stats, _greek_ratio,
+                     assemble, drop_english_paragraphs, extract_tei_body,
+                     extractable_sources, extractor_for, load_manifest,
+                     looks_english, parse_conllu, pl_volume, strip_inline_greek,
+                     strip_templates, strip_wikitext, tidy, title_author)
 
 
 def tei(body: str) -> str:
@@ -206,3 +207,45 @@ def test_title_author_rejects_editions_and_subpages():
 ])
 def test_pl_volume(title, raw, expected):
     assert pl_volume(title, raw) == expected
+
+
+# --- format dispatch --------------------------------------------------------
+
+def test_perseus_and_csel_share_one_extractor():
+    """Two sources, one reader — the pattern format dispatch generalises."""
+    assert extractor_for("perseus-canonical-latinLit") is \
+        extractor_for("opengreekandlatin-csel")
+
+
+def test_formats_without_a_reader_yet_return_none_rather_than_raising():
+    """EpiDoc and plaintext are declared and not yet implemented."""
+    assert extractor_for("edh") is None
+    assert extractor_for("papyri-idp") is None
+    assert extractor_for("latin-library") is None
+
+
+def test_eval_tier_is_never_extractable(): 
+    """The hazard format dispatch introduced, and the guard that closes it.
+
+    The UD treebanks are CoNLL-U, exactly like DigilibLT, so dispatching on
+    format alone would extract held-out evaluation data into the training
+    corpus — the one mistake that would silently invalidate every number the
+    project reports.
+    """
+    sources = extractable_sources()
+    assert sources, "expected some extractable sources"
+    assert not any(s.startswith("ud-latin") for s in sources)
+    for entry in load_manifest()["sources"]:
+        if entry["id"] in sources:
+            assert entry["tier"] in CORPUS_TIERS
+            assert entry.get("include", True)
+
+
+def test_excluded_sources_are_not_extractable():
+    assert "tesserae" not in extractable_sources()   # include: false
+
+
+def test_every_registered_format_is_declared_by_some_source():
+    """A registry entry no manifest source names is dead code."""
+    declared = {e.get("format") for e in load_manifest()["sources"]}
+    assert set(FORMAT_EXTRACTORS) <= declared

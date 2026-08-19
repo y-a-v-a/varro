@@ -4,15 +4,20 @@
 Reads data/raw/<source>/, writes data/interim/<source>.jsonl — one JSON record
 per work, in the schema documented in README.md.
 
-Implemented sources:
+Extractors are registered by FORMAT, not by source, because sources are added
+far more often than formats are:
 
-  perseus-canonical-latinLit   CapiTainS/CTS + TEI
-  opengreekandlatin-csel       CapiTainS/CTS + TEI (same walker; ignores Volumes/)
-  digiliblt                    CoNLL-U in tarballs, text layer only
+  tei-capitains    Perseus, CSEL           one walker, two sources
+  conllu           DigilibLT               text layer only
+  edcs-json        EDCS inscriptions
+  mediawiki-xml    Vicifons
 
-Remaining (EDH/Papyri EpiDoc, Vicifons MediaWiki, Latin Library and Gutenberg
-plaintext) get their own readers; the record schema, the TEI walker, and the
-Greek/English filters are shared.
+  epidoc-xml       EDH, Papyri.info        NOT YET WRITTEN — two sources, one job
+  txt              Latin Library, Gutenberg    NOT YET WRITTEN — likewise
+
+A source whose format already has an extractor needs a manifest entry and no
+code at all. The record schema, the TEI walker, and the Greek/English filters
+are shared by all of them.
 
 Editorial policy applied here (each is a real decision, not a default):
 
@@ -376,14 +381,17 @@ def extract_tei_body(path: Path, stats: Stats, greek: str) -> Tuple[str, Optiona
 # Driver
 # ---------------------------------------------------------------------------
 
-def load_manifest_entry(source_id: str) -> Dict[str, Any]:
+def load_manifest() -> Dict[str, Any]:
     try:
         import yaml
     except ImportError:
         sys.exit("PyYAML required — pip install -r requirements.txt")
     with (ROOT / "manifest" / "sources.yaml").open(encoding="utf-8") as fh:
-        manifest = yaml.safe_load(fh)
-    for src in manifest["sources"]:
+        return yaml.safe_load(fh)
+
+
+def load_manifest_entry(source_id: str) -> Dict[str, Any]:
+    for src in load_manifest()["sources"]:
         if src["id"] == source_id:
             return src
     sys.exit(f"source `{source_id}` not in manifest")
@@ -520,7 +528,7 @@ def assemble(sentences: List[Tuple[Optional[int], str]], stats: Stats,
     return "\n\n".join(" ".join(p) for p in paragraphs if p)
 
 
-def extract_digiliblt(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
+def extract_conllu(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
     import tarfile
 
     entry = load_manifest_entry(source_id)
@@ -593,36 +601,24 @@ def extract_digiliblt(source_id: str, greek: str, limit: Optional[int]) -> Tuple
     return records, stats
 
 
-EXTRACTORS = {
-    "perseus-canonical-latinLit": extract_capitains,
-    "opengreekandlatin-csel": extract_capitains,
-    "digiliblt": extract_digiliblt,
-}
-
-
-def _register_late() -> None:
-    """Extractors defined after the dispatch table is first built."""
-    for name in ("extract_edcs", "extract_vicifons", "extract_latin_library"):
-        fn = globals().get(name)
-        if fn is None:
-            continue
-        EXTRACTORS[{"extract_edcs": "edcs-sdam",
-                    "extract_vicifons": "vicifons",
-                    "extract_latin_library": "latin-library"}[name]] = fn
-
-
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--source", default="perseus-canonical-latinLit",
-                    choices=sorted(EXTRACTORS), help="which fetched source to extract")
+                    choices=extractable_sources(),
+                    help="which fetched source to extract")
     ap.add_argument("--greek", default="drop", choices=("drop", "tag", "keep"),
                     help="policy for Greek passages inside Latin texts (default: drop)")
     ap.add_argument("--limit", type=int, help="stop after N works (for testing)")
     ap.add_argument("--report", action="store_true", help="print stats, write nothing")
     args = ap.parse_args()
 
-    records, stats = EXTRACTORS[args.source](args.source, args.greek, args.limit)
+    extractor = extractor_for(args.source)
+    if extractor is None:
+        entry = load_manifest_entry(args.source)
+        sys.exit(f"no extractor for format `{entry.get('format')}` "
+                 f"(source `{args.source}`) — add one to FORMAT_EXTRACTORS")
+    records, stats = extractor(args.source, args.greek, args.limit)
 
     print(f"source        {args.source}")
     print(f"greek policy  {args.greek}")
@@ -948,7 +944,67 @@ def extract_vicifons(source_id: str, greek: str, limit: Optional[int]) -> Tuple[
                     break
     return records, stats
 
-_register_late()
+
+# ---------------------------------------------------------------------------
+# Dispatch
+# ---------------------------------------------------------------------------
+#
+# At the foot of the module because a dispatch table can only name functions
+# that already exist. The previous version sat above two of its own entries and
+# patched them in afterwards by looking them up in globals() by string; putting
+# the table last removes the problem rather than working around it.
+
+# Dispatch is by FORMAT, not by source id.
+#
+# Sources are added far more often than formats are. Perseus and CSEL already
+# share one extractor because they share the CapiTainS layout, and the two
+# epigraphic sources still to land — EDH and Papyri.info — are both EpiDoc, as
+# are Latin Library and Gutenberg both plain text. Keying on the format each
+# source already declares in the manifest means a new source of a known format
+# needs a manifest entry and no code at all.
+#
+# Format labels are as precise as the parsing actually requires. `tei-capitains`
+# is not `tei-xml`: Corpus Corporum ships TEI with a different structure, and
+# pretending otherwise would dispatch it to a parser that cannot read it.
+FORMAT_EXTRACTORS = {
+    "tei-capitains": extract_capitains,
+    "conllu": extract_conllu,
+    "edcs-json": extract_edcs,
+    "mediawiki-xml": extract_vicifons,
+}
+
+
+def extractor_for(source_id: str):
+    """The extractor for a source, or None if its format has none yet."""
+    entry = load_manifest_entry(source_id)
+    return FORMAT_EXTRACTORS.get(entry.get("format"))
+
+
+# Tiers that may become corpus text. `eval` is excluded on purpose and the
+# exclusion is load-bearing: the UD treebanks are CoNLL-U, exactly like
+# DigilibLT, so dispatching on format alone would happily extract the held-out
+# evaluation data straight into the training corpus. That is the one mistake
+# that would quietly invalidate every number this project reports, and the
+# source-keyed table it replaced only avoided it by accident.
+CORPUS_TIERS = {"green", "amber"}
+
+
+def extractable_sources() -> List[str]:
+    """Sources that may become corpus text and declare a readable format.
+
+    Manifest order, not alphabetical: the manifest groups sources by role and
+    that grouping is more useful to read than the alphabet.
+    """
+    out = []
+    for entry in load_manifest()["sources"]:
+        if not entry.get("include", True):
+            continue
+        if entry.get("tier") not in CORPUS_TIERS:
+            continue
+        if FORMAT_EXTRACTORS.get(entry.get("format")):
+            out.append(entry["id"])
+    return out
+
 
 if __name__ == "__main__":
     sys.exit(main())

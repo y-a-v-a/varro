@@ -138,3 +138,109 @@ def test_derived_is_evaluated_at_fingerprint_time_not_construction(
     stage.fingerprint("")
     stage.fingerprint("")
     assert len(calls) == 2
+
+
+# --- partitioned stages -----------------------------------------------------
+#
+# Extract has one part per source. The point is that adding the tenth source
+# does not re-extract the nine already there, so the cost of growing the corpus
+# stays constant instead of rising with it.
+
+from pipeline import Part  # noqa: E402
+
+
+def partitioned(root, names, values):
+    (root / "script.py").write_text("print('hi')\n", encoding="utf-8")
+    return Stage("extract", "script.py", [],
+                 parts=[Part(n, ["--source", n], lambda n=n: values[n])
+                        for n in names])
+
+
+def test_one_source_moving_leaves_the_others_alone(tmp_path, monkeypatch):
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    values = {"a": "pin-a", "b": "pin-b", "c": "pin-c"}
+    stage = partitioned(tmp_path, ["a", "b", "c"], values)
+    before = {p.name: stage.part_fingerprint("", p) for p in stage.parts}
+    values["b"] = "pin-b2"
+    after = {p.name: stage.part_fingerprint("", p) for p in stage.parts}
+    assert after["b"] != before["b"]
+    assert after["a"] == before["a"] and after["c"] == before["c"]
+
+
+def test_adding_a_source_does_not_disturb_existing_ones(tmp_path, monkeypatch):
+    """The property that makes the corpus cheap to grow."""
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    values = {"a": "pin-a", "b": "pin-b", "d": "pin-d"}
+    before_stage = partitioned(tmp_path, ["a", "b"], values)
+    before = {p.name: before_stage.part_fingerprint("", p) for p in before_stage.parts}
+    after_stage = partitioned(tmp_path, ["a", "b", "d"], values)
+    after = {p.name: after_stage.part_fingerprint("", p) for p in after_stage.parts}
+    assert after["a"] == before["a"] and after["b"] == before["b"]
+    assert "d" in after
+
+
+def test_any_part_moving_invalidates_the_stage_and_so_everything_after(
+        tmp_path, monkeypatch):
+    """Downstream must still rebuild: one new source changes the corpus."""
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    values = {"a": "pin-a", "b": "pin-b"}
+    stage = partitioned(tmp_path, ["a", "b"], values)
+    before = stage.fingerprint("")
+    values["b"] = "pin-b2"
+    assert stage.fingerprint("") != before
+
+
+def test_editing_the_extractor_invalidates_every_part(tmp_path, monkeypatch):
+    """Shared code is shared: a change to the script re-runs all sources."""
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    values = {"a": "pin-a", "b": "pin-b"}
+    stage = partitioned(tmp_path, ["a", "b"], values)
+    before = {p.name: stage.part_fingerprint("", p) for p in stage.parts}
+    (tmp_path / "script.py").write_text("print('changed')\n", encoding="utf-8")
+    after = {p.name: stage.part_fingerprint("", p) for p in stage.parts}
+    assert all(after[k] != before[k] for k in before)
+
+
+def test_upstream_change_propagates_into_every_part(tmp_path, monkeypatch):
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    values = {"a": "pin-a"}
+    stage = partitioned(tmp_path, ["a"], values)
+    assert stage.part_fingerprint("upstream-1", stage.parts[0]) \
+        != stage.part_fingerprint("upstream-2", stage.parts[0])
+
+
+def test_lockfile_identity_can_be_scoped_to_one_source(tmp_path, monkeypatch):
+    """Scoping is what lets one source be invalidated without the rest."""
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    (tmp_path / "manifest").mkdir(exist_ok=True)
+    (tmp_path / "manifest" / "fetch.lock.json").write_text(json.dumps({
+        "sources": {
+            "alpha": {"resolved_pin": "aaa", "tier": "green"},
+            "beta": {"resolved_pin": "bbb", "tier": "green"},
+        }}), encoding="utf-8")
+    alpha = pipeline.lockfile_identity("alpha")
+    assert "alpha" in alpha and "beta" not in alpha
+    assert pipeline.lockfile_identity() != alpha        # whole file differs
+    assert pipeline.lockfile_identity("beta") != alpha
+    # A source absent from the lockfile still fingerprints, distinctly.
+    assert pipeline.lockfile_identity("gamma") not in (alpha, "")
+
+
+def test_tokenizer_identity_reports_absence_rather_than_a_constant(
+        tmp_path, monkeypatch):
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    assert pipeline.tokenizer_identity() == "<missing>"
+    d = tmp_path / "data" / "processed" / "tokenizers"
+    d.mkdir(parents=True)
+    (d / "latin-bpe-4000.json").write_text('{"merges": ["a b"]}', encoding="utf-8")
+    first = pipeline.tokenizer_identity()
+    assert first != "<missing>"
+    (d / "latin-bpe-4000.json").write_text('{"merges": ["c d"]}', encoding="utf-8")
+    assert pipeline.tokenizer_identity() != first
+
+
+def test_the_floors_are_a_stage_and_come_after_the_tokenizer():
+    """Both were outside the pipeline until 2026-08-19 and had to be remembered."""
+    names = [s.name for s in pipeline.build_stages()]
+    assert "tokenizer" in names and "baselines" in names
+    assert names.index("build") < names.index("tokenizer") < names.index("baselines")

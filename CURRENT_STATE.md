@@ -330,7 +330,8 @@ python src/provenance.py --check       # licence audit; non-zero exit on drift
 ```
 
 Pipeline stages: `fetch → extract → enrich → normalize → dedupe → build →
-provenance`. Fingerprints **chain** (`sha256(previous + own config + own
+tokenizer → baselines → provenance`. Extract is partitioned per source, so
+adding one re-extracts only that one. Fingerprints **chain** (`sha256(previous + own config + own
 source)`) rather than inspect files, because three stages rewrite
 `data/interim/` in place and mtime staleness would mark a stage stale the moment
 it finished.

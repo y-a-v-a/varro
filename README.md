@@ -74,6 +74,7 @@ src/
   dedupe.py           # content-based near-dup detection          [done]
   build.py            # -> data/processed/corpus.{train,validation} [done]
   tokenizer.py        # Latin BPE sweep + fertility measurement    [done]
+  score.py            # the model as an instrument: audit, date, rank [done]
   provenance.py       # ATTRIBUTION.md + track audit gate          [done]
   evaluate.py         # baselines, memorisation, versioned reports [done]
   train.py            # MLX GPT from random init                  [done]
@@ -113,12 +114,29 @@ can change without rebuilding the corpus.
 
 ## Adding a source
 
-1. Add an entry to `manifest/sources.yaml`. Licence and tier are mandatory; `amber` additionally
-   requires an `exclude_reason`.
+1. Add an entry to `manifest/sources.yaml`. Licence, tier and **format** are mandatory; `amber`
+   additionally requires an `exclude_reason`.
 2. `python src/fetch.py --validate` — the validator enforces the Path A guard, so an `amber` source
    marked `include: true` is a hard error rather than a quiet contamination.
 3. `python src/fetch.py --only <id>`.
-4. Commit the updated `fetch.lock.json`.
+4. `python src/pipeline.py` — **only the new source is extracted.** Extract is partitioned per
+   source, so its parts are invalidated independently; everything downstream then rebuilds once,
+   because the corpus did change.
+5. Commit the updated `fetch.lock.json`.
+
+**If the format already has an extractor, that is the whole job — no code.** Dispatch is keyed on
+the `format` field, not the source id, because sources are added far more often than formats are.
+Perseus and CSEL already share one reader; the two epigraphic sources still to land are both EpiDoc,
+and Latin Library and Gutenberg are both plain text, so the four remaining sources need two
+extractors between them.
+
+Format labels are as precise as the parsing requires — `tei-capitains` is not `tei-xml`, because
+Corpus Corporum ships TEI with a different structure. A new format means adding one function to
+`FORMAT_EXTRACTORS` at the foot of `extract.py`.
+
+One guard worth knowing about: `extractable_sources()` refuses the `eval` tier. The UD treebanks are
+CoNLL-U exactly like DigilibLT, so dispatching on format alone would extract held-out evaluation
+data straight into the training corpus.
 
 ## Corpus as measured
 

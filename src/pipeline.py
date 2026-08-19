@@ -5,7 +5,8 @@ One command to rebuild everything after adding a source, editing an authority
 file, or changing a normalisation rule — and it does only the work that the
 change actually invalidated.
 
-    fetch -> extract -> enrich -> normalize -> dedupe -> build -> provenance
+    fetch -> extract -> enrich -> normalize -> dedupe -> build
+          -> tokenizer -> baselines -> provenance
 
 WHY FINGERPRINTS CHAIN RATHER THAN LOOK AT FILES
     Three stages rewrite data/interim/ IN PLACE. Fingerprinting a stage by the
@@ -56,12 +57,20 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, NamedTuple, Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / "data" / "pipeline.state.json"
 PY = sys.executable
+
+
+class Part(NamedTuple):
+    """One independently invalidatable unit inside a stage."""
+    name: str
+    argv: List[str]
+    derived: Optional[Callable[[], str]] = None
 
 
 class Stage:
@@ -69,7 +78,8 @@ class Stage:
 
     def __init__(self, name: str, script: str, config: List[str],
                  argv: Optional[List[List[str]]] = None, note: str = "",
-                 derived: Optional[Callable[[], str]] = None):
+                 derived: Optional[Callable[[], str]] = None,
+                 parts: Optional[List["Part"]] = None):
         self.name = name
         self.script = script
         self.config = config
@@ -78,21 +88,50 @@ class Stage:
         # For an input whose bytes churn without its meaning changing. Called
         # at fingerprint time, never cached, so it sees the file as it is now.
         self.derived = derived
+        # A partitioned stage does independently invalidatable units of work.
+        # Extract has one part per source, so adding the tenth source does not
+        # re-extract the nine already there — the cost of adding a source stays
+        # constant instead of growing with the corpus.
+        self.parts = parts
 
-    def fingerprint(self, previous: str) -> str:
+    def part_fingerprint(self, previous: str, part: "Part") -> str:
+        h = hashlib.sha256()
+        h.update(self._common(previous))
+        h.update(json.dumps(part.argv, sort_keys=True).encode())
+        h.update(part.derived().encode() if part.derived else b"")
+        return h.hexdigest()[:16]
+
+    def _common(self, previous: str) -> bytes:
+        """Everything a stage's parts share: the chain, its script, its config."""
         h = hashlib.sha256()
         h.update(previous.encode())
         for rel in [self.script, *self.config]:
             path = ROOT / rel
             h.update(rel.encode())
             h.update(path.read_bytes() if path.exists() else b"<missing>")
+        return h.digest()
+
+    def fingerprint(self, previous: str) -> str:
+        """The whole stage, for chaining onward.
+
+        For a partitioned stage this folds in every part, so a change to any
+        one source still invalidates everything downstream of extract — which
+        is correct, because the corpus changed.
+        """
+        h = hashlib.sha256()
+        h.update(self._common(previous))
+        if self.parts is not None:
+            for part in self.parts:
+                h.update(part.name.encode())
+                h.update(self.part_fingerprint(previous, part).encode())
+            return h.hexdigest()[:16]
         h.update(json.dumps(self.argv, sort_keys=True).encode())
         if self.derived is not None:
             h.update(self.derived().encode())
         return h.hexdigest()[:16]
 
-    def run(self) -> None:
-        for extra in self.argv:
+    def run(self, argv: Optional[List[List[str]]] = None) -> None:
+        for extra in (self.argv if argv is None else argv):
             cmd = [PY, str(ROOT / self.script), *extra]
             printable = " ".join([Path(self.script).name, *extra])
             print(f"    $ {printable}", flush=True)
@@ -102,10 +141,16 @@ class Stage:
 
 
 def extractable_sources() -> List[str]:
-    """Sources that are both fetched and have an extractor implemented."""
+    """Sources that are fetched, permitted in a corpus, and have a reader.
+
+    The permitted-in-a-corpus half lives in extract.py, which excludes the
+    eval tier — the UD treebanks are CoNLL-U exactly like DigilibLT, so
+    dispatching on format alone would extract held-out evaluation data into
+    the training corpus.
+    """
     sys.path.insert(0, str(ROOT / "src"))
     try:
-        from extract import EXTRACTORS
+        from extract import extractable_sources as declared
     except Exception:
         return []
     lock_path = ROOT / "manifest" / "fetch.lock.json"
@@ -113,16 +158,19 @@ def extractable_sources() -> List[str]:
         return []
     with lock_path.open(encoding="utf-8") as fh:
         fetched = json.load(fh).get("sources", {})
-    return sorted(s for s in EXTRACTORS
-                  if s in fetched and "error" not in fetched[s])
+    return [s for s in declared()
+            if s in fetched and "error" not in fetched[s]]
 
 
 LOCKFILE_IDENTITY_KEYS = ("resolved_pin", "license", "tier", "method", "url",
                           "n_files", "bytes")
 
 
-def lockfile_identity() -> str:
+def lockfile_identity(source: Optional[str] = None) -> str:
     """What in the lockfile determines what extraction will produce.
+
+    With `source`, only that one entry — which is what lets extract invalidate
+    a single source rather than all of them.
 
     Everything that fixes the fetched bytes — the resolved commit for a git
     source, the checksums for a downloaded one, and the licence and tier that
@@ -139,6 +187,8 @@ def lockfile_identity() -> str:
     except (json.JSONDecodeError, OSError):
         # A corrupt lockfile must not silently fingerprint as "unchanged".
         return f"<unreadable:{lock.stat().st_size if lock.exists() else 0}>"
+    if source is not None:
+        sources = {source: sources.get(source, {})}
     identity = {
         name: {**{k: rec.get(k) for k in LOCKFILE_IDENTITY_KEYS},
                "files": sorted((f.get("name"), f.get("sha256"), f.get("bytes"))
@@ -148,15 +198,32 @@ def lockfile_identity() -> str:
     return json.dumps(identity, sort_keys=True)
 
 
+def tokenizer_identity() -> str:
+    """The vocabulary the floors are measured through.
+
+    Not redundant with the chain. The tokenizer stage sits immediately before
+    baselines, so in practice the chain already covers it — but the floors are
+    meaningless if measured through a different vocabulary than the models
+    use, and that relationship deserves to be stated rather than inferred from
+    stage ordering. Measured 2026-08-18: retraining the 4k vocabulary moved the
+    classical floor 158.8 -> 149.8 on a corpus that had changed by three words.
+    """
+    path = ROOT / "data" / "processed" / "tokenizers" / "latin-bpe-4000.json"
+    if not path.exists():
+        return "<missing>"
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+
 def build_stages() -> List[Stage]:
     sources = extractable_sources()
     return [
         Stage("fetch", "src/fetch.py", ["manifest/sources.yaml"],
               note="idempotent: existing clones are updated, not re-cloned"),
         Stage("extract", "src/extract.py", [],
+              parts=[Part(s, ["--source", s], partial(lockfile_identity, s))
+                     for s in sources],
               argv=[["--source", s] for s in sources] or [["--help"]],
-              derived=lockfile_identity,
-              note=f"{len(sources)} source(s) with an extractor"),
+              note=f"{len(sources)} source(s), invalidated independently"),
         Stage("enrich", "src/enrich.py",
               ["manifest/authorities.yaml", "manifest/genres.yaml"],
               note="dates, periods, form and genre"),
@@ -167,6 +234,20 @@ def build_stages() -> List[Stage]:
         Stage("build", "src/build.py", [],
               argv=[[], ["--name", "classical", "--period", "CLASSICAL"]],
               note="full corpus and the classical subset"),
+        # The tokenizer and the floors were outside the pipeline until
+        # 2026-08-19, which meant both had to be remembered after a rebuild.
+        # They are not optional: a vocabulary trained on a corpus that has
+        # since changed, or a floor measured through a vocabulary that has,
+        # produce numbers that look valid and are not. Making them stages is
+        # what stops that being a thing anyone has to remember.
+        Stage("tokenizer", "src/tokenizer.py", [],
+              argv=[["--vocab", "4000"]],
+              note="the 4k vocabulary the models are trained through"),
+        Stage("baselines", "src/evaluate.py", [],
+              argv=[["--baselines", "--corpus", "corpus"],
+                    ["--baselines", "--corpus", "classical"]],
+              derived=tokenizer_identity,
+              note="the bigram floors every model is judged against"),
         Stage("provenance", "src/provenance.py", ["manifest/sources.yaml"],
               note="regenerates ATTRIBUTION.md and audits the build"),
     ]
@@ -199,42 +280,62 @@ def main() -> int:
     stages = build_stages()
     state = load_state()
     recorded = state.get("stages", {})
+    recorded_parts: Dict[str, Dict[str, str]] = state.get("parts", {})
 
     previous = ""
     plan: List[tuple] = []
     downstream = False
     started_at = None
     for stage in stages:
-        fingerprint = stage.fingerprint(previous)
+        incoming = previous
+        fingerprint = stage.fingerprint(incoming)
         previous = fingerprint
         if args.start and stage.name == args.start:
             started_at = True
         stale = recorded.get(stage.name) != fingerprint
+        upstream_changed = downstream
         run = bool(args.force or downstream or stale)
         if args.start and not started_at:
             run = False
         if args.skip_fetch and stage.name == "fetch":
             run = False
+
+        # A partitioned stage does only the parts whose own inputs moved —
+        # unless something upstream changed, in which case every part has to
+        # be redone anyway. `pending is None` means "run the whole stage".
+        pending: Optional[List[Part]] = None
+        if stage.parts is not None and run and not args.force and not upstream_changed:
+            known = recorded_parts.get(stage.name, {})
+            pending = [part for part in stage.parts
+                       if known.get(part.name)
+                       != stage.part_fingerprint(incoming, part)]
+            if not pending:
+                # Every part is current; only the stage-level bookkeeping was
+                # stale. Nothing to do, and nothing downstream to invalidate.
+                run = False
+
         if run:
             downstream = True
         reason = ("forced" if args.force else
-                  "upstream changed" if downstream and not stale and run else
+                  "upstream changed" if upstream_changed and run else
                   # A stale stage that is skipped anyway was skipped by a flag,
                   # not because it is current — saying "inputs changed" next to
                   # "skip" reads as a contradiction.
                   "stale, held back by --from/--skip-fetch" if stale and not run else
                   "inputs changed" if stale else "up to date")
-        plan.append((stage, fingerprint, run, reason))
+        if run and pending is not None and len(pending) < len(stage.parts):
+            reason += f"  [{len(pending)} of {len(stage.parts)}]"
+        plan.append((stage, fingerprint, run, reason, pending))
 
     width = max(len(s.name) for s in stages)
     print(f"{'stage':<{width}}  {'action':<9}  reason")
     print("-" * (width + 40))
-    for stage, _, run, reason in plan:
+    for stage, _, run, reason, _pending in plan:
         print(f"{stage.name:<{width}}  {'RUN' if run else 'skip':<9}  {reason}"
               + (f"  ({stage.note})" if run and stage.note else ""))
 
     if args.status:
-        pending = sum(1 for _, _, run, _ in plan if run)
+        pending = sum(1 for _, _, run, _, _ in plan if run)
         print(f"\n{pending} of {len(plan)} stage(s) would run")
         return 0
 
@@ -244,23 +345,29 @@ def main() -> int:
     # afterwards, so inputs it or an earlier stage rewrote (fetch rewrites the
     # lockfile) are recorded as they ended up, not as they were at plan time.
     chained = ""
-    for stage, planned, run, _ in plan:
+    for stage, planned, run, _, pending in plan:
+        incoming = chained
         if not run:
             chained = planned
             continue
         print(f"[{stage.name}]", flush=True)
         try:
-            stage.run()
+            # None means the whole stage; a list means only these parts.
+            stage.run([part.argv for part in pending] if pending else None)
         except RuntimeError as exc:
             print(f"\nFAILED at {stage.name}: {exc}", file=sys.stderr)
             print("State not advanced; fix and re-run — completed stages are "
                   "remembered.", file=sys.stderr)
-            save_state({"stages": recorded,
+            save_state({"stages": recorded, "parts": recorded_parts,
                         "updated": datetime.now(timezone.utc).isoformat(timespec="seconds")})
             return 1
         chained = stage.fingerprint(chained)
         recorded[stage.name] = chained
-        save_state({"stages": recorded,
+        if stage.parts is not None:
+            recorded_parts[stage.name] = {
+                part.name: stage.part_fingerprint(incoming, part)
+                for part in stage.parts}
+        save_state({"stages": recorded, "parts": recorded_parts,
                     "updated": datetime.now(timezone.utc).isoformat(timespec="seconds")})
         print()
 
