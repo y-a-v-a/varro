@@ -158,7 +158,9 @@ def load_model(name: str):
         sys.exit(f"missing {weights.relative_to(ROOT)}")
 
     from tokenizers import Tokenizer
-    tok = Tokenizer.from_file(str(TOKENIZERS / f"latin-bpe-{cfg['vocab']}.json"))
+    sys.path.insert(0, str(ROOT / "src"))
+    from sample import resolve_tokenizer
+    tok = Tokenizer.from_file(resolve_tokenizer(cfg["vocab"], run))
 
     model = GPT(cfg["vocab"], cfg["dim"], cfg["layers"], cfg["heads"], cfg["context"])
     model.load_weights(str(weights))

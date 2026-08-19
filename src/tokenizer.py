@@ -28,6 +28,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import sys
 import unicodedata
@@ -240,7 +241,23 @@ def main() -> int:
             OUT.mkdir(parents=True, exist_ok=True)
             path = OUT / f"latin-bpe-{vocab_size}.json"
             tok.save(str(path))
-            print(f"  saved {path.relative_to(ROOT)}")
+
+            # Also keep a copy named by content, and never overwrite one.
+            #
+            # A model's embedding table is keyed to the exact vocabulary it was
+            # trained through: token 1234 is whatever that file said it was.
+            # Retraining the tokenizer in place therefore does not merely
+            # invalidate a floor, it destroys every checkpoint that depended on
+            # it — and silently, because loading a model with the wrong
+            # vocabulary produces confident nonsense rather than an error.
+            #
+            # This happened. The 2026-08-20 rebuild overwrote the vocabulary
+            # LATIN-XXV was trained through, and nothing complained.
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+            archived = OUT / f"latin-bpe-{vocab_size}.{digest}.json"
+            if not archived.exists():
+                archived.write_bytes(path.read_bytes())
+            print(f"  saved {path.relative_to(ROOT)}  ({digest})")
 
     print("\n" + "=" * 78)
     print(f"{'vocab':>7}  {'tok/word':>9}  {'tok/word':>9}  {'chars':>7}  "

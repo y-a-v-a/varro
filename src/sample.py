@@ -36,6 +36,46 @@ except ImportError:
 from train import GPT  # noqa: E402  (same architecture, read from the report)
 
 
+
+def resolve_tokenizer(vocab: int, run: dict) -> str:
+    """The exact vocabulary this run was trained through, or a clear refusal.
+
+    A model's embeddings are keyed to specific token ids: with the wrong
+    vocabulary, token 1234 means a different string and the model emits
+    confident nonsense rather than failing. That is the worst failure mode
+    available here, so it is checked rather than assumed.
+
+    tokenizer.py keeps a content-named copy of every vocabulary it trains, so
+    a model outlives a retrained tokenizer as long as its copy is on disk.
+    """
+    import hashlib
+
+    want = (run.get("tokenizer") or {}).get("sha256")
+    current = TOKENIZERS / f"latin-bpe-{vocab}.json"
+    if want is None:
+        # Reports written before tokenizers were fingerprinted cannot be
+        # checked; say so rather than imply the check passed.
+        print(f"  [no tokenizer fingerprint in this run's report — using "
+              f"{current.name} unverified]", file=sys.stderr)
+        return str(current)
+
+    archived = TOKENIZERS / f"latin-bpe-{vocab}.{want}.json"
+    if archived.exists():
+        return str(archived)
+    if current.exists():
+        have = hashlib.sha256(current.read_bytes()).hexdigest()[:16]
+        if have == want:
+            return str(current)
+        sys.exit(
+            f"tokenizer mismatch: {run.get('run')} was trained through "
+            f"vocabulary {want}, and {current.name} is {have}.\n"
+            f"Loading it anyway would map every token to the wrong string and "
+            f"produce fluent nonsense.\n"
+            f"Recover it by rebuilding the corpus at the commit that trained "
+            f"this model, or retrain the model on the current vocabulary.")
+    sys.exit(f"no tokenizer for vocab {vocab} in {TOKENIZERS.relative_to(ROOT)}")
+
+
 def load_run(name: str) -> dict:
     path = REPORTS / f"train-{name}.json"
     if not path.exists():
@@ -97,7 +137,7 @@ def main() -> int:
     cfg = run["config"]
 
     from tokenizers import Tokenizer
-    tok = Tokenizer.from_file(str(TOKENIZERS / f"latin-bpe-{cfg['vocab']}.json"))
+    tok = Tokenizer.from_file(resolve_tokenizer(cfg["vocab"], run))
 
     model = GPT(cfg["vocab"], cfg["dim"], cfg["layers"], cfg["heads"], cfg["context"])
     weights = CHECKPOINTS / f"{args.name}.safetensors"
