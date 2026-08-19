@@ -1,12 +1,72 @@
 # Current state — pick-up notes
 
-Written 2026-08-17 as a handoff into a fresh session; updated 2026-08-18.
+Written 2026-08-17 as a handoff into a fresh session; updated 2026-08-19.
 `README.md` explains how things work; this file says where they stand, what is
 stale, and what to do next.
 
 ---
 
-## Update 2026-08-18 (night) — corpus rebuilt, floors restated, LATIN-XXV training
+## Update 2026-08-19 — LATIN-XXV trained
+
+**The flagship exists.** 27.49M parameters, trained from random initialisation
+on Latin alone, two phases, 25.9 hours total.
+
+| run | params | corpus | ep | ppl | floor | x floor | memo |
+|---|---:|---|---:|---:|---:|---:|---:|
+| latin-0 | 3.53M | classical | 8.6 | 74.3 | 158.8 | 2.14x | 0.0% |
+| latin-2 | 15.90M | classical | 3.0 | 44.1 | 158.8 | 3.60x | 0.0% |
+| latin-xxv-latinitas | 27.49M | full | 4.0 | **25.2** | 174.5 | **6.93x** | — |
+| **latin-xxv** | 27.49M | classical | 3.0 | **29.8** | 149.8 | **5.03x** | **0.0%** |
+
+**Only the `x floor` column compares across those rows.** The raw perplexities
+sit behind different corpora, tokenizers and held-out sets. `compare.py` prints
+ratios for the two new runs — whose corpus *and* tokenizer fingerprints match
+their floors — and refuses to print one for the four older runs, which is the
+guard working rather than a gap in the data.
+
+**Memorisation, the result this project turns on: 0 of 1,339 twelve-word
+windows** appear anywhere in the training text; nothing survives at eight
+words either. Read the short windows honestly though — at 3 to 6 words the
+generated text overlaps training *more* than the held-out control, inverting
+what latin-2 showed. The control scores 1.2% at three words against latin-2's
+12.7%, on 6,710 words, so it is more likely a small-control artifact than a
+signal. It should not be quietly dropped.
+
+**The train/val gap is 1.270x, below latin-2's 1.34x at 15.90M parameters.** A
+model 73% larger that overfits *less* is the corpus expansion earning its keep.
+I would have predicted the opposite.
+
+### What it writes
+
+```
+CICERO UENERIO S.
+
+etsi in re publica minime sunt ea quae iam inculta et prouisa sunt, tamen
+non sunt ea quoquo modo dicta omnia, quia non modo a nostris rebus, sed
+etiam ab externis oratio nostra inlustratur ...
+```
+
+`CICERO UENERIO S.` is the correct epistolary salutation. `etsi ... tamen` and
+`non modo ... sed etiam` are correlative pairs completed correctly across long
+clauses, and elsewhere `quid agendum sit` puts a gerundive inside an indirect
+question. It also switches register cleanly, dropping into Plautine dialogue
+with speaker names. Compare latin-2 on the same prompt — *"Gallia est omnis
+diuisa cum Secundamen, quique umeros et nigra lotos Frigidus"* — which was
+poetic vocabulary in word-salad order. The syntax arrived; meaning still has
+not, and headings are still invented (`PROLOGUS FRAGMINUS`).
+
+### A sixth bug, found by reading the samples
+
+The model generates `Scr. in Formiano u aut iu Non. Mai. a. 704` — which is a
+**Perseus editorial dateline**, not Cicero. There are **927 of them in the
+classical corpus**, all in the four books of letters. README §4.4 claims
+residual apparatus is "9 occurrences in 5.6M words"; this is a systematic
+editorial convention two orders of magnitude larger, and the model demonstrably
+learned to reproduce it. Not yet fixed — see the queue below.
+
+---
+
+## Update 2026-08-18 (night) — corpus rebuilt, floors restated
 
 The rebuild the previous update asked for has been done, and everything
 downstream of it re-measured. **LATIN-XXV Phase 1 is training now.**
@@ -114,8 +174,8 @@ without MLX.
 
 ### Left undone, deliberately
 
-- **Both baselines need re-running** to pick up the tokenizer stamp (21s + 8min).
-  Deferred rather than compete for memory with the training run.
+- ~~Both baselines need re-running~~ **done 2026-08-19**; both reproduced
+  exactly (174.5, 149.8) and now carry tokenizer stamps.
 - **`dedupe.py --verify` has not been run at five sources.** README's "0 of 59
   below the 15% floor" was measured at three; there are now 2,794 duplicates, so
   that claim covers ~2% of what is being discarded.
@@ -328,18 +388,31 @@ it finished.
 
 ## Next steps, in the order I would take them
 
-1. **Train LATIN-XXV** — ~25–30M params, 4 epochs, full corpus, then Romanitas.
-   ~8–10 hours at the observed 9k tok/s for 15.9M params (expect slower).
-   This is the first model that would actually use the new corpus.
-2. **Re-run the chat SFT** on that base. `src/dialogue.py` mines 54,536 pairs;
+~~1. Train LATIN-XXV~~ **done 2026-08-19** — 27.49M params, 5.03x the floor,
+0% memorisation. It took 25.9 hours, not the 8–10 estimated here: throughput is
+bounded by activation memory rather than parameters, see the batch-size cliff.
+
+1. **Rebuild the corpus.** `extract.py` has an interwiki fix committed but not
+   applied, so `pipeline.py --status` reports extract onward stale. ~35 minutes
+   on a free machine. Consider fixing the 927 Perseus datelines first so both
+   land in one rebuild — and note that a rebuild invalidates LATIN-XXV's floors,
+   which is exactly what the fingerprint guards will tell you.
+2. **Strip the Perseus editorial datelines.** 927 `Scr. ...` headers in Cicero's
+   letters, which the model learned to generate. See the sixth bug above.
+3. **Re-run the chat SFT** on LATIN-XXV. `src/dialogue.py` mines 54,536 pairs;
    re-mine after the corpus change. The proof worked on latin-2: turn-taking and
    stopping are learned, register matching emerges, correctness does not.
-3. **Serve it.** MLX + safetensors, small model, runs on the laptop.
-4. **Remaining four sources**, if more data is wanted.
-5. **Disjoint-phase ablation** — exclude classical from Phase 1 to separate
-   transfer from extra exposure.
-6. **Cluster-level dedup review.** "0 of 59 below the verbatim floor" is the
-   precise claim; nobody has eyeballed the clusters.
+4. **Serve it.** MLX + safetensors, small model, runs on the laptop. This is the
+   stated goal in `plan.md` and LATIN-XXV is the base it was waiting for.
+5. **`dedupe.py --verify` at five sources** — the outstanding claim gap.
+6. **Remaining four sources**, if more data is wanted.
+7. **Disjoint-phase ablation** — exclude classical from Phase 1 to separate
+   transfer from extra exposure. Still open, and now more affordable to answer
+   at 15.9M than at 27.5M.
+8. **Best-checkpoint tracking in `train.py`.** It saves the latest, not the
+   best. LATIN-XXV's validation plateaued between steps 1,250 and 1,500 of
+   Phase 2 before improving again; had it not recovered, the saved weights
+   would have been worse than a checkpoint nothing kept.
 
 ### Open questions
 

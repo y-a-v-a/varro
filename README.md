@@ -4,8 +4,11 @@ Two deliverables, in order:
 
 1. **Open Latin Corpus** — a reproducible, properly licensed corpus of Latin. No such thing
    currently exists, which makes it a contribution independent of anything trained on it.
-2. **LATIN-XXV** — a ~25M parameter GPT trained from random initialization on that corpus.
+2. **LATIN-XXV** — a 27.49M parameter GPT trained from random initialization on that corpus.
    One language. Zero modern languages. No inherited multilingual representations.
+   **Trained 2026-08-19**: held-out perplexity 29.8 against a 149.8 bigram floor
+   (5.03×), and 0 of 1,339 twelve-word windows appear anywhere in its training
+   text. See [`CURRENT_STATE.md`](CURRENT_STATE.md) for the full result.
 
 Planning documents:
 
@@ -833,8 +836,10 @@ revisiting this.
 - [x] **Retrain tokenizer** — 4k rebuilt on the 79M corpus: 2.038 tok/word, 153.0M tokens, 0/12 forms memorised
 - [x] **Restate the floors** — 174.5 full / 149.8 classical; the 17M-corpus figures are retired
 - [x] **Report fingerprinting** — corpus *and* tokenizer stamped; stale floors refused rather than quoted
-- [ ] **LATIN-XXV (27.49M)** — Phase 1 *Latinitas* training since 2026-08-18, 4.0 epochs, 22.3 tok/param
-- [ ] Phase 2 *Romanitas*, then memorisation and `compare.py`
+- [x] **LATIN-XXV trained** — 27.49M params, two-phase; ppl 29.8 vs 149.8 floor (**5.03×**), **0% memorisation**
+- [ ] Strip 927 Perseus editorial datelines (`Scr. ...`) from Cicero's letters — the model learned to generate them
+- [ ] Best-checkpoint tracking in `train.py` — it saves the latest, not the best
+- [ ] Re-run the chat SFT on LATIN-XXV, then serve it
 - [x] Strip Wikisource interwiki links — 620 occurrences, 125 English; **needs a rebuild to take effect**
 - [ ] Real dialogue SFT on the better base, then serve
 - [ ] UD treebank syntactic probing (fetch via `--track eval`; exclude overlapping passages from training)
