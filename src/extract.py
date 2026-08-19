@@ -69,6 +69,19 @@ DROP_SUBTREE = {
     "app", "rdg", "witDetail", "lem",   # apparatus criticus — copyrightable AND noise
 }
 
+# Editorial matter identified by @rend rather than by element name.
+#
+# Perseus prints a dateline above each of Cicero's letters — "Scr. Romae m.
+# Quint. a. 689 (65)" — saying where and when the editor believes it was
+# written. It is nineteenth-century scholarship in Latin abbreviations, not
+# Cicero, and there are 930 of them. LATIN-XXV learned to generate them, which
+# is how they were found: no metric flagged it, reading the samples did.
+#
+# The sibling <seg rend="salute"> is NOT dropped. "CICERO ATTICO salutem" is
+# genuine, it is the form the model reproduces correctly, and dropping it
+# would remove the one piece of structure that makes a letter a letter.
+DROP_REND = {"dateline"}
+
 # Structural markers carrying no text of their own.
 #
 # Page/column/line breaks are elided to the empty string rather than a space:
@@ -116,6 +129,11 @@ def _choice(elem: ET.Element, stats: Stats, greek: str) -> str:
 
 def _walk(elem: ET.Element, stats: Stats, greek: str) -> str:
     tag = localname(elem.tag)
+
+    rend = elem.get("rend")
+    if rend in DROP_REND:
+        stats[f"dropped:rend:{rend}"] += 1
+        return " "
 
     if tag in DROP_SUBTREE:
         stats[f"dropped:{tag}"] += 1

@@ -249,3 +249,32 @@ def test_every_registered_format_is_declared_by_some_source():
     """A registry entry no manifest source names is dead code."""
     declared = {e.get("format") for e in load_manifest()["sources"]}
     assert set(FORMAT_EXTRACTORS) <= declared
+
+
+def test_editorial_dateline_dropped_but_salutation_kept(tmp_path):
+    """The bug reading LATIN-XXV's output found, and its boundary.
+
+    Perseus opens each of Cicero's letters with an editor's dateline beside
+    the genuine salutation. The first is nineteenth-century scholarship in
+    Latin abbreviations; the second is Cicero. 930 datelines were in the
+    corpus and the model had learned to write them.
+    """
+    text, stats = extract(
+        tmp_path,
+        '<div><label rend="opener">'
+        '<seg rend="dateline">Scr. Romae <date when="-0065">m. Quint.</date>.</seg>'
+        '<seg rend="salute">CICERO ATTICO salutem</seg>'
+        '</label><p>si uales bene est</p></div>')
+    assert "Scr." not in text and "Quint" not in text
+    assert "CICERO ATTICO salutem" in text
+    assert "si uales bene est" in text
+    assert stats["dropped:rend:dateline"] == 1
+
+
+def test_typographic_rend_values_are_untouched(tmp_path):
+    """Only editorial rend values are dropped; italics are not editorial."""
+    text, _ = extract(
+        tmp_path,
+        '<p>uerba <seg rend="italics">notata</seg> et '
+        '<seg rend="bold">clara</seg> manent</p>')
+    assert "notata" in text and "clara" in text
