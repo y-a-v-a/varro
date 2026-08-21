@@ -1,8 +1,65 @@
 # Current state — pick-up notes
 
-Written 2026-08-17 as a handoff into a fresh session; updated 2026-08-19.
+Written 2026-08-17 as a handoff into a fresh session; updated 2026-08-21.
 `README.md` explains how things work; this file says where they stand, what is
 stale, and what to do next.
+
+---
+
+## Update 2026-08-21 — corpus rebuilt clean; the pipeline proved reproducible
+
+The rebuild carrying the interwiki fix, the 930 datelines, format dispatch and
+`text_provenance` ran in **22.9 minutes**, and the pipeline now reports **0 of 9
+stale**.
+
+| | before | after |
+|---|---:|---:|
+| records | 10,194 | **10,177** |
+| words | 78,974,350 | **78,554,197** |
+| CLASSICAL | 4,539,518 | **4,531,115** |
+| tokens | 153.0M | **152.2M** |
+| floor, full / classical | 174.5 / 149.8 | **174.9 / 149.5** |
+
+The classical corpus lost 8,403 words, which is the 930 datelines at about
+eight words each. The full corpus lost 420,153 — and that is **not** removal but
+**dedup keeper churn**: 220 records left and 224 arrived, because trimming
+datelines shifts overlap estimates enough to flip which member of a near-equal
+duplicate pair survives. Worth knowing as a property: corpus composition is
+sensitive at the margin to trivial text changes.
+
+**The provenance mix is real now: 94.15% transcribed, 5.85% ocr** — CSEL's 4.6M
+words after dedup. **Classical is 100% transcribed**, so the subset the flagship
+specialises on contains no OCR-derived text at all.
+
+### The guard worked, and then a deeper one was missing
+
+`compare.py` flags LATIN-XXV `!` and withholds its ratio. The floors moved 0.2%
+— close enough that anyone would have kept quoting 5.03× — and the system
+refused because the model was measured on different text. That is the fingerprint
+work paying off on the first real corpus change.
+
+**But the same rebuild destroyed LATIN-XXV, and nothing complained.** Not the
+weights: the 4,000-token vocabulary they are keyed to, which `tokenizer.py`
+rewrote in place. A model's embeddings map token 1234 to whatever that file said
+1234 was; hand it another vocabulary and it does not fail, it writes confident
+nonsense. The fingerprints stop a stale *number* being quoted; nothing stopped a
+stale *model* being run.
+
+Fixed: `tokenizer.py` keeps a content-named copy of every vocabulary and never
+overwrites one, and `sample.py`/`score.py` resolve the vocabulary from the run's
+own fingerprint, refusing with both hashes named rather than mis-tokenising.
+
+### And the recovery proved something the project had only claimed
+
+LATIN-XXV's vocabulary was rebuilt from a git worktree at commit `014785a`, with
+`data/raw` shared read-only. **Every figure reproduced exactly** — 2,794
+duplicates, 923 clusters, 10,194 records, 78,974,350 words, 4,539,518 classical —
+and the vocabulary hashed to `24d1515e65807859`, bit for bit. The model now loads
+and emits byte-identical output to before.
+
+That is the first end-to-end test of the claim the whole manifest-and-lockfile
+design rests on: **the corpus is reproducible from pinned sources and code.** It
+had never been checked. It holds.
 
 ---
 

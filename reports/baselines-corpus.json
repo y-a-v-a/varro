@@ -3,152 +3,157 @@
     "by": {
       "form": {
         "PROSE": {
-          "documents": 74,
-          "perplexity": 177.04725474541456,
-          "tokens": 3109137
+          "documents": 85,
+          "perplexity": 174.7976692507028,
+          "tokens": 3309837
         },
         "PROSIMETRUM": {
           "documents": 1,
-          "perplexity": 220.18152396048401,
-          "tokens": 71951
+          "perplexity": 219.78850436178416,
+          "tokens": 71966
         },
         "UNKNOWN": {
-          "documents": 208,
-          "perplexity": 174.33212547370937,
-          "tokens": 4621217
+          "documents": 177,
+          "perplexity": 176.58517098848543,
+          "tokens": 4327791
         },
         "VERSE": {
           "documents": 17,
-          "perplexity": 156.28583077231838,
-          "tokens": 524345
+          "perplexity": 158.53722191814498,
+          "tokens": 562104
         }
       },
       "genre": {
         "APOLOGETIC": {
           "documents": 3,
-          "perplexity": 186.74806972278327,
-          "tokens": 13455
+          "perplexity": 186.92982498200627,
+          "tokens": 13458
         },
         "BIOGRAPHY": {
-          "documents": 12,
-          "perplexity": 194.70370193938498,
-          "tokens": 461284
+          "documents": 10,
+          "perplexity": 188.6132611978549,
+          "tokens": 182761
         },
         "COMMENTARY": {
-          "documents": 6,
-          "perplexity": 170.8572655201121,
-          "tokens": 385814
+          "documents": 8,
+          "perplexity": 184.62024183347307,
+          "tokens": 449403
         },
         "DRAMA": {
-          "documents": 6,
-          "perplexity": 125.5138268370201,
-          "tokens": 151037
+          "documents": 7,
+          "perplexity": 127.42678392955804,
+          "tokens": 158164
         },
         "EPIC": {
           "documents": 1,
-          "perplexity": 156.1942590566051,
-          "tokens": 141935
+          "perplexity": 155.84794888744142,
+          "tokens": 141965
         },
         "EPISTOLOGRAPHY": {
-          "documents": 22,
-          "perplexity": 184.96704346194844,
-          "tokens": 629704
+          "documents": 18,
+          "perplexity": 183.50737576500245,
+          "tokens": 539728
         },
         "GEOGRAPHY": {
           "documents": 1,
-          "perplexity": 176.22209830418626,
-          "tokens": 28179
+          "perplexity": 175.6520877354197,
+          "tokens": 28192
         },
         "GRAMMAR": {
           "documents": 4,
-          "perplexity": 124.65488892090906,
-          "tokens": 597578
+          "perplexity": 124.80870937047452,
+          "tokens": 600540
+        },
+        "HAGIOGRAPHY": {
+          "documents": 2,
+          "perplexity": 204.94997337879224,
+          "tokens": 14940
         },
         "HISTORY": {
-          "documents": 7,
-          "perplexity": 218.51494397375515,
-          "tokens": 639926
+          "documents": 8,
+          "perplexity": 213.26280900816295,
+          "tokens": 564628
         },
         "HOMILETIC": {
-          "documents": 4,
-          "perplexity": 179.9670787340007,
-          "tokens": 34685
+          "documents": 8,
+          "perplexity": 166.66138516324202,
+          "tokens": 327773
         },
         "LAW": {
-          "documents": 3,
-          "perplexity": 176.08787337532075,
-          "tokens": 62064
+          "documents": 2,
+          "perplexity": 168.9733371450168,
+          "tokens": 126770
         },
         "LYRIC": {
           "documents": 4,
-          "perplexity": 176.32029502516383,
-          "tokens": 78882
+          "perplexity": 176.7227679698245,
+          "tokens": 78846
         },
         "NOVEL": {
           "documents": 1,
-          "perplexity": 220.18152396048401,
-          "tokens": 71951
+          "perplexity": 219.78850436178416,
+          "tokens": 71966
         },
         "SATIRE": {
-          "documents": 6,
-          "perplexity": 182.54903359823808,
-          "tokens": 152491
+          "documents": 5,
+          "perplexity": 185.14983665213143,
+          "tokens": 183129
         },
         "THEOLOGY": {
-          "documents": 12,
-          "perplexity": 188.8227559548483,
-          "tokens": 256448
+          "documents": 21,
+          "perplexity": 191.35198045843205,
+          "tokens": 461644
         },
         "UNKNOWN": {
-          "documents": 208,
-          "perplexity": 174.33212547370937,
-          "tokens": 4621217
+          "documents": 177,
+          "perplexity": 176.58517098848543,
+          "tokens": 4327791
         }
       },
       "period": {
         "CLASSICAL": {
           "documents": 17,
-          "perplexity": 164.3102526306619,
-          "tokens": 569232
+          "perplexity": 164.09853307694834,
+          "tokens": 569364
         },
         "LATE": {
-          "documents": 49,
-          "perplexity": 176.85084352989136,
-          "tokens": 2721029
+          "documents": 67,
+          "perplexity": 175.66821007895632,
+          "tokens": 2649255
         },
         "MEDIEVAL": {
-          "documents": 108,
-          "perplexity": 175.20654795841926,
-          "tokens": 1631660
+          "documents": 60,
+          "perplexity": 171.29423705766985,
+          "tokens": 1580633
         },
         "UNKNOWN": {
-          "documents": 126,
-          "perplexity": 174.02815032604738,
-          "tokens": 3404729
+          "documents": 136,
+          "perplexity": 177.86644831138688,
+          "tokens": 3472446
         }
       }
     },
     "lambda_bigram": 0.7,
     "model": "interpolated-bigram",
-    "overall_perplexity": 174.49030281947367,
-    "train_tokens": 152971635,
+    "overall_perplexity": 174.9167024344409,
+    "train_tokens": 152234083,
     "vocab": 4000
   },
   "corpus": {
     "group_by": "author",
     "period_filter": null,
-    "records": 10194,
+    "records": 10177,
     "seed": 20260815,
     "track": "A",
-    "train_words": 75043073,
-    "validation_words": 3931277,
-    "words": 78974350
+    "train_words": 74645868,
+    "validation_words": 3908329,
+    "words": 78554197
   },
   "corpus_name": "corpus",
-  "generated": "2026-08-19T01:34:50+00:00",
+  "generated": "2026-08-19T22:00:56+00:00",
   "schema_version": 1,
   "tokenizer": {
-    "sha256": "24d1515e65807859",
+    "sha256": "8ba446f1041eeaa7",
     "vocab": 4000
   }
 }
