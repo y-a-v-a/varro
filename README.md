@@ -19,6 +19,7 @@ Planning documents:
 | [`sources.md`](sources.md) | Human-readable survey of every Latin text source, licence-checked |
 | [`manifest/sources.yaml`](manifest/sources.yaml) | Machine-readable version of the above — drives the pipeline |
 | [`manifest/authorities.yaml`](manifest/authorities.yaml) | Author/work dating authority — assigns period per work |
+| [`docs/explainer.html`](docs/explainer.html) | What the trained model actually is, as files on disk |
 
 ## Quickstart
 
