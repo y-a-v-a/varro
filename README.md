@@ -20,6 +20,7 @@ Planning documents:
 | [`manifest/sources.yaml`](manifest/sources.yaml) | Machine-readable version of the above — drives the pipeline |
 | [`manifest/authorities.yaml`](manifest/authorities.yaml) | Author/work dating authority — assigns period per work |
 | [`docs/explainer.html`](docs/explainer.html) | What the trained model actually is, as files on disk |
+| [`docs/capabilities.html`](docs/capabilities.html) | What the model can and cannot do, measured |
 
 ## Quickstart
 
