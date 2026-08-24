@@ -165,11 +165,47 @@ def load_all() -> Tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
     return records, by_file
 
 
-def priority(record: Dict[str, Any]) -> int:
+# Licence tiers, worst-first, as a keeper must be chosen for the MOST
+# restrictive track a cluster could be built into.
+#
+# A cluster is resolved once and every track is then built from the same marks.
+# So if a green record is marked as a duplicate of an amber keeper, a Track A
+# build drops the duplicate for being a duplicate AND the keeper for being
+# non-redistributable, and the text disappears from the published corpus with
+# nothing reporting it. Ranking green above amber before anything else makes
+# that impossible: whenever a cluster contains a redistributable witness, the
+# survivor is one.
+TIER_RANK = {"green": 0, "amber": 1, "unknown": 2, "eval": 3}
+
+
+def source_tiers() -> Dict[str, str]:
+    """source id -> licence tier, from the manifest."""
     try:
-        return SOURCE_PRIORITY.index(record.get("source", ""))
+        import yaml
+    except ImportError:
+        return {}
+    path = ROOT / "manifest" / "sources.yaml"
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8") as fh:
+        manifest = yaml.safe_load(fh)
+    return {s["id"]: s.get("tier", "unknown") for s in manifest.get("sources", [])}
+
+
+_TIERS: Dict[str, str] = {}
+
+
+def priority(record: Dict[str, Any]) -> Tuple[int, int]:
+    """Keeper ranking: licence tier first, then curation quality."""
+    global _TIERS
+    if not _TIERS:
+        _TIERS = source_tiers() or {"": "green"}
+    tier = _TIERS.get(record.get("source", ""), "unknown")
+    try:
+        rank = SOURCE_PRIORITY.index(record.get("source", ""))
     except ValueError:
-        return len(SOURCE_PRIORITY)
+        rank = len(SOURCE_PRIORITY)
+    return (TIER_RANK.get(tier, len(TIER_RANK)), rank)
 
 
 SUBSUMES_BELOW = 0.8

@@ -967,6 +967,80 @@ def extract_vicifons(source_id: str, greek: str, limit: Optional[int]) -> Tuple[
     return records, stats
 
 
+def extract_lasla(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
+    """LASLA / Opera Latina, from the CIRCSE mirror's CoNLL-U Plus files.
+
+    AMBER — CC BY-NC-SA 4.0, Track B only. Never in a published corpus.
+
+    The parsing is the shared CoNLL-U reader; only the metadata differs. LASLA
+    carries no docAuthor or docId, so author and work come from the filename,
+    which the mirror names `Author_Work_PartId.conllup` throughout.
+
+    Worth knowing about the text itself: LASLA is a morphological corpus, so its
+    `# text =` lines carry no punctuation at all and are already in classical
+    u/v orthography. That is not damage — it is the corpus doing its job — but it
+    means these records reach normalize.py in a different state from every other
+    source, and reach dedupe.py looking more similar to their Perseus twins than
+    two editions usually do.
+    """
+    entry = load_manifest_entry(source_id)
+    lock = load_lock_entry(source_id)
+    stats = Stats()
+    records: List[Dict[str, Any]] = []
+
+    files = sorted((RAW / source_id / "conllup").glob("*.conllup"))
+    if not files:
+        raise RuntimeError(f"no .conllup files under {RAW / source_id}/conllup — fetched?")
+
+    for path in files:
+        if limit is not None and len(records) >= limit:
+            break
+        stats["works_seen"] += 1
+        meta, sentences = parse_conllu(path.read_text(encoding="utf-8",
+                                                      errors="replace").splitlines())
+        author, work, part = lasla_name(path.stem)
+
+        text = strip_inline_greek(tidy(assemble(sentences, stats, greek)), stats, greek)
+        text = drop_english_paragraphs(text, stats)
+        if not text:
+            stats["empty_after_extraction"] += 1
+            continue
+
+        records.append({
+            "id": f"{source_id}/{path.stem}",
+            "text": text,
+            "author": author,
+            "work": work,
+            "part": part,
+            "source": source_id,
+            "source_version": lock.get("resolved_pin"),
+            "license": entry.get("license"),
+            "text_provenance": entry.get("text_provenance", "unknown"),
+            "edition": "LASLA / Opera Latina (CIRCSE mirror)",
+            "language_variant": "lat-cls",
+            "n_words": len(text.split()),
+        })
+        stats["records"] += 1
+        stats["words"] += records[-1]["n_words"]
+
+    return records, stats
+
+
+# `Caesar_BellumGallicum_CaesBG1` -> Caesar, Bellum Gallicum, CaesBG1.
+# The third field is LASLA's own short identifier and is kept as the part, since
+# it is what the annotation is cited by.
+CAMEL = re.compile(r"(?<=[a-z])(?=[A-Z])")
+
+
+def lasla_name(stem: str) -> Tuple[str, Optional[str], Optional[str]]:
+    bits = stem.split("_")
+    author = CAMEL.sub(" ", bits[0]) if bits else stem
+    work = CAMEL.sub(" ", bits[1]) if len(bits) > 1 else None
+    part = bits[2] if len(bits) > 2 else None
+    return author, work, part
+
+
+
 # ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
@@ -993,6 +1067,7 @@ FORMAT_EXTRACTORS = {
     "conllu": extract_conllu,
     "edcs-json": extract_edcs,
     "mediawiki-xml": extract_vicifons,
+    "lasla-conllup": extract_lasla,
 }
 
 

@@ -231,9 +231,17 @@ def build_stages() -> List[Stage]:
               note="orthography; rewrites interim in place"),
         Stage("dedupe", "src/dedupe.py", [], argv=[["--show", "0"]],
               note="content-based; marks rather than deletes"),
+        # Four corpora from one marking pass. Track A is what gets published;
+        # Track B adds the non-commercial sources and is never redistributed,
+        # so both are built every time rather than one being a manual extra —
+        # a research corpus nobody rebuilds drifts from the code that made it.
         Stage("build", "src/build.py", [],
-              argv=[[], ["--name", "classical", "--period", "CLASSICAL"]],
-              note="full corpus and the classical subset"),
+              argv=[[],
+                    ["--name", "classical", "--period", "CLASSICAL"],
+                    ["--name", "corpus-b", "--track", "B"],
+                    ["--name", "classical-b", "--track", "B",
+                     "--period", "CLASSICAL"]],
+              note="Track A and Track B, full and classical"),
         # The tokenizer and the floors were outside the pipeline until
         # 2026-08-19, which meant both had to be remembered after a rebuild.
         # They are not optional: a vocabulary trained on a corpus that has

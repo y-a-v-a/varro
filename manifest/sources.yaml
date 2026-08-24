@@ -336,13 +336,17 @@ sources:
 
   - id: lasla
     name: LASLA / Opera Latina
-    url: https://www.lasla.uliege.be/
-    method: manual
+    url: https://github.com/CIRCSE/LASLA
+    method: git
     pin: null
     license: CC-BY-NC-SA-4.0
     tier: amber
     include: true
-    format: txt
+    format: lasla-conllup
+    # The CIRCSE mirror publishes the corpus as CoNLL-U Plus, one file per
+    # book, under the same CC BY-NC-SA 4.0 the LASLA site states — checked
+    # against the repository's own README rather than inferred. That makes it
+    # fetchable, which is why this entry no longer says `method: manual`.
     text_provenance: transcribed    # manually verified lemmatisation implies keyed text
     period: CLASSICAL
     est_words: 1630825
