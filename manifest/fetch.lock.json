@@ -1,10 +1,10 @@
 {
-  "generated": "2026-08-19T21:38:49+00:00",
+  "generated": "2026-08-24T22:01:35+00:00",
   "note": "Resolved versions of fetched sources. Commit this file \u2014 it is what makes the corpus reproducible and the licence trail auditable.",
   "sources": {
     "digiliblt": {
       "bytes": 339778448,
-      "fetched": "2026-08-19T21:38:29+00:00",
+      "fetched": "2026-08-24T22:01:15+00:00",
       "license": "CC-BY-SA-4.0",
       "method": "git",
       "n_files": 11,
@@ -16,7 +16,7 @@
     "edcs-sdam": {
       "bytes": 465523658,
       "doi": "10.5281/zenodo.7072337",
-      "fetched": "2026-08-19T21:38:34+00:00",
+      "fetched": "2026-08-24T22:01:20+00:00",
       "files": [
         {
           "bytes": 465523658,
@@ -34,7 +34,7 @@
     },
     "edh": {
       "bytes": 725649986,
-      "fetched": "2026-08-19T21:38:33+00:00",
+      "fetched": "2026-08-24T22:01:20+00:00",
       "license": "CC-BY-SA-4.0",
       "method": "git",
       "n_files": 139137,
@@ -45,7 +45,7 @@
     },
     "gutenberg-latin": {
       "bytes": 0,
-      "fetched": "2026-08-19T21:38:28+00:00",
+      "fetched": "2026-08-24T22:01:15+00:00",
       "license": "public-domain",
       "manual": true,
       "method": "manual",
@@ -56,9 +56,20 @@
       "tier": "green",
       "url": "https://www.gutenberg.org/browse/languages/la"
     },
+    "lasla": {
+      "bytes": 728072378,
+      "fetched": "2026-08-24T21:59:21+00:00",
+      "license": "CC-BY-NC-SA-4.0",
+      "method": "git",
+      "n_files": 376,
+      "name": "LASLA / Opera Latina",
+      "resolved_pin": "c2e2bb6500b5ef9c6f5f31df6774423e9bb9fddc",
+      "tier": "amber",
+      "url": "https://github.com/CIRCSE/LASLA"
+    },
     "latin-library": {
       "bytes": 95978302,
-      "fetched": "2026-08-19T21:38:28+00:00",
+      "fetched": "2026-08-24T22:01:15+00:00",
       "license": "public-domain",
       "method": "git",
       "n_files": 2145,
@@ -69,7 +80,7 @@
     },
     "opengreekandlatin-csel": {
       "bytes": 416494171,
-      "fetched": "2026-08-19T21:38:29+00:00",
+      "fetched": "2026-08-24T22:01:16+00:00",
       "license": "CC-BY-SA-4.0",
       "method": "git",
       "n_files": 1111,
@@ -80,7 +91,7 @@
     },
     "papyri-idp": {
       "bytes": 1899434330,
-      "fetched": "2026-08-19T21:38:49+00:00",
+      "fetched": "2026-08-24T22:01:35+00:00",
       "license": "CC-BY-3.0",
       "method": "git",
       "n_files": 389521,
@@ -91,7 +102,7 @@
     },
     "perseus-canonical-latinLit": {
       "bytes": 174711532,
-      "fetched": "2026-08-19T21:38:28+00:00",
+      "fetched": "2026-08-24T22:01:14+00:00",
       "license": "CC-BY-SA-4.0",
       "method": "git",
       "n_files": 1361,
@@ -102,7 +113,7 @@
     },
     "vicifons": {
       "bytes": 203531435,
-      "fetched": "2026-08-19T21:38:49+00:00",
+      "fetched": "2026-08-24T22:01:35+00:00",
       "files": [
         {
           "bytes": 203531435,
