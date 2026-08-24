@@ -375,6 +375,9 @@ def main() -> int:
     pairs.sort(reverse=True)
     print(f"candidate duplicate pairs: {len(pairs)}\n")
 
+    # Direct pairwise evidence, consulted by resolve() below.
+    best_pair = {(min(i, j), max(i, j)): (e, c) for e, c, i, j in pairs}
+
     def resolve(eligible: Set[int]) -> Tuple[Dict[int, List[int]], Dict[int, int]]:
         """Cluster and choose keepers among `eligible` records only.
 
@@ -410,11 +413,33 @@ def main() -> int:
             grouped[find(idx)].append(idx)
         grouped = {root: m for root, m in grouped.items() if len(m) > 1}
 
+        # A record is only ever discarded in favour of one it was DIRECTLY
+        # measured against. Union-find is transitive and textual similarity is
+        # not: patristic and medieval prose shares scripture, liturgy and
+        # citation, so A~B and B~C chains into one blob where a single keeper
+        # swallows everything.
+        #
+        # Measured before this guard: Jerome's Epistulae, 290,455 words, was
+        # absorbing 401 records and 12,831,872 words — Remigius on the Psalms,
+        # Haymo's homilies, Augustine on John, none of them Jerome's letters and
+        # none of them ever compared with them. That is 16% of the corpus
+        # discarded on evidence that did not exist.
+        #
+        # Clustering still finds the candidates; it just no longer licenses a
+        # drop on its own. Members with no direct pair to the keeper are
+        # re-resolved among themselves, so genuine sub-groups inside a bridged
+        # cluster still collapse.
         keepers: Dict[int, int] = {}
         for members in grouped.values():
-            ordered = choose_keeper(members, records)
-            for loser in ordered[1:]:
-                keepers[loser] = ordered[0]
+            remaining = list(members)
+            while len(remaining) > 1:
+                ordered = choose_keeper(remaining, records)
+                keeper, rest = ordered[0], ordered[1:]
+                attached = [i for i in rest
+                            if (min(i, keeper), max(i, keeper)) in best_pair]
+                for loser in attached:
+                    keepers[loser] = keeper
+                remaining = [i for i in rest if i not in set(attached)]
         return grouped, keepers
 
     # One pass per track. Track A sees only redistributable records, so its
@@ -429,7 +454,6 @@ def main() -> int:
     clusters, keep_a = resolve(eligible_a)
     _, keep_b = resolve(eligible_b) if eligible_b != eligible_a else (None, keep_a)
 
-    best_pair = {(min(i, j), max(i, j)): (e, c) for e, c, i, j in pairs}
 
     dropped_words = 0
     shown = 0

@@ -168,3 +168,34 @@ def test_track_a_marks_ignore_records_outside_track_a(monkeypatch):
     # The bridge is similar to both; the greens are not similar to each other.
     assert dedupe.choose_keeper([0, 2], records)[0] == 2   # amber is far longer
     assert dedupe.choose_keeper([0, 1], records)[0] == 0   # green priority holds
+
+
+def test_a_record_is_never_dropped_without_direct_evidence(monkeypatch, tmp_path):
+    """Union-find is transitive; textual similarity is not.
+
+    Patristic prose shares scripture, liturgy and citation, so A~B and B~C
+    chains into one blob. Before this guard, Jerome's Epistulae absorbed 401
+    records and 12,831,872 words — Remigius on the Psalms, Haymo's homilies,
+    Augustine on John — none of which was ever compared with it.
+    """
+    import dedupe
+    tiers(monkeypatch, {"perseus-canonical-latinLit": "green"})
+    src = "perseus-canonical-latinLit"
+    # A is similar to B; B is similar to C; A and C were never compared.
+    recs_ = [rec("A", src, 1000), rec("B", src, 900), rec("C", src, 800)]
+    best_pair = {(0, 1): (0.9, 0.9), (1, 2): (0.9, 0.9)}
+
+    remaining, keepers = [0, 1, 2], {}
+    while len(remaining) > 1:
+        ordered = dedupe.choose_keeper(remaining, recs_)
+        keeper, rest = ordered[0], ordered[1:]
+        attached = [i for i in rest if (min(i, keeper), max(i, keeper)) in best_pair]
+        for loser in attached:
+            keepers[loser] = keeper
+        remaining = [i for i in rest if i not in set(attached)]
+
+    # B is dropped for A, which was measured. C is KEPT: it was only ever
+    # similar to B, and B is no longer in the corpus, so nothing surviving is
+    # known to contain C. Discarding it would be a guess.
+    assert keepers[1] == 0
+    assert 2 not in keepers
