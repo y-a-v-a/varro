@@ -142,8 +142,9 @@ data straight into the training corpus.
 
 ## Corpus as measured
 
-Five of nine green sources extracted. **10,192 records, 78,975,089 words** after
-dedup; see [`CURRENT_STATE.md`](CURRENT_STATE.md) for the full breakdown and
+Six sources extracted (five green, one amber). **Track A: 10,422 records,
+90,724,940 words, 175.1M tokens.** Track B adds LASLA: 10,452 records,
+90,835,090 words, 175.3M tokens; see [`CURRENT_STATE.md`](CURRENT_STATE.md) for the full breakdown and
 [`reports/`](reports/) for the generated figures.
 
 | Source | records | words (pre-dedup) | vs. estimate |

@@ -6,74 +6,83 @@ stale, and what to do next.
 
 ---
 
-## Update 2026-08-25 — Track B has a source, and it makes the corpus smaller
+## Update 2026-08-25 — Track B has a source, and dedup was discarding 12M words
 
 Track B has existed in the manifest and the guards since the two-track split was
-designed, and had never contained a single source. It does now: **LASLA**,
-1,801,734 words of hand-verified classical Latin under CC BY-NC-SA 4.0.
+designed and had never contained a source. It does now: **LASLA**, 1,801,734
+words of hand-verified classical Latin, CC BY-NC-SA 4.0, fetched from the CIRCSE
+mirror as CoNLL-U Plus.
 
-It turned out to be fetchable. The manifest had it as `method: manual`; the
-CIRCSE mirror publishes the whole corpus as CoNLL-U Plus under the same licence,
-so it is now a pinned git source read by a metadata shim over the CoNLL-U parser
-DigilibLT already uses.
+Ingesting it exposed something far larger than itself.
 
-### The measured result is negative
+### The corpus grew by 12.2 million words, and LASLA is not why
 
 | corpus | records | words | train tokens |
 |---|---:|---:|---:|
-| Track A · full | 10,177 | 78,554,197 | **152,234,083** |
-| Track B · full | 10,161 | 78,382,944 | **151,793,247** |
-| Track A · classical | 203 | 4,531,115 | **9,539,569** |
-| Track B · classical | 201 | 4,345,471 | **9,198,341** |
+| Track A · full | 10,422 | 90,724,940 | **175,088,148** |
+| Track B · full | 10,452 | 90,835,090 | **175,259,009** |
+| Track A · classical | 204 | 4,541,027 | **9,591,388** |
+| Track B · classical | 204 | 4,541,027 | **9,591,388** |
 
-**Track B is 440,836 tokens smaller than Track A (−0.29%), and 341,228 smaller
-on classical (−3.58%).** Adding a source shrank the corpus.
+Against the 2026-08-21 build: **+12,170,743 words (+15.5%)** and **+22,854,065
+train tokens (+15.0%)**. Floors moved to 172.1 and 148.5.
 
-Of LASLA's 242 records, **30 survive** — 85,352 words. Its 19 authors are
-Perseus's core, so 95% of it is a duplicate of text already held. Meanwhile its
-presence caused **46 green records, 256,605 words, to be newly marked duplicate**
-in Track B. Net: **−171,253 words**.
+### What was wrong
 
-The largest single displacement is Perseus's *Institutio Oratoria*, 172,355
-words, handed to a Vicifons copy — and Quintilian is not in LASLA at all. LASLA
-records grew the cluster enough to push Perseus's copy below the containment
-cutoff. That instability is worth naming: **dedup verdicts about one pair can
-change because an unrelated record joined the cluster.**
+Dedup clustered with union-find, which is transitive. Textual similarity is not.
+Patristic and medieval prose shares scripture, liturgy and citation, so A~B and
+B~C chained an entire genre into one cluster where a single keeper swallowed the
+rest.
 
-### Two bugs found on the way, both structural
+Jerome's *Epistulae* — 290,455 words — was absorbing **401 records and
+12,831,872 words**: Remigius on the Psalms, Haymo's homilies, Augustine on John,
+a florilegium of Augustine. None of them is Jerome's letters. **None had ever
+been compared with Jerome's letters** — every one carried
+`duplicate_similarity: None`.
 
-**A green record could be marked a duplicate of an amber keeper.** A Track A
-build then drops the duplicate for being a duplicate and the keeper for being
-non-redistributable, and the text leaves the published corpus with nothing
-reporting it. Keeper ranking is now (licence tier, curation rank). Measured
-extent before the fix: 3 records, 5,028 words.
+A record is now marked a duplicate only of a record it was **directly measured
+against**. Members with no direct pair to the keeper are re-resolved among
+themselves, so genuine sub-groups still collapse. Duplicates fell from 2,802 to
+2,557 in Track A, and 27.3% of fetched text is still discarded — the difference
+is that each discard is now backed by a measurement.
 
-**That fix was not enough, because the damage happens before keeper choice.**
-Union-find is transitive, so an amber record similar to two green records that
-are not similar to each other merges their clusters. dedupe now resolves each
-track separately — restricting the candidate *pairs*, not merely the keeper —
-and writes two verdicts per record. build.py reads the one matching its track.
+One semantic worth knowing: if A absorbs B, and C was similar only to B, **C is
+kept**. B is no longer in the corpus, so nothing surviving is known to contain
+C, and dropping it would be a guess.
 
-The guarantee this buys is what the two-track split always implied and never
-had: **Track A does not depend on which research-only sources are on disk.**
-Verified — with LASLA fetched and extracted, Track A rebuilds to exactly
-78,554,197 words, 2,802 duplicates and floors of 174.9 / 149.5, every figure
-identical to the build before LASLA existed.
+**This is the third time cluster instability surfaced.** It appeared twice
+before as "keeper churn", and both times it was recorded and set aside. It was
+not churn.
 
-### What this says about the remaining NC sources
+### What LASLA itself contributed
+
+**+170,861 tokens, +0.10%.** Thirty-three of its 242 records survive; its 19
+authors are Perseus's core, so the rest duplicates text already held. Its
+classical contribution is **exactly zero** — Track B classical equals Track A
+classical to the token.
+
+The manifest already said its value is as the gold standard for morphological
+evaluation, and evaluation data is never redistributed, so NC costs nothing
+there. That remains the reason to keep it.
+
+### Two structural bugs fixed on the way
+
+**A green record could be marked a duplicate of an amber keeper.** Track A would
+then drop the duplicate for being a duplicate and the keeper for being
+non-redistributable, and the text would leave the published corpus silently.
+Keeper ranking is now (licence tier, curation rank).
+
+**That was not enough, because the damage precedes keeper choice.** dedupe now
+resolves each track separately, restricting the candidate *pairs*, and writes
+two verdicts per record. The guarantee: **Track A does not depend on which
+research-only sources are on disk** — verified, twice.
+
+### The remaining NC sources
 
 Corpus Corporum (215M words) and IntraText (10M) are still `method: manual` —
-neither publishes a bulk endpoint and Corpus Corporum needs a human at
-mlat.uzh.ch. More to the point, Corpus Corporum **contains the entire Patrologia
-Latina and Perseus**, both of which this corpus already holds via Vicifons and
-Perseus directly. Its headline 215M is not 215M new words, and on the LASLA
-evidence the net could plausibly be negative there too.
-
-**LASLA's value was never the text.** The manifest says so already: it is the
-gold standard for morphological evaluation, and evaluation data is never
-redistributed, so NC costs nothing there. Its training contribution is measured
-at −171,253 words. It should be kept for evaluation and understood as
-contributing nothing to training.
+no bulk endpoint, and Corpus Corporum needs a human at mlat.uzh.ch. It also
+contains the entire Patrologia Latina and Perseus, both already held here, so
+its headline is not 215M new words.
 
 ---
 
