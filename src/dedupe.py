@@ -375,24 +375,59 @@ def main() -> int:
     pairs.sort(reverse=True)
     print(f"candidate duplicate pairs: {len(pairs)}\n")
 
-    # Union-find over the surviving pairs.
-    parent = list(range(len(records)))
+    def resolve(eligible: Set[int]) -> Tuple[Dict[int, List[int]], Dict[int, int]]:
+        """Cluster and choose keepers among `eligible` records only.
 
-    def find(x: int) -> int:
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
+        Restricting the pairs, not just the keeper choice, is what makes a
+        track's result independent of records outside it. A record from another
+        track can otherwise bridge two clusters that would have stayed separate
+        — union-find is transitive — and that changes which witness survives
+        among records the other track never contained.
 
-    for _, _, i, j in pairs:
-        ri, rj = find(i), find(j)
-        if ri != rj:
-            parent[max(ri, rj)] = min(ri, rj)
+        Measured 2026-08-25: ingesting LASLA, whose 19 authors are Perseus's
+        core, moved 256,605 words out of Track A while adding 85,352 to Track B.
+        Almost none of that was a green record losing to an amber keeper; it was
+        green-on-green churn caused by amber records joining their clusters.
+        Adding research-only material must not touch the published corpus.
+        """
+        parent = {i: i for i in eligible}
 
-    clusters: Dict[int, List[int]] = defaultdict(list)
-    for idx in range(len(records)):
-        clusters[find(idx)].append(idx)
-    clusters = {root: members for root, members in clusters.items() if len(members) > 1}
+        def find(x: int) -> int:
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        for _, _, i, j in pairs:
+            if i not in parent or j not in parent:
+                continue
+            ri, rj = find(i), find(j)
+            if ri != rj:
+                parent[max(ri, rj)] = min(ri, rj)
+
+        grouped: Dict[int, List[int]] = defaultdict(list)
+        for idx in eligible:
+            grouped[find(idx)].append(idx)
+        grouped = {root: m for root, m in grouped.items() if len(m) > 1}
+
+        keepers: Dict[int, int] = {}
+        for members in grouped.values():
+            ordered = choose_keeper(members, records)
+            for loser in ordered[1:]:
+                keepers[loser] = ordered[0]
+        return grouped, keepers
+
+    # One pass per track. Track A sees only redistributable records, so its
+    # marks are identical whether or not any amber source has been fetched.
+    tiers_by_source = source_tiers()
+    def tier_of(i: int) -> str:
+        return tiers_by_source.get(records[i].get("source", ""), "unknown")
+
+    eligible_a = {i for i in range(len(records)) if tier_of(i) == "green"}
+    eligible_b = {i for i in range(len(records)) if tier_of(i) in ("green", "amber")}
+
+    clusters, keep_a = resolve(eligible_a)
+    _, keep_b = resolve(eligible_b) if eligible_b != eligible_a else (None, keep_a)
 
     best_pair = {(min(i, j), max(i, j)): (e, c) for e, c, i, j in pairs}
 
@@ -422,33 +457,33 @@ def main() -> int:
         print("\n--report: nothing written")
         return 0
 
-    keep_of: Dict[int, int] = {}
-    for members in clusters.values():
-        ordered = choose_keeper(members, records)
-        for loser in ordered[1:]:
-            keep_of[loser] = ordered[0]
-
+    keep_of = keep_a
     index = {id(rec): i for i, rec in enumerate(records)}
     for path, rows in by_file.items():
         for rec in rows:
             i = index[id(rec)]
-            if i in keep_of:
-                winner = records[keep_of[i]]
-                pair = best_pair.get((min(i, keep_of[i]), max(i, keep_of[i])))
-                rec["is_duplicate"] = True
-                rec["duplicate_of"] = winner["id"]
-                rec["duplicate_similarity"] = round(pair[0], 4) if pair else None
-            else:
-                rec["is_duplicate"] = False
-                rec["duplicate_of"] = None
-                rec["duplicate_similarity"] = None
+            # Two independent verdicts, one per track. build.py reads the one
+            # matching the track it is assembling.
+            for suffix, marks in (("", keep_a), ("_b", keep_b)):
+                if i in marks:
+                    winner = records[marks[i]]
+                    pair = best_pair.get((min(i, marks[i]), max(i, marks[i])))
+                    rec["is_duplicate" + suffix] = True
+                    rec["duplicate_of" + suffix] = winner["id"]
+                    rec["duplicate_similarity" + suffix] = (
+                        round(pair[0], 4) if pair else None)
+                else:
+                    rec["is_duplicate" + suffix] = False
+                    rec["duplicate_of" + suffix] = None
+                    rec["duplicate_similarity" + suffix] = None
         tmp = Path(path).with_suffix(".jsonl.tmp")
         with tmp.open("w", encoding="utf-8") as fh:
             for rec in rows:
                 fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
         tmp.replace(Path(path))
 
-    print(f"\nmarked {len(keep_of):,} records as duplicates across {len(by_file)} file(s)")
+    print(f"\nmarked {len(keep_a):,} records as duplicates in Track A, "
+          f"{len(keep_b):,} in Track B, across {len(by_file)} file(s)")
     return 0
 
 

@@ -148,3 +148,23 @@ def test_containment_still_beats_tier(monkeypatch):
 
 def test_unknown_tier_ranks_below_amber():
     assert TIER_RANK["green"] < TIER_RANK["amber"] < TIER_RANK["unknown"]
+
+
+def test_track_a_marks_ignore_records_outside_track_a(monkeypatch):
+    """Adding a research-only source must not change the published corpus.
+
+    Union-find is transitive, so an amber record similar to two green records
+    that are not similar to each other would merge their clusters and change
+    which green witness survives. Restricting the pairs, not merely the keeper
+    choice, is what makes Track A independent of Track B's contents.
+    """
+    import dedupe
+    tiers(monkeypatch, {"perseus-canonical-latinLit": "green",
+                        "vicifons": "green", "lasla": "amber"})
+    # Two green records that would never cluster together on their own.
+    records = [rec("g1", "perseus-canonical-latinLit", 1000),
+               rec("g2", "vicifons", 1000),
+               rec("bridge", "lasla", 3000)]
+    # The bridge is similar to both; the greens are not similar to each other.
+    assert dedupe.choose_keeper([0, 2], records)[0] == 2   # amber is far longer
+    assert dedupe.choose_keeper([0, 1], records)[0] == 0   # green priority holds

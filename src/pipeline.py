@@ -217,8 +217,12 @@ def tokenizer_identity() -> str:
 def build_stages() -> List[Stage]:
     sources = extractable_sources()
     return [
+        # Track B, because the build stage assembles Track B corpora and a
+        # pipeline that builds a corpus it never fetched the sources for is
+        # not reproducible. Track B is a superset of Track A: green + amber.
         Stage("fetch", "src/fetch.py", ["manifest/sources.yaml"],
-              note="idempotent: existing clones are updated, not re-cloned"),
+              argv=[["--track", "B"]],
+              note="green + amber; idempotent, existing clones are updated"),
         Stage("extract", "src/extract.py", [],
               parts=[Part(s, ["--source", s], partial(lockfile_identity, s))
                      for s in sources],

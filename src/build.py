@@ -241,9 +241,14 @@ def main() -> int:
     tiers = source_tiers()
     allowed = TRACKS[args.track]
 
+    # dedupe resolves each track separately, so read the verdict for this one.
+    # Track A's marks never depend on records outside Track A — adding a
+    # research-only source must not change the published corpus.
+    dup_field = "is_duplicate" if args.track == "A" else "is_duplicate_b"
+
     kept, reasons = [], Counter()
     for rec in records:
-        if rec.get("is_duplicate"):
+        if rec.get(dup_field, rec.get("is_duplicate")):
             reasons["duplicate"] += rec["n_words"]
             continue
         tier = tiers.get(rec.get("source"), "unknown")
