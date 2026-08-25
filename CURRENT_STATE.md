@@ -6,6 +6,110 @@ stale, and what to do next.
 
 ---
 
+## Update 2026-08-26 (later) — half of the CSEL repo was never read
+
+`csel-dev` ships its texts twice. `data/` holds one file per work in CapiTainS
+layout, which is what the extractor read; `Volumes/` holds the printed volumes
+those were split out of, 292 MB, and nothing had ever opened it.
+
+| | words |
+|---|---:|
+| **New prose recovered** | **617,686** |
+| Apparatus rejected | 2,205,746 |
+| Duplicate text, caught by containment | ~313,000 |
+
+| corpus | records | words | train tokens |
+|---|---:|---:|---:|
+| Track A · full | 10,763 | 94,465,896 | **182,307,970** |
+| Track A · classical | 256 | 4,831,855 | **10,241,858** |
+
+**+616,357 words (+0.66%)** and **+1,420,588 tokens (+0.79%)** on the full
+corpus. Floors: **181.45** full (was 183.0), **184.68** classical (was 184.4).
+CSEL rises to 6,283,656 words — 6.7%, the second-largest source.
+
+The classical corpus is unchanged to the word: every new record is NEOLATIN or
+LATE. Its token count moves by −4,945 only because the tokenizer is retrained.
+
+### The markup cannot be trusted, in either direction
+
+CSEL48 files 68,471 words of *index verborum* under `subtype="chapter"`;
+CSEL65 files a real work, *Liber ad Constantium*, under `subtype="MSS"`. So
+`classify_division` weighs three signals, strongest first — what a division
+calls itself in its `<head>`, what its text measurably looks like, and only
+then what the markup claims. Across all 579 divisions: **100% of apparatus
+rejected, 99.9% of prose words kept.**
+
+The thresholds are not tuned; the two populations barely touch. Prose sits at
+the 95th percentile on a 0.3% digit rate, apparatus at the 5th on 6.0%. The
+function-word floor is deliberately set *below* verse — hymns run 6% and a
+cento 8.6%, because poetry drops connectives — since a filter that cannot tell
+a hymn from a word list is useless on a volume of Christian poetry.
+
+Division-level judgement was not enough on its own. A preface argues about the
+manuscripts for a paragraph and then cites twenty by page and line, so judged
+on its average it reads as apparatus: 296,535 words of preface were being
+discarded, 72% of it discussion. `usable_prose` now re-judges anything whose
+markup claims prose on **what survives paragraph filtering**. The populations
+separate cleanly there — every preface falls to ≤0.102 digits, while
+Priscillian's canon list holds at 0.239 and the *Itinerarium Burdigalense* at
+0.139, because their tables run *inside* the paragraphs.
+
+### Most of it is 1890s Latin, and saying so took three fixes
+
+447k of the 618k is prefaces and prolegomena — real Latin prose, written
+between 1867 and 1934. The extractor labelled them, and `enrich` overwrote
+every label, because it resolves `period` and `genre` from the authorities and
+falls through to the source prior.
+
+1. **Period.** The csel prior is `LATE`, so the prefaces were being dated to
+   the 2nd–7th century. The 34 CSEL editors are now in
+   `manifest/authorities.yaml`, dated by their earliest volume — a documented
+   publication date, not a biographical estimate.
+2. **Author.** A preface is the *editor's* writing. Crediting it to the author
+   of the work it introduces attributed 447k words of philology to Lactantius
+   and Cyprian.
+3. **Genre.** `title_patterns` matched the work named in the title, so 40 of
+   the 85 records were filed as EPISTOLOGRAPHY, THEOLOGY or COMMENTARY. A
+   preface *about* Augustine's letters is not epistolography. A `SCHOLARSHIP`
+   genre now exists for it, keyed on the constructed marker `Praefatio
+   editoris in` — plain `Praefatio in` would have swept up seventeen of
+   Jerome's own prefaces to the biblical books.
+
+**The baselines confirmed the classification independently.** SCHOLARSHIP is
+the hardest genre in the corpus for a bigram model — **ppl 242.9** against
+181.5 overall and 163.7 for homiletic. Had this gone in as `LATE` and
+`EPISTOLOGRAPHY` it would have raised the late-antique floor with nothing in
+any report to say why.
+
+Whether 447k words of technical, OCR-damaged 19th-century Latin *belongs* in
+training is now a one-flag decision (`--period`, `--exclude-provenance`) rather
+than something decided by default.
+
+### A pipeline bug, hit rather than reasoned about
+
+`extract.py` was edited while the extract stage was running. The stage recorded
+the **new** source fingerprint against an interim the **old** code produced,
+then read as up to date permanently, over output no version of the code would
+generate. Fingerprinting now happens when a stage *starts* — by then every
+earlier stage has finished, so the lockfile property the old comment defended
+still holds, and what is recorded is what the stage actually read.
+
+Also worth knowing operationally: killing `pipeline.py` does **not** kill the
+stage it launched. An orphaned `dedupe.py` survived a kill and would have
+written duplicate marks over a fresh extraction, producing a corpus assembled
+from two different code versions with nothing in the output to show it.
+`pkill -f "src/dedupe.py"` misses it — the pipeline invokes stages by absolute
+path.
+
+### Still open here
+
+- **Papyri `Historical/`** looked like 82,332 unread files. It is an alternate
+  index of the same documents: 631 unique ids, of which 10 have any text, 498
+  words total. Correctly left alone.
+- Whether to train on the NEOLATIN material at all.
+
+---
+
 ## Update 2026-08-26 — every green source now has a reader
 
 Two extractors, four sources, because dispatch is by format: **EpiDoc** serves
