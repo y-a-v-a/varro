@@ -194,3 +194,30 @@ def test_csel_texts_still_take_the_late_prior(real_authority):
         {"author": "Nemo Ignotus", "work": "Ignotum",
          "source": "opengreekandlatin-csel"})
     assert (period, origin) == ("LATE", "source-prior")
+
+
+@pytest.fixture(scope="module")
+def real_genres():
+    from enrich import GENRES as GENRES_PATH
+    return Genres(GENRES_PATH)
+
+
+def test_an_editors_preface_is_scholarship_not_the_work_it_introduces(real_genres):
+    """The title names the work, so every other pattern would claim it.
+
+    A preface to Augustine's letters read as EPISTOLOGRAPHY, and one to a
+    commentary as COMMENTARY — 40 of the 85 volume records were filed as the
+    thing they discuss.
+    """
+    assert real_genres.resolve({"work": "Praefatio editoris in Epistulae "
+                                   "Imperatorum Pontificum", "author": None}) \
+        == ("PROSE", "SCHOLARSHIP", "pattern")
+    assert real_genres.resolve({"work": "Praefatio editoris in Commentaria in "
+                                   "Isaiam", "author": None}) \
+        == ("PROSE", "SCHOLARSHIP", "pattern")
+
+
+def test_jeromes_own_prefaces_are_left_alone(real_genres):
+    """`Praefatio in` alone would have caught 17 late-antique prefaces."""
+    assert real_genres.resolve({"work": "Praefatio in Evangelia", "author": None}) \
+        != ("PROSE", "SCHOLARSHIP", "pattern")

@@ -79,6 +79,25 @@ tokenizer care, and possibly staged pretraining rather than expecting web-scale 
   patristic*, out of classical scope but useful if you widen), plus various `*-dev` OCR repos.
 - Licence: **CC BY-SA 4.0**.
 - Reading interface: https://scaife.perseus.org/
+- **Two layouts, not one.** `csel-dev` ships the texts twice: `data/` holds one file per work
+  in CapiTainS layout, and `Volumes/` holds the printed volumes those were split out of
+  (`Volumes/split_parse.py` does the splitting). `Volumes/` is 292 MB, half the repository,
+  and was unread until the volume filter was written.
+- What is actually in `Volumes/` beyond the per-work tree, measured:
+  - **2.2M words of apparatus** — index locorum, index verborum, manuscript sigla, tables of
+    contents, corrigenda. Training on it would teach page-and-line references, not Latin.
+  - **~313k words of duplicate text** under identifiers that do not match the CTS tree.
+    `@n` is present on only 274 of 302 work divisions and does not always agree, so these are
+    caught by containment rather than by identifier.
+  - **618k words of genuine prose the CTS tree never received** — overwhelmingly the prefaces
+    and prolegomena, which the split produced no per-work file for.
+- The prefaces are Latin prose written between **1867 and 1934**, not late antiquity. They are
+  ingested as `NEOLATIN`, dated by their editor's earliest volume, and credited to that editor
+  (`manifest/authorities.yaml`) — not to the patristic author whose volume they introduce.
+- The markup cannot be trusted to tell text from apparatus in either direction: CSEL48 files
+  68,471 words of *index verborum* under `subtype="chapter"`, and CSEL65 files a real work,
+  *Liber ad Constantium*, under `subtype="MSS"`. CSEL48's header is wrong too — it claims
+  Boethius and contains Optatus of Milevis. See `classify_division` in `src/extract.py`.
 
 ### The Latin Library (via CLTK mirror)
 - **https://github.com/cltk/lat_text_latin_library** (~108 MB plain text)

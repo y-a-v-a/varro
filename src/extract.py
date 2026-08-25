@@ -572,9 +572,20 @@ def csel_volume_records(source_id: str, entry: Dict[str, Any],
         meta = div["meta"]
         stats["volume_words"] += n_words
         if editorial:
-            # Name it for what it is and for what it introduces, so 447k words
-            # of philology never read as one of the works themselves.
-            title = f"{(div['head'] or 'Praefatio').title()} — {meta.volume_title}"
+            # Name it for what it is and for what it introduces, so that these
+            # words never read as one of the works themselves. The title is
+            # constructed rather than quoted, because the head alone is not
+            # enough: `Prolegomena.` says nothing about which volume, and a
+            # head naming the volume's letters gets pattern-matched into
+            # EPISTOLOGRAPHY — a preface ABOUT Augustine's letters is not
+            # epistolography. `Praefatio editoris` is the marker genres.yaml
+            # keys on; plain `Praefatio in` would collide with Jerome's own
+            # prefaces to the biblical books, of which the corpus holds 17.
+            head_detail = div["head"].title() if div["head"] else ""
+            title = f"Praefatio editoris in {meta.volume_title}"
+            if head_detail and not re.match(r"[.\s]*(Praefatio|Prolegomena)[.\s]*$",
+                                            head_detail, re.I):
+                title = f"{title}: {head_detail}"
         else:
             title = (meta.titles.get(work_id) or div["head"]
                      or div["preceding_head"] or meta.volume_title)
