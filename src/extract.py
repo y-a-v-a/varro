@@ -724,6 +724,43 @@ def classify_division(text: str, subtype: Optional[str],
     return ("prose" if subtype in PROSE_SUBTYPES else "apparatus"), "markup"
 
 
+# A division re-judged after paragraph filtering must come down to this, or
+# its apparatus was never in separable paragraphs to begin with. Measured: the
+# prefaces land at 0.102 and below, the Itinerarium Burdigalense stays at
+# 0.139 and Priscillian's canon list at 0.239, because their tables run inside
+# the paragraphs rather than as paragraphs of their own.
+REJUDGE_DIGIT = 0.12
+
+
+def usable_prose(text: str, subtype: Optional[str], head: Optional[str],
+                 stats: Stats) -> Optional[str]:
+    """The usable prose of one volume division, or None if it is apparatus.
+
+    A preface is not uniformly prose or apparatus: it argues about the
+    manuscripts for a paragraph and then cites twenty of them by page and
+    line. Judging the whole division on its average rejects it — 296,535
+    words of preface, of which 72% is discussion — so a division whose markup
+    claims prose is given a second hearing on what survives paragraph
+    filtering. A division whose apparatus is not paragraph-separable does not
+    improve, and is still rejected.
+    """
+    verdict, reason = classify_division(text, subtype, head)
+    if verdict == "prose":
+        stats[f"volume_division:prose:{reason}"] += 1
+        return drop_apparatus_paragraphs(text, stats)
+    if reason != "content" or subtype not in PROSE_SUBTYPES:
+        stats[f"volume_division:apparatus:{reason}"] += 1
+        return None
+
+    filtered = drop_apparatus_paragraphs(text, stats)
+    f = apparatus_features(filtered)
+    if f is None or f.words < MIN_PROFILE_WORDS or f.digit >= REJUDGE_DIGIT:
+        stats["volume_division:apparatus:content"] += 1
+        return None
+    stats["volume_division:prose:rejudged"] += 1
+    return filtered
+
+
 def drop_apparatus_paragraphs(text: str, stats: Stats) -> str:
     """Remove reference tables that sit *inside* an otherwise-prose division.
 
@@ -909,15 +946,13 @@ def csel_volume_divisions(source_dir: Path, stats: Stats,
                 head_el = div.find(f"{TEI_NS}head")
                 head = " ".join("".join(head_el.itertext()).split()) \
                     if head_el is not None else ""
-                text = tidy(_walk(div, stats, greek, LITERARY))
-                verdict, reason = classify_division(text, div.get("subtype"), head)
-                stats[f"volume_division:{verdict}:{reason}"] += 1
-                if verdict == "apparatus":
-                    stats["dropped_apparatus_division_words"] += len(text.split())
+                raw = tidy(_walk(div, stats, greek, LITERARY))
+                text = usable_prose(raw, div.get("subtype"), head, stats)
+                if text is None:
+                    stats["dropped_apparatus_division_words"] += len(raw.split())
                     if head:
                         last_head = head
                     continue
-                text = drop_apparatus_paragraphs(text, stats)
                 text = strip_inline_greek(text, stats, greek)
                 text = drop_english_paragraphs(text, stats)
                 yield {"path": path, "head": head, "text": text,

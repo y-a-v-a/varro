@@ -680,3 +680,58 @@ def test_containment_detects_the_same_text_in_a_second_layout():
     assert containment(set(), pool) == 0.0
     other = " ".join(f"{a} plane diuersum carmen {b}" for a in words for b in words)
     assert containment(shingle_sample(other), pool) < LAYOUT_CONTAINMENT
+
+
+# --- second hearing for mixed divisions -------------------------------------
+
+from extract import REJUDGE_DIGIT, usable_prose  # noqa: E402
+
+CITATIONS = ("Vindobonensis 16 p. 43, 7. 44, 12. Parisinus 1732 p. 8, 3. 9, 4. "
+             "Monacensis 6 p. 71, 19. 72, 1. Casinensis 4 p. 12, 6. 13, 8. ")
+
+
+def test_a_preface_is_judged_on_what_survives_filtering():
+    """The whole preface averages as apparatus; its discussion does not.
+
+    Measured across the repo, this recovers 214,695 words of the 296,535 that
+    whole-division averaging threw away.
+    """
+    stats = Stats()
+    text = (PROSE * 4) + "\n\n" + (CITATIONS * 6) + "\n\n" + (PROSE * 4)
+    assert classify_division(text, "preface", "PRAEFATIO.")[0] == "apparatus"
+    kept = usable_prose(text, "preface", "PRAEFATIO.", stats)
+    assert kept is not None and "Sulpicius" in kept
+    assert "Vindobonensis" not in kept
+    assert stats["volume_division:prose:rejudged"] == 1
+
+
+def test_a_table_gets_no_reprieve_from_the_second_hearing():
+    """The Itinerarium's distances run inside its paragraphs, not as their own.
+
+    Paragraph filtering cannot improve such a division, and it is still
+    rejected — measured at 0.139 before and after.
+    """
+    stats = Stats()
+    table = ("mutatio Stomatas leug VII 1 mutatio Sirione leug VIII 2 ciuitas "
+             "Vasatas leug VIIII 3 mutatio Tres Arbores leug V 4 ") * 8
+    assert usable_prose(table, "work", "", stats) is None
+    assert stats["volume_division:apparatus:content"] == 1
+
+
+def test_an_index_gets_no_second_hearing_at_all():
+    """Only a prose claim in the markup earns one."""
+    stats = Stats()
+    assert usable_prose(INDEX * 5, "index", "INDEX VERBORVM", stats) is None
+    assert stats["volume_division:apparatus:head"] == 1
+
+
+def test_clean_prose_passes_straight_through():
+    stats = Stats()
+    kept = usable_prose(PROSE * 5, "work", "", stats)
+    assert kept == PROSE * 5
+    assert stats["volume_division:prose:content"] == 1
+
+
+def test_rejudged_threshold_sits_between_the_two_populations():
+    """0.102 is the worst preface, 0.139 the best table. Do not tune finer."""
+    assert 0.102 < REJUDGE_DIGIT < 0.139
