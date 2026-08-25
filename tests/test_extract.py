@@ -217,11 +217,22 @@ def test_perseus_and_csel_share_one_extractor():
         extractor_for("opengreekandlatin-csel")
 
 
+def test_epidoc_sources_share_one_reader():
+    """Two sources, one job — the second time format dispatch paid off."""
+    assert extractor_for("edh") is extractor_for("papyri-idp")
+    assert extractor_for("edh") is not None
+
+
+def test_plaintext_sources_share_one_reader():
+    assert extractor_for("latin-library") is extractor_for("gutenberg-latin")
+    assert extractor_for("latin-library") is not None
+
+
 def test_formats_without_a_reader_yet_return_none_rather_than_raising():
-    """EpiDoc and plaintext are declared and not yet implemented."""
-    assert extractor_for("edh") is None
-    assert extractor_for("papyri-idp") is None
-    assert extractor_for("latin-library") is None
+    """What is left are the two sources that cannot be fetched anyway:
+    Corpus Corporum's TEI and IntraText's HTML."""
+    assert extractor_for("corpus-corporum") is None
+    assert extractor_for("intratext") is None
 
 
 def test_eval_tier_is_never_extractable(): 
@@ -278,3 +289,193 @@ def test_typographic_rend_values_are_untouched(tmp_path):
         '<p>uerba <seg rend="italics">notata</seg> et '
         '<seg rend="bold">clara</seg> manent</p>')
     assert "notata" in text and "clara" in text
+
+
+# --- EpiDoc -----------------------------------------------------------------
+#
+# Epigraphic convention differs from literary convention in ways that corrupt
+# text if the literary rules are applied. These pin each difference.
+
+from extract import EPIDOC, LATIN_LANGS, epidoc_edition, epidoc_province  # noqa: E402
+
+
+def epi(tmp_path, body, lang="la"):
+    """Walk an EpiDoc edition div under the epigraphic profile."""
+    xml = (f'<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body>'
+           f'<div type="edition" xml:lang="{lang}">{body}</div>'
+           f'</body></text></TEI>')
+    path = tmp_path / "i.xml"
+    path.write_text(xml, encoding="utf-8")
+    import xml.etree.ElementTree as ET
+    from extract import _walk, tidy
+    root = ET.parse(path).getroot()
+    div = epidoc_edition(root)
+    stats = Stats()
+    if div is None:
+        return None, stats
+    return " ".join(tidy(_walk(div, stats, "drop", EPIDOC)).split()), stats
+
+
+def test_line_break_separates_words_on_a_stone(tmp_path):
+    """The literary rule elides <lb/> because it falls mid-word in prose.
+
+    On a stone it is a word boundary — measured in EDH, 87.6% of them are.
+    Eliding them would weld CAIUS and UIBIUS into one token.
+    """
+    text, _ = epi(tmp_path, '<ab><lb n="1"/>Caius<lb n="2"/>Uibius</ab>')
+    assert text == "Caius Uibius"
+
+
+def test_break_no_means_the_word_continues(tmp_path):
+    text, _ = epi(tmp_path, '<ab><lb n="1"/>Cai<lb n="2" break="no"/>us</ab>')
+    assert text == "Caius"
+
+
+def test_the_head_reading_Text_is_dropped(tmp_path):
+    """Every EDH edition div opens with <head>Text</head>."""
+    text, _ = epi(tmp_path, '<head>Text</head><ab>Dis Manibus</ab>')
+    assert text == "Dis Manibus"
+
+
+def test_abbreviations_reach_the_corpus_expanded(tmp_path):
+    """Off(icina) is stored as Officina, matching what EDCS already supplies."""
+    text, _ = epi(tmp_path,
+                  '<ab><expan><abbr>Off</abbr><ex>icina</ex></expan></ab>')
+    assert text == "Officina"
+
+
+def test_editorial_restoration_is_kept(tmp_path):
+    """Conjecture, but it is the reading the edition asserts; dropping it
+    would leave shredded words behind."""
+    text, _ = epi(tmp_path, '<ab>Dis <supplied reason="lost">Manibus</supplied></ab>')
+    assert text == "Dis Manibus"
+
+
+def test_lost_text_contributes_nothing(tmp_path):
+    text, _ = epi(tmp_path,
+                  '<ab>Dis <gap reason="lost" unit="character"/> Manibus</ab>')
+    assert text == "Dis Manibus"
+
+
+def test_apparatus_marks_are_not_text(tmp_path):
+    text, _ = epi(tmp_path, '<ab>uixit <am>·</am>annos <surplus>X</surplus> L</ab>')
+    assert "·" not in text and "X" not in text
+    assert text.startswith("uixit annos")
+
+
+def test_a_greek_edition_is_not_offered_at_all(tmp_path):
+    """Papyri.info is 95% Greek; this filter is what lets one reader serve both."""
+    div, _ = epi(tmp_path, "<ab>μῆνιν ἄειδε</ab>", lang="grc")
+    assert div is None
+
+
+def test_both_latin_language_codes_are_accepted():
+    """Perseus tags editions lat (639-3); EDH and Papyri.info tag them la."""
+    assert {"la", "lat"} <= LATIN_LANGS
+
+
+def test_latin_edition_found_under_either_code(tmp_path):
+    for code in ("la", "lat"):
+        text, _ = epi(tmp_path, "<ab>Dis Manibus</ab>", lang=code)
+        assert text == "Dis Manibus", code
+
+
+def test_province_read_from_the_findspot(tmp_path):
+    import xml.etree.ElementTree as ET
+    xml = ('<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><sourceDesc>'
+           '<msDesc><history><origin><origPlace>'
+           '<placeName type="provinceItalicRegion">Raetia</placeName>'
+           '<placeName>Cambodunum</placeName>'
+           '</origPlace></origin></history></msDesc></sourceDesc></teiHeader></TEI>')
+    p = tmp_path / "g.xml"; p.write_text(xml, encoding="utf-8")
+    assert epidoc_province(ET.parse(p).getroot()) == "Raetia"
+
+
+def test_province_falls_back_rather_than_failing(tmp_path):
+    import xml.etree.ElementTree as ET
+    p = tmp_path / "n.xml"
+    p.write_text('<TEI xmlns="http://www.tei-c.org/ns/1.0"/>', encoding="utf-8")
+    assert epidoc_province(ET.parse(p).getroot()) == "incertae sedis"
+
+
+# --- plain text -------------------------------------------------------------
+#
+# feasibility.md §4.4 calls plain text the harder case: a TEI source names its
+# apparatus, here the same material is inline and must be recognised by shape.
+# Each of these pins one observed pattern, not a general heuristic — a general
+# heuristic on undifferentiated text deletes Latin.
+
+from extract import (clean_plaintext, plaintext_header,  # noqa: E402
+                     strip_trailing_byline)
+
+
+def test_header_splits_author_from_work():
+    assert plaintext_header("Sallust: Bellum Iugurthinum") == \
+        ("Sallust", "Bellum Iugurthinum")
+
+
+def test_header_without_a_colon_is_a_title_not_a_guess():
+    """About half the files carry a bare title or a bare name. Guessing which
+    would be worse than leaving the author unset for enrich.py to resolve."""
+    assert plaintext_header("DUODECIM TABULARUM LEGES") == \
+        (None, "DUODECIM TABULARUM LEGES")
+    assert plaintext_header("   ") == (None, None)
+
+
+def test_navigation_index_is_dropped():
+    """The site prints a section index under each title: 1 2 3 ... 114."""
+    stats = Stats()
+    text = clean_plaintext("1 2 3 4 5 6\nGallia est omnis\n", "latin-library", stats)
+    assert "Gallia est omnis" in text
+    assert "1 2 3" not in text
+    assert stats["dropped:navigation_line"] == 1
+
+
+def test_section_markers_go_but_editorial_brackets_stay():
+    """[ 1 ] is a section number; [et inde] is an editorial insertion that
+    normalize.py already counts and strips."""
+    stats = Stats()
+    text = clean_plaintext("[ 1 ] Falso queritur [et inde] genus\n",
+                           "latin-library", stats)
+    assert "[ 1 ]" not in text
+    assert "[et inde]" in text
+    assert stats["dropped:section_marks"] == 1
+
+
+def test_site_footer_takes_the_whole_line():
+    """It reads '  Sallust The Latin Library The Classics Page' — cutting at
+    the phrase would leave the author dangling as the last word of the work."""
+    stats = Stats()
+    text = clean_plaintext("in illo sitae.\n Sallust The Latin Library The Classics Page",
+                           "latin-library", stats)
+    assert "Latin Library" not in text and "Sallust" not in text
+    assert text.strip().endswith("in illo sitae.")
+
+
+def test_footer_spread_over_separate_lines_is_also_removed():
+    """Cicero's files put the byline on its own line above the site names."""
+    stats = Stats()
+    raw = "successum sit.\n\tCicero\n\tThe Latin Library\n\tThe Classics Page"
+    text = clean_plaintext(raw, "latin-library", stats, author="Cicero")
+    assert "Cicero" not in text
+    assert text.strip().endswith("successum sit.")
+
+
+def test_trailing_byline_only_strips_an_exact_repeat():
+    kept, n = strip_trailing_byline("bellum gessit\nCaesar imperator", "Caesar")
+    assert kept.endswith("Caesar imperator") and n == 0
+    cut, n = strip_trailing_byline("bellum gessit\nCaesar", "Caesar")
+    assert cut.strip() == "bellum gessit" and n == 1
+
+
+def test_gutenberg_boilerplate_is_cut_at_its_markers():
+    stats = Stats()
+    raw = ("This ebook is for the use of anyone anywhere...\n"
+           "*** START OF THE PROJECT GUTENBERG EBOOK AENEID ***\n"
+           "arma uirumque cano\n"
+           "*** END OF THE PROJECT GUTENBERG EBOOK AENEID ***\n"
+           "Updated editions will replace the previous one.\n")
+    text = clean_plaintext(raw, "gutenberg-latin", stats)
+    assert "arma uirumque cano" in text
+    assert "PROJECT GUTENBERG" not in text and "ebook" not in text
+    assert stats["pg_boilerplate_stripped"] == 1

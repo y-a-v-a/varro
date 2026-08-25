@@ -47,7 +47,7 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
@@ -55,8 +55,15 @@ INTERIM = ROOT / "data" / "interim"
 
 XML_LANG = "{http://www.w3.org/XML/1998/namespace}lang"
 CTS_NS = "{http://chs.harvard.edu/xmlns/cts}"
+TEI_NS = "{http://www.tei-c.org/ns/1.0}"
 
 GREEK_LANGS = {"grc", "greek", "gre"}
+
+# Latin under both standards. Perseus tags editions "lat" (ISO 639-3); EDH and
+# Papyri.info tag them "la" (ISO 639-1). Testing only for a "lat" prefix threw
+# away every EpiDoc edition div as a foreign language — silently, apart from a
+# dropped:lang:la counter nobody was reading.
+LATIN_LANGS = {"la", "lat", "latin"}
 
 # Elements whose entire subtree is discarded.
 DROP_SUBTREE = {
@@ -101,6 +108,44 @@ BLOCK = {"div", "div1", "div2", "div3", "p", "l", "lg", "head", "sp", "speaker",
 PARA = {"div", "div1", "div2", "p", "lg", "head", "sp"}
 
 
+# EpiDoc is TEI, but epigraphic convention differs from literary convention in
+# ways that silently corrupt text if the literary rules are applied to it.
+#
+#   <lb/>   In a literary edition a line break usually falls MID-WORD, so it is
+#           elided (see DROP_EMPTY_JOIN). On a stone it is a word boundary
+#           unless the editor says otherwise — measured in EDH: 12.4% carry
+#           break="no", the other 87.6% separate words. Eliding them all would
+#           weld "CAIUS" and "UIBIUS" into one token.
+#   <head>  Every EDH edition div opens with a <head> reading "Text". Kept, it
+#           would put that word at the head of all 79,206 records.
+#   <am>    The abbreviation mark itself (a stroke or symbol), not language.
+#   <surplus>, <g>, <certainty>  editorial apparatus, not text.
+#
+# What is deliberately KEPT: <expan>, whose <abbr> and <ex> children together
+# spell the expanded word — Off(icina) reaches the corpus as "Officina", which
+# is what EDCS already supplies — and <supplied>, the editor's restoration of
+# lost letters. Restorations are conjecture, but they are the reading the
+# edition asserts, and dropping them would leave shredded words behind.
+EPIDOC_DROP = DROP_SUBTREE | {"head", "am", "surplus", "g", "certainty",
+                              "milestone", "figure", "orig"}
+
+
+class Profile(NamedTuple):
+    """Which markup conventions a document follows."""
+    drop_subtree: frozenset
+    join_empty: frozenset      # elided to nothing: the break falls inside a word
+    space_empty: frozenset     # elided to a space: the break separates words
+    block: frozenset
+    para: frozenset
+
+
+LITERARY = Profile(frozenset(DROP_SUBTREE), frozenset(DROP_EMPTY_JOIN),
+                   frozenset(DROP_EMPTY_SPACE), frozenset(BLOCK), frozenset(PARA))
+EPIDOC = Profile(frozenset(EPIDOC_DROP), frozenset(),
+                 frozenset(DROP_EMPTY_SPACE) | {"lb", "cb", "pb"},
+                 frozenset({"ab", "div", "lg", "l"}), frozenset({"div"}))
+
+
 def localname(tag: str) -> str:
     return tag.rsplit("}", 1)[-1] if "}" in tag else tag
 
@@ -113,21 +158,24 @@ class Stats(Counter):
     """Counts of editorial interventions, so the pipeline reports what it did."""
 
 
-def _choice(elem: ET.Element, stats: Stats, greek: str) -> str:
+def _choice(elem: ET.Element, stats: Stats, greek: str,
+            profile: Profile = None) -> str:
     """<choice> holds competing readings. Prefer regularised / corrected."""
     children = {localname(c.tag): c for c in elem}
     for preferred, rejected in (("reg", "orig"), ("corr", "sic")):
         if preferred in children:
             if rejected in children:
                 stats[f"choice:{preferred}_over_{rejected}"] += 1
-            return _walk(children[preferred], stats, greek)
+            return _walk(children[preferred], stats, greek, profile)
     # No recognised preference — take the first child rather than lose text.
     for child in elem:
-        return _walk(child, stats, greek)
+        return _walk(child, stats, greek, profile)
     return elem.text or ""
 
 
-def _walk(elem: ET.Element, stats: Stats, greek: str) -> str:
+def _walk(elem: ET.Element, stats: Stats, greek: str,
+          profile: Profile = None) -> str:
+    profile = profile or LITERARY
     tag = localname(elem.tag)
 
     rend = elem.get("rend")
@@ -135,19 +183,23 @@ def _walk(elem: ET.Element, stats: Stats, greek: str) -> str:
         stats[f"dropped:rend:{rend}"] += 1
         return " "
 
-    if tag in DROP_SUBTREE:
+    if tag in profile.drop_subtree:
         stats[f"dropped:{tag}"] += 1
         return ""
-    if tag in DROP_EMPTY_JOIN:
+    # An explicit break="no" says the word continues across the break, which is
+    # the only case where eliding is right in an epigraphic text.
+    if tag in ("lb", "cb", "pb") and elem.get("break") == "no":
         return ""
-    if tag in DROP_EMPTY_SPACE:
+    if tag in profile.join_empty:
+        return ""
+    if tag in profile.space_empty:
         return " "
     if tag == "milestone":
         # <milestone unit="paragraph"/> is a structural break; others (section,
         # card, line numbering) are reference points inside running text.
         return "\n\n" if elem.get("unit") == "paragraph" else " "
     if tag == "choice":
-        return _choice(elem, stats, greek)
+        return _choice(elem, stats, greek, profile)
 
     # Language guard on ANY element, not just <foreign>. Perseus marks English
     # editorial front matter with xml:lang="eng" on ordinary structural elements
@@ -161,10 +213,10 @@ def _walk(elem: ET.Element, stats: Stats, greek: str) -> str:
                 return " "
             if greek == "tag":
                 inner = (elem.text or "") + "".join(
-                    _walk(c, stats, greek) + (c.tail or "") for c in elem)
+                    _walk(c, stats, greek, profile) + (c.tail or "") for c in elem)
                 return f" <GRAECUM> {' '.join(inner.split())} </GRAECUM> "
             # greek == "keep": fall through and treat as ordinary text
-        elif not lang.startswith("lat"):
+        elif lang not in LATIN_LANGS:
             stats[f"dropped:lang:{lang}"] += 1
             return " "
 
@@ -172,14 +224,14 @@ def _walk(elem: ET.Element, stats: Stats, greek: str) -> str:
     if elem.text:
         parts.append(elem.text)
     for child in elem:
-        parts.append(_walk(child, stats, greek))
+        parts.append(_walk(child, stats, greek, profile))
         if child.tail:
             parts.append(child.tail)
 
     text = "".join(parts)
-    if tag in PARA:
+    if tag in profile.para:
         return f"\n\n{text}\n\n"
-    if tag in BLOCK:
+    if tag in profile.block:
         return f"\n{text}\n"
     return text
 
@@ -1041,6 +1093,266 @@ def lasla_name(stem: str) -> Tuple[str, Optional[str], Optional[str]]:
 
 
 
+# EpiDoc inscriptions and papyri: EDH and Papyri.info share this reader.
+#
+# Records are batched by Roman province rather than one per stone. EDH holds
+# 79,206 inscriptions averaging a couple of dozen words; one record each would
+# give the corpus 79,206 documents whose validation split is meaningless — they
+# are anonymous, so each would be held out as its own group. Batching matches
+# what edcs-sdam already does and keeps the two epigraphic sources comparable.
+EPIDOC_BATCH_WORDS = 20_000
+
+PROVINCE_TYPES = ("provinceItalicRegion", "province")
+
+
+def epidoc_edition(root: ET.Element) -> Optional[ET.Element]:
+    """The Latin edition div, or None if this document has no Latin text.
+
+    Papyri.info is 95% Greek — measured at 201 Latin edition divs per 4,000
+    DDbDP files — so this filter is what makes one reader serve both sources.
+    """
+    for div in root.iter(f"{TEI_NS}div"):
+        if div.get("type") != "edition":
+            continue
+        lang = (div.get(XML_LANG) or "").lower()
+        if lang.startswith("la") and lang != "la-x-none":
+            return div
+    return None
+
+
+def epidoc_province(root: ET.Element) -> str:
+    for place in root.iter(f"{TEI_NS}placeName"):
+        if place.get("type") in PROVINCE_TYPES and (place.text or "").strip():
+            return " ".join(place.text.split())
+    return "incertae sedis"
+
+
+def extract_epidoc(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
+    entry = load_manifest_entry(source_id)
+    lock = load_lock_entry(source_id)
+    stats = Stats()
+    records: List[Dict[str, Any]] = []
+
+    root_dir = RAW / source_id
+    if not root_dir.exists():
+        raise RuntimeError(f"{root_dir} missing — fetched?")
+
+    # Only the directories holding editions. Papyri.info also ships metadata,
+    # bibliography and translations — the translations are modern English and
+    # would be a straight contamination of a corpus defined by excluding it.
+    subdirs = [d for d in ("inscriptions", "DDbDP", "DCLP") if (root_dir / d).is_dir()]
+    search = [root_dir / d for d in subdirs] or [root_dir]
+
+    by_province: Dict[str, List[str]] = defaultdict(list)
+    for base in search:
+        for path in sorted(base.rglob("*.xml")):
+            if limit is not None and stats["works_seen"] >= limit:
+                break
+            try:
+                root = ET.parse(path).getroot()
+            except ET.ParseError:
+                stats["parse_errors"] += 1
+                continue
+            stats["files_seen"] += 1
+            div = epidoc_edition(root)
+            if div is None:
+                stats["skipped:not_latin"] += 1
+                continue
+            stats["works_seen"] += 1
+            text = tidy(_walk(div, stats, greek, EPIDOC))
+            text = strip_inline_greek(text, stats, greek)
+            if not text.strip():
+                stats["empty_after_extraction"] += 1
+                continue
+            by_province[epidoc_province(root)].append(" ".join(text.split()))
+
+    for province in sorted(by_province):
+        batch, words, part = [], 0, 0
+        for line in by_province[province]:
+            batch.append(line)
+            words += len(line.split())
+            if words >= EPIDOC_BATCH_WORDS:
+                part += 1
+                records.append(_epidoc_record(source_id, entry, lock, province,
+                                              part, batch, stats))
+                batch, words = [], 0
+        if batch:
+            part += 1
+            records.append(_epidoc_record(source_id, entry, lock, province,
+                                          part, batch, stats))
+    return records, stats
+
+
+def _epidoc_record(source_id, entry, lock, province, part, lines, stats):
+    text = "\n".join(lines)
+    n_words = len(text.split())
+    stats["words"] += n_words
+    stats["records"] += 1
+    return {
+        "id": f"{source_id}/{province.replace(' ', '_')}-{part:02d}",
+        "text": text,
+        "author": None,
+        "work": f"Inscriptiones: {province} ({part})",
+        "approximate_date": None,
+        "period": entry.get("period"),
+        "genre": None,
+        "source": source_id,
+        "source_url": entry.get("url"),
+        "source_version": lock.get("resolved_pin"),
+        "license": entry.get("license"),
+        "text_provenance": entry.get("text_provenance", "unknown"),
+        "edition": entry.get("name"),
+        "language_variant": "lat",
+        "n_words": n_words,
+    }
+
+
+
+# Plain text: the Latin Library and Project Gutenberg.
+#
+# feasibility.md §4.4 calls plain text the harder case, and it is right. A TEI
+# source hands you its apparatus in named elements; here the same material —
+# running heads, section numbers, navigation, site furniture — is inline and
+# has to be recognised by shape. Everything below is a rule about a specific
+# observed pattern, not a general heuristic, because a general heuristic on
+# undifferentiated text deletes Latin.
+
+# " 1 2 3 4 5 ... 114 " — the section index the site prints under each title.
+NAV_LINE = re.compile(r"^[\s\d]+$")
+# "[ 1 ]" as a standalone marker. Editorial brackets around WORDS are left for
+# normalize.py, which already counts and strips them.
+SECTION_MARK = re.compile(r"\[\s*\d+\s*\]")
+# The site footer, English, in 2,130 of 2,141 files. The whole LINE goes, not
+# just the phrase: it reads "  Sallust The Latin Library The Classics Page", so
+# cutting at the phrase leaves the author's name dangling as if it were text.
+LL_FOOTER = re.compile(r"\n[^\n]*\b(?:The Latin Library|The Classics Page)\b.*$", re.S)
+# Project Gutenberg wraps every text in English boilerplate between these.
+PG_START = re.compile(r"^\*\*\*\s*START OF TH(IS|E) PROJECT GUTENBERG.*$", re.M)
+PG_END = re.compile(r"^\*\*\*\s*END OF TH(IS|E) PROJECT GUTENBERG.*$", re.M)
+
+
+def plaintext_header(first: str) -> Tuple[Optional[str], Optional[str]]:
+    """Author and work from the Latin Library's first line.
+
+    About half carry "Author: Work"; the rest carry a bare title, or a bare
+    author name. Guessing which is which would be worse than admitting the
+    ambiguity, so a line without a colon becomes the work and leaves the author
+    unset — enrich.py resolves authors from its own authority file anyway.
+    """
+    line = " ".join(first.split())
+    if not line:
+        return None, None
+    if ": " in line:
+        author, _, work = line.partition(": ")
+        return author.strip() or None, work.strip() or None
+    return None, line
+
+
+def strip_trailing_byline(text: str, *names: Optional[str]) -> Tuple[str, int]:
+    """Drop trailing lines that merely repeat the author or title.
+
+    The Latin Library's footer is three lines — the author, then the two site
+    names. Cutting at the site names leaves the author standing alone at the
+    end of the text, where it reads as the last word of the work.
+    """
+    wanted = {" ".join(n.lower().split()) for n in names if n}
+    if not wanted:
+        return text, 0
+    lines = text.rstrip().split("\n")
+    removed = 0
+    while lines and " ".join(lines[-1].lower().split()) in wanted:
+        lines.pop()
+        removed += 1
+    return "\n".join(lines), removed
+
+
+def clean_plaintext(raw: str, source_id: str, stats: Stats,
+                    author: Optional[str] = None,
+                    work: Optional[str] = None) -> str:
+    body = raw
+    if PG_START.search(body) and PG_END.search(body):
+        body = body[PG_START.search(body).end():PG_END.search(body).start()]
+        stats["pg_boilerplate_stripped"] += 1
+
+    lines = body.splitlines()
+    kept: List[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            kept.append("")
+            continue
+        if NAV_LINE.match(stripped):
+            stats["dropped:navigation_line"] += 1
+            continue
+        kept.append(stripped)
+
+    text = "\n".join(kept)
+    text, marks = SECTION_MARK.subn(" ", text)
+    stats["dropped:section_marks"] += marks
+    cut = LL_FOOTER.search(text)
+    if cut:
+        text = text[:cut.start()]
+        stats["dropped:site_footer"] += 1
+    text, bylines = strip_trailing_byline(text, author, work)
+    stats["dropped:trailing_byline"] += bylines
+    return text
+
+
+def extract_plaintext(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
+    entry = load_manifest_entry(source_id)
+    lock = load_lock_entry(source_id)
+    stats = Stats()
+    records: List[Dict[str, Any]] = []
+
+    root_dir = RAW / source_id
+    if not root_dir.exists():
+        raise RuntimeError(f"{root_dir} missing — fetched?")
+    files = sorted(root_dir.rglob("*.txt"))
+    if not files:
+        raise RuntimeError(f"no .txt under {root_dir} — fetched?")
+
+    for path in files:
+        if limit is not None and len(records) >= limit:
+            break
+        stats["works_seen"] += 1
+        raw = path.read_text(encoding="utf-8", errors="replace")
+        first, _, rest = raw.partition("\n")
+        author, work = plaintext_header(first)
+        # A file in a per-author directory says so more reliably than its
+        # header does: cicero/phil10.txt is Cicero whatever line one says.
+        if path.parent != root_dir:
+            author = author or path.parent.name.replace("_", " ").title()
+
+        text = clean_plaintext(rest, source_id, stats, author, work)
+        text = strip_inline_greek(tidy(text), stats, greek)
+        text = drop_english_paragraphs(text, stats)
+        if len(text.split()) < 20:
+            stats["empty_after_extraction"] += 1
+            continue
+
+        records.append({
+            "id": f"{source_id}/{path.relative_to(root_dir).with_suffix('')}",
+            "text": text,
+            "author": author,
+            "work": work,
+            "approximate_date": None,
+            "period": entry.get("period"),
+            "genre": None,
+            "source": source_id,
+            "source_url": entry.get("url"),
+            "source_version": lock.get("resolved_pin"),
+            "license": entry.get("license"),
+            "text_provenance": entry.get("text_provenance", "unknown"),
+            "edition": entry.get("name"),
+            "language_variant": "lat",
+            "n_words": len(text.split()),
+        })
+        stats["records"] += 1
+        stats["words"] += records[-1]["n_words"]
+    return records, stats
+
+
+
 # ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
@@ -1068,6 +1380,8 @@ FORMAT_EXTRACTORS = {
     "edcs-json": extract_edcs,
     "mediawiki-xml": extract_vicifons,
     "lasla-conllup": extract_lasla,
+    "epidoc-xml": extract_epidoc,
+    "txt": extract_plaintext,
 }
 
 
