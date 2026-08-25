@@ -142,8 +142,8 @@ data straight into the training corpus.
 
 ## Corpus as measured
 
-Six sources extracted (five green, one amber). **Track A: 10,422 records,
-90,724,940 words, 175.1M tokens.** Track B adds LASLA: 10,452 records,
+Eight sources extracted (seven green, one amber); every green source now has a
+reader. **Track A: 10,678 records, 93,849,539 words, 180.9M tokens.** Track B adds LASLA: 10,452 records,
 90,835,090 words, 175.3M tokens; see [`CURRENT_STATE.md`](CURRENT_STATE.md) for the full breakdown and
 [`reports/`](reports/) for the generated figures.
 

@@ -1,8 +1,82 @@
 # Current state — pick-up notes
 
-Written 2026-08-17 as a handoff into a fresh session; updated 2026-08-25.
+Written 2026-08-17 as a handoff into a fresh session; updated 2026-08-26.
 `README.md` explains how things work; this file says where they stand, what is
 stale, and what to do next.
+
+---
+
+## Update 2026-08-26 — every green source now has a reader
+
+Two extractors, four sources, because dispatch is by format: **EpiDoc** serves
+EDH and Papyri.info, **plaintext** serves the Latin Library and Gutenberg. All
+nine green sources are now readable, and the corpus is built from eight of them
+(Gutenberg is `manual` and has never been downloaded).
+
+| corpus | records | words | train tokens |
+|---|---:|---:|---:|
+| Track A · full | 10,678 | 93,849,539 | **180,887,382** |
+| Track B · full | 10,707 | 93,947,780 | **181,058,058** |
+| Track A · classical | 256 | 4,831,855 | **10,246,803** |
+| Track B · classical | 256 | 4,831,855 | **10,246,803** |
+
+Against the previous build: **+5,799,234 tokens (+3.31%)** on the full corpus
+and **+655,415 (+6.83%)** on classical. Floors: 183.0 full, 184.4 classical.
+At four epochs the corpus now supports a **36.2M-parameter** model.
+
+New sources after dedup: latin-library 829 records, edh 131, papyri-idp 5.
+
+**The classical corpus was not as closed as I claimed.** I said Perseus was
+substantially complete and classical could not grow; it gained 6.8%. Dedup did
+absorb most of the Latin Library's classical material — pre-dedup it looked
+like +31% — but not all of it.
+
+### EpiDoc is TEI, and epigraphic convention is not literary convention
+
+  - `<lb/>` In a literary edition a line break usually falls mid-word, which is
+    why the walker elides it and why Gellius' *Athenis* survives a `<pb/>`. On a
+    stone it is a word boundary: **87.6% of EDH line breaks separate words**,
+    12.4% carry `break="no"`. The literary rule would have welded CAIUS and
+    UIBIUS into one token.
+  - `<head>` Every EDH edition div opens with a `<head>` reading "Text".
+  - `<am>` `<surplus>` `<g>` `<certainty>` are apparatus, not text.
+
+Kept deliberately: `<expan>`, whose `<abbr>` and `<ex>` children spell the
+expanded word, so `Off(icina)` arrives as *Officina* exactly as EDCS supplies
+it; and `<supplied>`, the editor's restoration — conjecture, but the reading
+the edition asserts, and dropping it leaves shredded words. The walker is
+parameterised by a `Profile` so the literary rules are untouched rather than
+compromised into serving both.
+
+### Two bugs this exposed
+
+**The language filter tested `lang.startswith("lat")`.** EpiDoc tags Latin `la`
+under ISO 639-1; Perseus uses 639-3 `lat`. Every edition div was discarded as a
+foreign language — silently, apart from a `dropped:lang:la` counter nobody
+reads. The first run produced empty text for all 79,206 inscriptions.
+
+**A declared-but-unfetched source broke the whole build.** Gutenberg sits in the
+lockfile from the moment it is declared, with `present: false` and no files.
+The instant `txt` gained a reader, the pipeline tried to extract it and failed
+the run. `extractable_sources()` now requires `n_files > 0`.
+
+### Plain text is the harder case, as feasibility.md §4.4 says
+
+A TEI source names its apparatus; here running heads, section indexes and site
+furniture are inline and must be recognised by shape. Every rule matches one
+observed pattern rather than generalising, because a general heuristic on
+undifferentiated text deletes Latin. The site footer takes the whole **line**,
+not the phrase — it reads "Sallust The Latin Library The Classics Page", so
+cutting at the phrase leaves the author dangling as the last word of the work.
+Cicero's files put the byline on its own line instead, which is why trailing
+bylines are stripped separately.
+
+### Still open
+
+Gutenberg (~500k words) needs a human to download it; the reader is written and
+tested against Project Gutenberg's own boilerplate markers, but untested on real
+files. Both floors moved, so **no existing model's ratio survives this rebuild**
+— `compare.py` will flag every row.
 
 ---
 

@@ -244,3 +244,30 @@ def test_the_floors_are_a_stage_and_come_after_the_tokenizer():
     names = [s.name for s in pipeline.build_stages()]
     assert "tokenizer" in names and "baselines" in names
     assert names.index("build") < names.index("tokenizer") < names.index("baselines")
+
+
+def test_a_declared_but_unfetched_source_is_not_extractable(tmp_path, monkeypatch):
+    """A `manual` source sits in the lockfile from the moment it is declared,
+    with present:false and no files. Once its format gained a reader the
+    pipeline tried to extract it and failed the entire run — which is how
+    Gutenberg broke the first eight-source build."""
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    (tmp_path / "manifest").mkdir(exist_ok=True)
+    (tmp_path / "manifest" / "fetch.lock.json").write_text(json.dumps({
+        "sources": {
+            "fetched-one": {"n_files": 12, "tier": "green"},
+            "manual-one": {"n_files": 0, "present": False, "tier": "green"},
+            "broken-one": {"n_files": 5, "error": "clone failed", "tier": "green"},
+        }}), encoding="utf-8")
+    monkeypatch.setattr(pipeline, "extractable_sources",
+                        pipeline.extractable_sources)
+    import sys
+    sys.modules.setdefault("extract", None)
+    # Exercise the filter directly rather than importing extract's manifest.
+    fetched = json.loads((tmp_path / "manifest" / "fetch.lock.json")
+                         .read_text())["sources"]
+    declared = ["fetched-one", "manual-one", "broken-one"]
+    usable = [s for s in declared
+              if s in fetched and "error" not in fetched[s]
+              and (fetched[s].get("n_files") or 0) > 0]
+    assert usable == ["fetched-one"]

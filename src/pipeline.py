@@ -158,8 +158,13 @@ def extractable_sources() -> List[str]:
         return []
     with lock_path.open(encoding="utf-8") as fh:
         fetched = json.load(fh).get("sources", {})
+    # n_files, not mere presence in the lockfile. A `manual` source is recorded
+    # there the moment it is declared, with present:false and no files — and
+    # once its format gains a reader, the pipeline would try to extract it and
+    # fail the whole run. Gutenberg is exactly that case.
     return [s for s in declared()
-            if s in fetched and "error" not in fetched[s]]
+            if s in fetched and "error" not in fetched[s]
+            and (fetched[s].get("n_files") or 0) > 0]
 
 
 LOCKFILE_IDENTITY_KEYS = ("resolved_pin", "license", "tier", "method", "url",

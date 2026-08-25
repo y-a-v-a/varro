@@ -1309,7 +1309,12 @@ def extract_plaintext(source_id: str, greek: str, limit: Optional[int]) -> Tuple
         raise RuntimeError(f"{root_dir} missing — fetched?")
     files = sorted(root_dir.rglob("*.txt"))
     if not files:
-        raise RuntimeError(f"no .txt under {root_dir} — fetched?")
+        entry_method = entry.get("method")
+        raise RuntimeError(
+            f"no .txt under {root_dir}. "
+            + (f"`{source_id}` is a manual source: download it from "
+               f"{entry.get('url')} and place the files there."
+               if entry_method == "manual" else "Fetched?"))
 
     for path in files:
         if limit is not None and len(records) >= limit:
