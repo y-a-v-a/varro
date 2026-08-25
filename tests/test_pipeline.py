@@ -271,3 +271,29 @@ def test_a_declared_but_unfetched_source_is_not_extractable(tmp_path, monkeypatc
               if s in fetched and "error" not in fetched[s]
               and (fetched[s].get("n_files") or 0) > 0]
     assert usable == ["fetched-one"]
+
+
+# --- a fingerprint must describe the inputs the stage actually read ---------
+
+def test_a_stage_edited_while_running_is_not_recorded_as_fresh(
+        tmp_path, monkeypatch):
+    """Recording after the run stamps output with code that never made it.
+
+    Hit for real: extract.py was edited while the extract stage was working,
+    the stage recorded the new source, and the pipeline then reported extract
+    as up to date over an interim built by the old code. Fingerprinting at the
+    moment the stage starts is what makes the record describe the run.
+    """
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    stage = make_stage(tmp_path)
+
+    at_start = stage.fingerprint("")
+    # The stage is running; someone commits an edit to its script.
+    (tmp_path / "script.py").write_text("print('edited mid-run')\n",
+                                        encoding="utf-8")
+    at_end = stage.fingerprint("")
+
+    assert at_start != at_end, "the edit must be visible to the fingerprint"
+    # The pipeline records at_start, so the next run sees the stage as stale
+    # and rebuilds it with the edited code.
+    assert stage.fingerprint("") != at_start

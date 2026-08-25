@@ -35,13 +35,21 @@ WHY THE LOCKFILE IS PROJECTED RATHER THAN HASHED
     that keeps what determines its output (pins, checksums, licence, tier) and
     drops the timestamps.
 
-WHY A STAGE IS FINGERPRINTED AGAIN AFTER IT RUNS
+WHY A STAGE IS FINGERPRINTED AGAIN, AND WHEN
     fetch mutates the lockfile, which is an input to the stage after it, so a
     plan computed up front describes the inputs as they were *before* the run.
     Recording those would be wrong in both directions: unchanged pins would
     look changed, and — worse — a pin that genuinely moved during the fetch
-    would be recorded under its old value, marking a stale build fresh. Each
-    stage is therefore re-fingerprinted at the moment its result is recorded.
+    would be recorded under its old value, marking a stale build fresh.
+
+    So each stage is fingerprinted again — but at the moment it STARTS, not
+    the moment it finishes. By then every earlier stage has run and the
+    lockfile holds the pins this stage is about to read, which is what the
+    paragraph above requires. Fingerprinting afterwards instead would record
+    whatever the inputs became *during* the run: edit an extractor while it is
+    working and its output is stamped with code that never produced it, and
+    the stage then reads as fresh for good. A fingerprint has to describe the
+    inputs the stage actually used.
 
 Usage:
     python src/pipeline.py --status         # what is stale and why
@@ -359,8 +367,9 @@ def main() -> int:
     print()
     started = time.time()
     # The chain is rebuilt as we go: a stage that ran is fingerprinted again
-    # afterwards, so inputs it or an earlier stage rewrote (fetch rewrites the
-    # lockfile) are recorded as they ended up, not as they were at plan time.
+    # just before it starts, so inputs an earlier stage rewrote (fetch
+    # rewrites the lockfile) are recorded as they now are rather than as they
+    # were at plan time — and so what is recorded is what the stage read.
     chained = ""
     for stage, planned, run, _, pending in plan:
         incoming = chained
@@ -368,6 +377,10 @@ def main() -> int:
             chained = planned
             continue
         print(f"[{stage.name}]", flush=True)
+        used = stage.fingerprint(incoming)
+        used_parts = ({part.name: stage.part_fingerprint(incoming, part)
+                       for part in stage.parts}
+                      if stage.parts is not None else None)
         try:
             # None means the whole stage; a list means only these parts.
             stage.run([part.argv for part in pending] if pending else None)
@@ -378,12 +391,10 @@ def main() -> int:
             save_state({"stages": recorded, "parts": recorded_parts,
                         "updated": datetime.now(timezone.utc).isoformat(timespec="seconds")})
             return 1
-        chained = stage.fingerprint(chained)
-        recorded[stage.name] = chained
-        if stage.parts is not None:
-            recorded_parts[stage.name] = {
-                part.name: stage.part_fingerprint(incoming, part)
-                for part in stage.parts}
+        chained = used
+        recorded[stage.name] = used
+        if used_parts is not None:
+            recorded_parts[stage.name] = used_parts
         save_state({"stages": recorded, "parts": recorded_parts,
                     "updated": datetime.now(timezone.utc).isoformat(timespec="seconds")})
         print()
