@@ -306,6 +306,58 @@ authors:
 # Works — for anonymous material where the WORK is datable though the author
 # is not. Matched on the exact `work` field, and takes precedence over author.
 # ---------------------------------------------------------------------------
+  # --- CSEL editors --------------------------------------------------------
+  #
+  # The Vienna corpus prints a preface or prolegomena with each volume, and
+  # those are Latin prose in their own right — 445k words of it. They are not
+  # the patristic text they introduce, though: they were written between 1867
+  # and 1934, so without entries here the csel source prior would file
+  # Wilhelm von Hartel under LATE alongside Cyprian.
+  #
+  # floruit is the year of the editor's earliest volume in the repository, so
+  # it is a documented publication date rather than a biographical estimate.
+  # The alias lists carry the spelling variants the volume headers actually
+  # use: Latin and German forms of one name, and OCR damage on top.
+  - {aliases: ["Carolus Halm"], canonical: Carolus Halm, floruit: 1867, confidence: high}
+  - {aliases: ["Guilelmus Hartelius", "Guilelmus Hartel"], canonical: Guilelmus Hartel,
+     floruit: 1868, confidence: high, note: "Wilhelm von Hartel; the headers give both Latin forms."}
+  - {aliases: ["Augustus Reifferscheidius", "Augustus Reifferscheid"],
+     canonical: Augustus Reifferscheid, floruit: 1875, confidence: high}
+  - {aliases: ["Michael Petschenig"], canonical: Michael Petschenig, floruit: 1881, confidence: high}
+  - {aliases: ["Carolus Zangemeister"], canonical: Carolus Zangemeister, floruit: 1882, confidence: high}
+  - {aliases: ["Franciscus Pauly"], canonical: Franciscus Pauly, floruit: 1883, confidence: high}
+  - {aliases: ["Pius Knoell", "Pius Knöll"], canonical: Pius Knoell, floruit: 1885, confidence: high}
+  - {aliases: ["Iohannes Huemer"], canonical: Iohannes Huemer, floruit: 1885, confidence: high}
+  - {aliases: ["Franciscus Weihrich"], canonical: Franciscus Weihrich, floruit: 1887, confidence: high}
+  - {aliases: ["Bernhardus Dombart"], canonical: Bernhardus Dombart, floruit: 1887, confidence: high}
+  - {aliases: ["Georgius Schepss"], canonical: Georgius Schepss, floruit: 1889, confidence: high}
+  - {aliases: ["Samuel Brandt", "SAMVEL BRANDT", "S Brandt"], canonical: Samuel Brandt,
+     floruit: 1890, confidence: high, note: "CSEL48 gives the name in capitals and CSEL48-grc-ss abbreviates it."}
+  - {aliases: ["Augustus Engelbrecht"], canonical: Augustus Engelbrecht, floruit: 1891, confidence: high}
+  - {aliases: ["Antonius Zingerle"], canonical: Antonius Zingerle, floruit: 1891, confidence: high}
+  - {aliases: ["Rudolfus Peiper"], canonical: Rudolfus Peiper, floruit: 1891, confidence: high}
+  - {aliases: ["Iosephus Zicha", "Iosephus Zycha"], canonical: Iosephus Zycha,
+     floruit: 1891, confidence: high, note: "Zicha is an OCR reading of Zycha."}
+  - {aliases: ["Carolus Ziwsa"], canonical: Carolus Ziwsa, floruit: 1893, confidence: high}
+  - {aliases: ["Carolus Wotke"], canonical: Carolus Wotke, floruit: 1894, confidence: high}
+  - {aliases: ["Al. Goldbacher", "Alois Goldbacher"], canonical: Alois Goldbacher,
+     floruit: 1895, confidence: high}
+  - {aliases: ["Otto Guenther"], canonical: Otto Guenther, floruit: 1895, confidence: high}
+  - {aliases: ["Carolus Schenkl"], canonical: Carolus Schenkl, floruit: 1896, confidence: high}
+  - {aliases: ["Carolus Boysen"], canonical: Carolus Boysen, floruit: 1898, confidence: high}
+  - {aliases: ["Fridericus Marx"], canonical: Fridericus Marx, floruit: 1898, confidence: high}
+  - {aliases: ["Paulus Geyer"], canonical: Paulus Geyer, floruit: 1898, confidence: high}
+  - {aliases: ["Emanuel Hoffmann"], canonical: Emanuel Hoffmann, floruit: 1899, confidence: high}
+  - {aliases: ["Carolus Vrba", "Carolus F. Vrba"], canonical: Carolus Vrba, floruit: 1902, confidence: high}
+  - {aliases: ["Edvardus Bratke"], canonical: Edvardus Bratke, floruit: 1904, confidence: high}
+  - {aliases: ["Aemilius Kroymann"], canonical: Aemilius Kroymann, floruit: 1906, confidence: high}
+  - {aliases: ["Alexander Souter"], canonical: Alexander Souter, floruit: 1908, confidence: high}
+  - {aliases: ["Isidorus Hilberg"], canonical: Isidorus Hilberg, floruit: 1910, confidence: high}
+  - {aliases: ["Sigofredus Reiter"], canonical: Sigofredus Reiter, floruit: 1913, confidence: high}
+  - {aliases: ["Johannis Haussleiter"], canonical: Johannis Haussleiter, floruit: 1916, confidence: high}
+  - {aliases: ["Alfredus Feder"], canonical: Alfredus Feder, floruit: 1916, confidence: high}
+  - {aliases: ["Guilelmus Weinberger"], canonical: Guilelmus Weinberger, floruit: 1934, confidence: high}
+
 works:
   - {aliases: ["Digesta seu Pandectae"], floruit: 533, confidence: high,
      note: "Promulgated 533 under Justinian; compiled from classical jurists of the
