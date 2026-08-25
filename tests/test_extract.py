@@ -479,3 +479,204 @@ def test_gutenberg_boilerplate_is_cut_at_its_markers():
     assert "arma uirumque cano" in text
     assert "PROJECT GUTENBERG" not in text and "ebook" not in text
     assert stats["pg_boilerplate_stripped"] == 1
+
+
+# --- CSEL volumes: separating edited text from editorial apparatus ----------
+#
+# A quarter of the Volumes/ tree is index locorum, index verborum, sigla and
+# corrigenda. Training on it would teach the model page-and-line references,
+# and the markup cannot be trusted to identify it: CSEL48 files 68,471 words
+# of INDEX VERBORVM under subtype="chapter", while CSEL65 files a real work
+# under subtype="MSS".
+
+from extract import (APPARATUS_HEAD, EDITORIAL_SUBTYPES,  # noqa: E402
+                     apparatus_features, classify_division,
+                     drop_apparatus_paragraphs)
+
+PROSE = ("Chronicorum libri quos Sulpicius Seuerus composuit primum editi "
+         "sunt a Flacio Illyrico sub hoc titulo et de his rebus non satis "
+         "constat cum plures codices inter se discrepent atque ideo ")
+INDEX = ("Vaticanus 496 p. XXV. XXVI. Vaticanus 499 p. V. VI. XXII. XXV 34 "
+         "Vaticanus 503 p. LXIX. Vaticanus 512 p. 68 69 Vaticanus 1342 p. 63 ")
+
+
+def test_features_none_on_empty():
+    assert apparatus_features("") is None
+
+
+def test_features_separate_prose_from_index():
+    prose = apparatus_features(PROSE * 3)
+    index = apparatus_features(INDEX * 3)
+    assert prose.digit < 0.01 and index.digit > 0.20
+    assert prose.function > index.function
+
+
+def test_index_head_beats_prose_markup():
+    """The CSEL48 case: 68k words of index declared to be a chapter."""
+    verdict, reason = classify_division(PROSE * 5, "chapter",
+                                        "III. INDEX VERBORVM")
+    assert (verdict, reason) == ("apparatus", "head")
+
+
+def test_head_match_survives_ocr_damage():
+    """TNDEX, INDBX and YERBORVM are all real readings in this repo."""
+    for head in ("TNDEX V", "INDBX SRAECVS", "1NDEX AVCTORVM", "INDTCES"):
+        assert APPARATUS_HEAD.search(head), head
+
+
+def test_head_pattern_does_not_fire_inside_a_title():
+    assert not APPARATUS_HEAD.search("DE INDICE ANIMAE")
+    assert not APPARATUS_HEAD.search("LIBER AD CONSTANTIUM IMPERATOREM")
+
+
+def test_content_override_catches_unlabelled_index():
+    verdict, reason = classify_division(INDEX * 5, "chapter", "")
+    assert (verdict, reason) == ("apparatus", "content")
+
+
+def test_content_override_rescues_a_work_filed_as_mss():
+    """The CSEL65 case: Liber ad Constantium, subtype='MSS'."""
+    verdict, reason = classify_division(PROSE * 5, "MSS", "III. LIBER AD "
+                                        "CONSTANTIUM IMPERATOREM")
+    assert (verdict, reason) == ("prose", "content")
+
+
+def test_verse_is_not_mistaken_for_a_word_list():
+    """Poetry drops connectives, so it looks list-like on function words.
+
+    Measured: hymns run 6% function words and a cento 8.6%, against 4.5% for
+    the sigla lists the floor exists to catch. A filter that cannot tell a
+    hymn from an index is not usable on a volume of Christian poetry.
+    """
+    hymn = ("Aeterne rerum conditor noctem diemque qui regis "
+            "et temporum das tempora ut alleues fastidium ") * 8
+    verdict, _ = classify_division(hymn, "poem", "HVMNVS I")
+    assert verdict == "prose"
+
+
+def test_short_division_falls_back_to_markup():
+    assert classify_division("breuis oratio est", "work", "") == ("prose", "markup")
+    assert classify_division("breuis oratio est", "index", "") == ("apparatus", "markup")
+
+
+def test_unknown_subtype_without_signal_is_rejected():
+    """Neither head nor content decides, and the markup is not a prose claim."""
+    neutral = "Roma Carthago Athenae Corinthus Sparta Thebae Mediolanum " * 9
+    assert classify_division(neutral, "wibble", "")[0] == "apparatus"
+
+
+def test_paragraph_pass_keeps_prologue_drops_citation_table():
+    """Priscillian's Canones: a prose prologue, then bare scripture refs."""
+    stats = Stats()
+    text = (PROSE * 3) + "\n\n" + ("Cor. I. 61. 69. Tim. I. 13. 14. Hebr. 18. "
+                                   "19. Rom. 3. 114. Cor. II. 4. 13. 14. ") * 4
+    out = drop_apparatus_paragraphs(text, stats)
+    assert "Sulpicius" in out
+    assert "Hebr." not in out
+    assert stats["dropped:apparatus_paragraphs"] == 1
+
+
+def test_paragraph_pass_leaves_clean_prose_untouched():
+    stats = Stats()
+    text = (PROSE * 3) + "\n\n" + (PROSE * 2)
+    assert drop_apparatus_paragraphs(text, stats) == text
+    assert stats["dropped:apparatus_paragraphs"] == 0
+
+
+def test_short_paragraphs_are_never_dropped():
+    """Below the profiling floor the rates are noise, and a drop is final."""
+    stats = Stats()
+    text = "Cor. I. 61. 69. Tim. I. 13."
+    assert drop_apparatus_paragraphs(text, stats) == text
+
+
+def test_editorial_subtypes_are_the_ones_dated_separately():
+    assert EDITORIAL_SUBTYPES == {"preface", "prolegomena"}
+
+
+# --- CSEL volumes: one source, two layouts ----------------------------------
+
+from extract import (LAYOUT_CONTAINMENT, VolumeMeta, _one_name,  # noqa: E402
+                     containment, csel_volume_meta, shingle_sample)
+
+CSEL_HEADER = """<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc>
+<titleStmt>
+  <title>Corpus Scriptorum Ecclesiasticorum Latinorum (CSEL)</title>
+  <title ref="http://data.perseus.org/catalog/urn:cts:latinLit:stoa0040a.stoa002"
+    >Quaestiones veteris et novi testamenti</title>
+  <author ref="urn:cite:perseus:cattg.1784.1">Pseudo-Augustinus</author>
+  <editor>Alexander Souter Alexander Souter</editor>
+</titleStmt>
+<publicationStmt><date>2014</date></publicationStmt>
+<sourceDesc><bibl><date>1908</date></bibl></sourceDesc>
+</fileDesc></teiHeader><text><body/></text></TEI>"""
+
+
+def _meta(xml=CSEL_HEADER):
+    import xml.etree.ElementTree as ET
+    return csel_volume_meta(ET.fromstring(xml))
+
+
+def test_volume_meta_reads_author_editor_and_titles():
+    meta = _meta()
+    assert meta.author == "Pseudo-Augustinus"
+    assert meta.editor == "Alexander Souter"
+    assert meta.titles == {"stoa0040a.stoa002":
+                           "Quaestiones veteris et novi testamenti"}
+    assert meta.volume_title == "Quaestiones veteris et novi testamenti"
+
+
+def test_edition_year_is_the_printing_not_the_encoding():
+    """Volumes carry two dates: 1908 in print, 2014 keyed in at Leipzig."""
+    assert _meta().edition_year == 1908
+
+
+def test_volume_meta_survives_a_missing_header():
+    import xml.etree.ElementTree as ET
+    meta = csel_volume_meta(ET.fromstring('<TEI xmlns="http://www.tei-c.org/'
+                                          'ns/1.0"><text/></TEI>'))
+    assert meta == VolumeMeta(None, None, None, None, {})
+
+
+def test_editor_name_splits_on_the_repeated_surname():
+    assert _one_name("Alexander Souter Alexander Souter") == "Alexander Souter"
+    assert _one_name("Franciscus Weihrich Franz Weihrich") == "Franciscus Weihrich"
+    assert _one_name("Carolus F. Vrba Karl F. Vrba") == "Carolus F. Vrba"
+
+
+def test_editor_name_handles_an_odd_length_pair():
+    """`von` makes the halves uneven; the surname still marks the split."""
+    assert _one_name("Guilelmus Hartelius Wilhelm von Hartel") == \
+        "Guilelmus Hartelius"
+
+
+def test_editor_name_does_not_halve_a_single_name():
+    """SAMVEL BRANDT is one man, and halving would publish him as SAMVEL."""
+    assert _one_name("SAMVEL BRANDT") == "SAMVEL BRANDT"
+
+
+def test_shingle_sample_is_stable_across_processes():
+    """str.__hash__ is salted per process; a salted corpus is not reproducible.
+
+    The expected value is pinned, so a change of hash primitive fails here
+    rather than silently reshuffling which divisions the corpus contains.
+    """
+    sample = shingle_sample("et in non est ad cum qui quod ut sed de ex si "
+                            "enim autem quia per atque sunt esse")
+    assert sample == {4729887682581808288}
+
+
+def test_shingle_sample_ignores_orthography():
+    assert shingle_sample("VIVAT REX IVLIVS CAESAR AVGVSTVS") == \
+           shingle_sample("uiuat rex iulius caesar augustus")
+
+
+def test_containment_detects_the_same_text_in_a_second_layout():
+    words = ("alpha beta gamma delta epsilon zeta eta theta iota kappa "
+             "lambda mu nu xi omicron pi").split()
+    text = " ".join(f"{a} sequitur ordine quodam {b}" for a in words for b in words)
+    pool = shingle_sample(text)
+    assert containment(shingle_sample(text), pool) == 1.0
+    assert containment(set(), pool) == 0.0
+    other = " ".join(f"{a} plane diuersum carmen {b}" for a in words for b in words)
+    assert containment(shingle_sample(other), pool) < LAYOUT_CONTAINMENT

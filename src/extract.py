@@ -46,8 +46,10 @@ import sys
 import unicodedata
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
+from hashlib import blake2b
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Tuple
+from typing import (Any, Dict, Iterator, List, NamedTuple, Optional, Set,
+                    Tuple)
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
@@ -368,8 +370,9 @@ def capitains_works(source_dir: Path) -> Iterator[Dict[str, Any]]:
     cosmetics — group names carry xml:lang="eng" and urn stems read `opp-lat1`
     rather than `perseus-lat2` — both of which the existing fallbacks absorb.
 
-    CSEL also ships whole-volume files under Volumes/; those duplicate this
-    per-work tree and are deliberately ignored.
+    CSEL also ships whole-volume files under Volumes/. Those are the printed
+    volumes this tree was split out of, so they are mostly duplicates, and are
+    not walked here — csel_volume_records picks up the remainder.
     """
     data_dir = source_dir / "data"
     if not data_dir.is_dir():
@@ -481,6 +484,7 @@ def extract_capitains(source_id: str, greek: str, limit: Optional[int]) -> Tuple
     source_dir = RAW / source_id
     stats = Stats()
     records: List[Dict[str, Any]] = []
+    seen_works: set = set()
 
     for i, work in enumerate(capitains_works(source_dir)):
         if limit is not None and i >= limit:
@@ -498,6 +502,8 @@ def extract_capitains(source_id: str, greek: str, limit: Optional[int]) -> Tuple
 
         n_words = len(text.split())
         stats["words"] += n_words
+        # The volume pass below skips anything the CTS tree already carries.
+        seen_works.add(".".join(work["urn"].rsplit(":", 1)[-1].split(".")[:2]))
         records.append({
             "id": f"{source_id}/{work['urn'].rsplit(':', 1)[-1]}",
             "text": text,
@@ -520,7 +526,405 @@ def extract_capitains(source_id: str, greek: str, limit: Optional[int]) -> Tuple
         })
         stats["records"] += 1
 
+    if (source_dir / "Volumes").is_dir():
+        cts_shingles: Set[int] = set()
+        for rec in records:
+            cts_shingles |= shingle_sample(rec["text"])
+        records.extend(csel_volume_records(source_id, entry, lock, source_dir,
+                                           seen_works, cts_shingles, stats, greek))
+
     return records, stats
+
+
+def csel_volume_records(source_id: str, entry: Dict[str, Any],
+                        lock: Dict[str, Any], source_dir: Path,
+                        seen_works: set, cts_shingles: Set[int], stats: Stats,
+                        greek: str) -> List[Dict[str, Any]]:
+    """Records for volume prose the per-work CTS tree does not already hold.
+
+    Most of Volumes/ is the source the CTS files were split out of, so nearly
+    every work division is skipped here by its own CTS identifier. What is
+    left over is the editorial matter — prefaces and prolegomena, which the
+    split never produced files for — plus the handful of works it missed.
+    """
+    authors = csel_group_names(source_dir)
+    records: List[Dict[str, Any]] = []
+    for div in csel_volume_divisions(source_dir, stats, greek):
+        stats["volume_divisions_seen"] += 1
+        work_id = div["n"] or ""
+        if work_id in seen_works:
+            stats["volume_division:already_in_cts"] += 1
+            continue
+        n_words = len(div["text"].split())
+        if n_words < 200:
+            stats["volume_division:too_short"] += 1
+            continue
+        sample = shingle_sample(div["text"])
+        if containment(sample, cts_shingles) >= LAYOUT_CONTAINMENT:
+            stats["volume_division:already_in_cts_by_text"] += 1
+            stats["volume_words_duplicated"] += n_words
+            continue
+        # Volumes/ also repeats itself: CSEL35 ships as both a directory and a
+        # loose file, so its prolegomena would arrive twice. Accepted text
+        # joins the pool, which makes the second copy fail the same test.
+        cts_shingles |= sample
+        editorial = div["subtype"] in EDITORIAL_SUBTYPES
+        meta = div["meta"]
+        stats["volume_words"] += n_words
+        if editorial:
+            # Name it for what it is and for what it introduces, so 447k words
+            # of philology never read as one of the works themselves.
+            title = f"{(div['head'] or 'Praefatio').title()} — {meta.volume_title}"
+        else:
+            title = (meta.titles.get(work_id) or div["head"]
+                     or div["preceding_head"] or meta.volume_title)
+        records.append({
+            "id": f"{source_id}/volumes/{div['path'].stem}"
+                  f"/{len(records):03d}",
+            "text": div["text"],
+            # A preface is the editor's own writing. Crediting it to the
+            # author of the work it introduces would attribute 447k words of
+            # 1890s philology to Lactantius and Cyprian.
+            "author": (meta.editor if editorial else
+                       authors.get(work_id.split(".")[0]) or meta.author),
+            "work": title,
+            "approximate_date": None,
+            # Editorial matter is Vienna philology of the 1890s, not the late
+            # antique text it introduces. Dating it with its volume would put
+            # the editors in Augustine's period bucket.
+            "period": "NEOLATIN" if editorial else entry.get("period"),
+            "genre": "editorial" if editorial else None,
+            "source": source_id,
+            "source_url": entry.get("url"),
+            "source_version": lock.get("resolved_pin"),
+            "license": entry.get("license"),
+            "text_provenance": entry.get("text_provenance", "unknown"),
+            "edition": meta.volume_title,
+            "edition_year": meta.edition_year,
+            "urn": None,
+            "language_variant": "lat",
+            "normalization": None,
+            "n_words": n_words,
+        })
+        stats["records"] += 1
+        stats["words"] += n_words
+    return records
+
+
+# ---------------------------------------------------------------------------
+# CSEL whole-volume files — separating edited text from editorial apparatus
+# ---------------------------------------------------------------------------
+#
+# The CTS tree under data/ holds one file per work. Volumes/ holds the printed
+# volumes those were split out of (see Volumes/split_parse.py), and a volume is
+# not only its texts: roughly a quarter of it is index locorum, index verborum,
+# manuscript sigla, tables of contents and corrigenda. Training on that would
+# teach the model page-and-line references, so it has to be filtered out.
+#
+# The markup alone cannot do it. Both directions fail in practice:
+#
+#   CSEL48   68,471 words of INDEX VERBORVM filed as <div subtype="chapter">
+#   CSEL65   an actual work, Liber ad Constantium, filed as subtype="MSS"
+#
+# So three signals are combined, strongest first: what a division calls itself
+# in its <head>, what its text measurably looks like, and only then what the
+# markup claims. Measured over all 579 divisions in the 81 volume files, the
+# combination keeps 99.9% of prose words and rejects 100% of apparatus.
+
+# Function words with no numeric or abbreviatory use. An index entry cites; it
+# does not connect clauses, so these are what running prose has and lists lack.
+LATIN_FUNCTION_WORDS = frozenset("""
+et in non est ad cum qui quod ut sed de ex si enim autem quia per atque
+sunt esse a ab nec
+""".split())
+
+ARABIC_REF = re.compile(r"^[0-9]+[.,;]?$")
+ROMAN_REF = re.compile(r"^[IVXLCDM]+[.,;]?$")
+
+# What a division calls itself, when it says so. OCR mangles these headings —
+# TNDEX, INDBX, YERBORVM are all real readings in this repo — so the letters
+# that scanning confuses (I/T/1, E/B) are spelled as classes rather than
+# trusted. Anchored on word boundaries: `INDEX` must not fire inside a title.
+APPARATUS_HEAD = re.compile(
+    r"\b([IT1]ND[EB]X|[IT1]ND[IT1]C[EB]S|CONSPECTVS|CONSPECTUS|SIGLORVM"
+    r"|SIGLORUM|TABVLA|TABULA|ERRATA|CORRIGENDA|ADDENDA|NOTARVM"
+    r"|EXPLICATIO\s+SIGNORVM)\b", re.I)
+
+# Subtypes that assert running text. Consulted last, and only when the head is
+# silent and the content is unremarkable.
+PROSE_SUBTYPES = frozenset({
+    "work", "letter", "poem", "book", "chapter", "section", "dictio",
+    "dialog", "fragment", "epilog", "retractationes", "preface",
+    "prolegomena", "main",
+})
+
+# Divisions holding editorial Latin *about* the text rather than the text.
+# Kept — it is real prose — but it was written in the 1890s, so labelling it
+# LATE with the volume it prefaces would put Vienna philologists in the same
+# period bucket as Augustine and quietly corrupt any dating experiment.
+EDITORIAL_SUBTYPES = frozenset({"preface", "prolegomena"})
+
+# A paragraph must be this long before its statistics mean anything.
+MIN_PROFILE_WORDS = 40
+
+
+class Apparatus(NamedTuple):
+    """How reference-like a passage is. Rates are fractions of all tokens."""
+    words: int
+    digit: float           # bare arabic numerals: page and line citations
+    roman: float           # bare roman numerals: book and volume citations
+    function: float        # Latin function words: the signature of syntax
+    long_segment: float    # share of tokens in segments of 8+ words
+
+
+def apparatus_features(text: str) -> Optional[Apparatus]:
+    """Measure a passage, or None if it is too short to measure."""
+    tokens = text.split()
+    if not tokens:
+        return None
+    n = len(tokens)
+    digit = sum(1 for t in tokens if ARABIC_REF.match(t))
+    roman = sum(1 for t in tokens if ROMAN_REF.match(t))
+    function = sum(1 for t in tokens
+                   if t.lower().strip(".,;:") in LATIN_FUNCTION_WORDS)
+    segments = [s.split() for s in re.split(r"[.;:]", text)]
+    long_tokens = sum(len(s) for s in segments if len(s) >= 8)
+    return Apparatus(n, digit / n, roman / n, function / n, long_tokens / n)
+
+
+def classify_division(text: str, subtype: Optional[str],
+                      head: Optional[str]) -> Tuple[str, str]:
+    """Return ("prose"|"apparatus", reason) for one division of a volume.
+
+    Thresholds come from measuring every division in the repo. Prose and
+    apparatus separate almost perfectly on the digit rate — prose sits at the
+    95th percentile on 0.3%, apparatus at the 5th on 6.0% — so the content
+    override is set at 10%, an order of magnitude clear of running text, and
+    is deliberately not tuned any finer than the two populations warrant.
+
+    The function-word floor of 4.5% is the second override, for apparatus that
+    carries no numerals at all, such as a sigla list. It is set below verse:
+    hymns run 6% and a cento 8.6%, because poetry drops connectives, and a
+    filter that cannot tell a hymn from a word list is not usable here.
+    """
+    if APPARATUS_HEAD.search(head or ""):
+        return "apparatus", "head"
+
+    f = apparatus_features(text)
+    if f is None or f.words < MIN_PROFILE_WORDS:
+        # Too short to measure: fall through to what the markup claims.
+        return ("prose" if subtype in PROSE_SUBTYPES else "apparatus"), "markup"
+
+    if f.digit >= 0.10 or f.function < 0.045:
+        return "apparatus", "content"
+    # Unambiguous running prose overrides a mistaken subtype, which is how the
+    # Liber ad Constantium escapes from subtype="MSS".
+    if f.digit < 0.005 and f.function >= 0.15 and f.long_segment >= 0.70:
+        return "prose", "content"
+    return ("prose" if subtype in PROSE_SUBTYPES else "apparatus"), "markup"
+
+
+def drop_apparatus_paragraphs(text: str, stats: Stats) -> str:
+    """Remove reference tables that sit *inside* an otherwise-prose division.
+
+    Whole-division classification is not enough. Priscillian's Canones open
+    with a genuine prose prologue and continue as bare scripture citations
+    ("Cor. I. 61. 69. Tim. I. 13. 14."), and the Itinerarium Burdigalense is a
+    road table with a prose preamble. Both live under one <div subtype="work">.
+
+    The per-paragraph threshold is looser than the per-division one, because a
+    short paragraph's rates are noisy and a wrong drop here is unrecoverable.
+    """
+    kept = []
+    for para in text.split("\n\n"):
+        f = apparatus_features(para)
+        if f is not None and f.words >= MIN_PROFILE_WORDS and \
+                (f.digit >= 0.15 or f.function < 0.03):
+            stats["dropped:apparatus_paragraphs"] += 1
+            stats["dropped_apparatus_words"] += f.words
+            continue
+        kept.append(para)
+    return "\n\n".join(kept)
+
+
+# --- the same source, shipped twice --------------------------------------
+#
+# Volumes/ is a re-serialisation of the per-work tree, so a division can be a
+# work the CTS files already provided. @n is present on only 274 of the 302
+# work divisions, and where present it does not always agree with the CTS
+# identifier, so matching on it alone lets 312,686 duplicated words through —
+# Ambrosiaster's Quaestiones at 98%, Augustine's Speculum at 100%.
+#
+# This is not the dedupe stage's job. dedupe.py resolves the same text arriving
+# from different SOURCES and needs cross-source scope to do it; this resolves
+# one source shipping its own text in two layouts, which is a fact about the
+# repository that only its extractor knows.
+
+FOLD = str.maketrans({"v": "u", "j": "i", "V": "u", "J": "i"})
+NON_LETTER = re.compile(r"[^a-z\s]+")
+SHINGLE = 5
+# One shingle in sixteen. The decision threshold is 0.5, nowhere near the
+# sampling error, and a full shingle set of the CTS tree is 5.6M hashes.
+LAYOUT_SAMPLE = 16
+LAYOUT_CONTAINMENT = 0.5
+
+
+def shingle_sample(text: str) -> Set[int]:
+    """A deterministic 1-in-16 sample of the text's folded 5-gram hashes.
+
+    blake2b rather than hash(): str hashing is salted per process, and a
+    corpus whose contents depend on the interpreter's startup entropy is not
+    reproducible.
+    """
+    tokens = NON_LETTER.sub(" ", text.lower().translate(FOLD)).split()
+    out: Set[int] = set()
+    for i in range(len(tokens) - SHINGLE + 1):
+        value = int.from_bytes(
+            blake2b(" ".join(tokens[i:i + SHINGLE]).encode(),
+                    digest_size=8).digest(), "big")
+        if value % LAYOUT_SAMPLE == 0:
+            out.add(value)
+    return out
+
+
+def containment(sample: Set[int], pool: Set[int]) -> float:
+    """Share of this division's shingles that the pool already holds."""
+    if not sample:
+        return 0.0
+    return len(sample & pool) / len(sample)
+
+
+def csel_group_names(source_dir: Path) -> Dict[str, str]:
+    """textgroup id -> author name, read from the CTS tree beside Volumes/."""
+    names: Dict[str, str] = {}
+    for group_cts in sorted((source_dir / "data").glob("*/__cts__.xml")):
+        name = _cts_text(group_cts, "groupname", "lat") or \
+               _cts_text(group_cts, "groupname")
+        if name:
+            names[group_cts.parent.name] = name
+    return names
+
+
+class VolumeMeta(NamedTuple):
+    author: Optional[str]
+    editor: Optional[str]         # who wrote the preface, not who wrote the text
+    edition_year: Optional[int]
+    volume_title: Optional[str]
+    titles: Dict[str, str]        # CTS work id -> title of that work
+
+
+def _one_name(raw: str) -> Optional[str]:
+    """CSEL headers name each editor twice, in Latin and then in German.
+
+    `Alexander Souter Alexander Souter`, `Franciscus Weihrich Franz Weihrich`,
+    `Guilelmus Hartelius Wilhelm von Hartel` — one editor each. The Latin form
+    comes first and is the one that belongs beside Latin text.
+
+    Splitting at the halfway point would be wrong twice over: `von` makes the
+    Hartel entries odd-length, and it would cut the single name `SAMVEL
+    BRANDT` in half. The reliable signal is the surname repeating, so the
+    split is placed where the two halves end in the same name.
+    """
+    tokens = " ".join(raw.split()).split()
+    for cut in range(1, len(tokens)):
+        left, right = tokens[:cut], tokens[cut:]
+        if left[-1][:4].lower() == right[-1][:4].lower():
+            return " ".join(left)
+    return " ".join(tokens) or None
+
+
+def csel_volume_meta(root: ET.Element) -> VolumeMeta:
+    """Author, printed year and per-work titles from a volume's teiHeader.
+
+    The header is far richer than the divisions are: it names the author once,
+    dates the printed edition, and — through <title ref="...urn:cts:...">  —
+    titles each work the volume contains. The divisions themselves carry only
+    @n, so this map is the only way to name them.
+    """
+    header = root.find(f".//{TEI_NS}teiHeader")
+    if header is None:
+        return VolumeMeta(None, None, None, None, {})
+
+    author = editor = None
+    for el in header.iter(f"{TEI_NS}author"):
+        author = " ".join("".join(el.itertext()).split()) or None
+        if author:
+            break
+    for el in header.iter(f"{TEI_NS}editor"):
+        editor = _one_name("".join(el.itertext()))
+        if editor:
+            break
+
+    # Two dates: the year the volume was printed and the year Leipzig encoded
+    # it. The older one is the edition; the encoding year is not a text date.
+    years = []
+    for el in header.iter(f"{TEI_NS}date"):
+        for match in re.findall(r"\b(1[5-9][0-9]{2})\b",
+                                "".join(el.itertext())):
+            years.append(int(match))
+    edition_year = min(years) if years else None
+
+    titles: Dict[str, str] = {}
+    volume_title = None
+    for el in header.iter(f"{TEI_NS}title"):
+        text = " ".join("".join(el.itertext()).split())
+        if not text or "Corpus Scriptorum" in text:
+            continue
+        ref = el.get("ref") or ""
+        match = re.search(r"urn:cts:latinLit:([^\s/\"]+)", ref)
+        if match:
+            titles[match.group(1)] = text
+        if volume_title is None:
+            volume_title = text
+    return VolumeMeta(author, editor, edition_year, volume_title, titles)
+
+
+def csel_volume_divisions(source_dir: Path, stats: Stats,
+                          greek: str) -> Iterator[Dict[str, Any]]:
+    """Yield the usable prose divisions of the whole-volume files.
+
+    Apparatus is rejected by classify_division; what survives still passes
+    through drop_apparatus_paragraphs, because a division can be prose at the
+    top and a reference table at the bottom.
+    """
+    volumes = source_dir / "Volumes"
+    for path in sorted(volumes.rglob("CSEL*.xml")):
+        if path.suffixes[-2:-1] == [".xml"]:      # CSEL31.xml.bak and friends
+            continue
+        try:
+            root = ET.parse(path).getroot()
+        except ET.ParseError:
+            stats["parse_errors"] += 1
+            continue
+        meta = csel_volume_meta(root)
+        for edition in [d for d in root.iter(f"{TEI_NS}div")
+                        if d.get("type") == "edition"]:
+            # A volume sets a work's title on a heading division of its own and
+            # leaves the work division untitled, so the last heading seen is
+            # carried forward as a fallback name.
+            last_head = ""
+            for div in edition:
+                if div.tag != f"{TEI_NS}div":
+                    continue
+                head_el = div.find(f"{TEI_NS}head")
+                head = " ".join("".join(head_el.itertext()).split()) \
+                    if head_el is not None else ""
+                text = tidy(_walk(div, stats, greek, LITERARY))
+                verdict, reason = classify_division(text, div.get("subtype"), head)
+                stats[f"volume_division:{verdict}:{reason}"] += 1
+                if verdict == "apparatus":
+                    stats["dropped_apparatus_division_words"] += len(text.split())
+                    if head:
+                        last_head = head
+                    continue
+                text = drop_apparatus_paragraphs(text, stats)
+                text = strip_inline_greek(text, stats, greek)
+                text = drop_english_paragraphs(text, stats)
+                yield {"path": path, "head": head, "text": text,
+                       "subtype": div.get("subtype"), "n": div.get("n"),
+                       "preceding_head": last_head, "meta": meta}
+                if head:
+                    last_head = head
 
 
 # ---------------------------------------------------------------------------
@@ -700,9 +1104,12 @@ def main() -> int:
     if stats["records"]:
         print(f"mean words    {stats['words'] // stats['records']:,}")
     print()
-    for key in sorted(k for k in stats if k.startswith(("dropped:", "choice:"))):
+    for key in sorted(k for k in stats
+                      if k.startswith(("dropped:", "choice:", "volume_division:"))):
         print(f"  {key:<34} {stats[key]:>9,}")
     for key in ("greek_passages", "greek_inline_runs", "dropped_english_words",
+                "volume_divisions_seen", "volume_words",
+                "dropped_apparatus_division_words", "dropped_apparatus_words",
                 "duplicate_docids", "empty_after_extraction", "rejected_body_lang",
                 "author_from_title", "pl_volume_found", "pages_seen", "skipped:namespace",
                 "skipped:redirect", "skipped:too_short", "parse_errors"):
