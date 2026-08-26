@@ -127,6 +127,8 @@ def test_csel_is_labelled_ocr_because_it_is():
 
 import re  # noqa: E402
 
+import pytest  # noqa: E402
+
 from fetch import (CC_BACKOFF_SECONDS, _cc_selection,  # noqa: E402
                    fetch_corpus_corporum)
 
@@ -282,3 +284,67 @@ def test_a_soft_404_is_not_retried(tmp_path, monkeypatch):
          "id_source": "x", "url_template": "https://h/?idno={idno}"}, dest)
     assert len(calls) == 3, "one request per work, not one per retry"
     assert CC_BACKOFF_SECONDS not in sleeps
+
+
+def test_a_work_served_as_raw_xml_is_kept(tmp_path, monkeypatch):
+    """The endpoint zips most works and serves some as bare TEI — measured at
+    2 in the first 100. Rejecting those loses good text exactly as quietly as
+    keeping the soft 404s would have added bad text."""
+    import fetch
+    monkeypatch.setattr(fetch.time, "sleep", lambda s: None)
+    def mixed(url, target):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if url.endswith("30"):
+            target.write_bytes(b'<?xml-model href="http://www.tei-c.org/"?><TEI/>')
+        else:
+            target.write_bytes(b"PK\x03\x04zipdata")
+    monkeypatch.setattr(fetch, "_download", mixed)
+    dest = tmp_path / "raw"
+    (dest / "_metadata").mkdir(parents=True)
+    _meta(dest / "_metadata")
+    result = fetch_corpus_corporum(
+        {"id": "corpus-corporum", "delay_seconds": 0,
+         "exclude_series": [r"Patrologia\s+Latina", "digilibLT"],
+         "id_source": "x", "url_template": "https://h/?idno={idno}"}, dest)
+    assert result["works_fetched"] == 3
+    assert result["works_served_unzipped"] == 1
+    assert result["works_unavailable"] == 0
+    assert (dest / "works" / "30.xml").exists()
+    assert (dest / "works" / "10.zip").exists()
+    assert not list((dest / "works").glob("*.download")), "no provisional files left"
+
+
+def test_either_extension_counts_as_already_fetched(tmp_path, monkeypatch):
+    """Resume must recognise both, or the raw-XML works are re-requested on
+    every run for the lifetime of the corpus."""
+    import fetch
+    monkeypatch.setattr(fetch.time, "sleep", lambda s: None)
+    dest = tmp_path / "raw"
+    (dest / "_metadata").mkdir(parents=True)
+    (dest / "works").mkdir(parents=True)
+    _meta(dest / "_metadata")
+    (dest / "works" / "10.zip").write_bytes(b"PK\x03\x04x")
+    (dest / "works" / "30.xml").write_bytes(b"<TEI/>")
+    calls = []
+    monkeypatch.setattr(fetch, "_download",
+                        lambda u, t: (calls.append(u),
+                                      t.write_bytes(b"PK\x03\x04x")))
+    result = fetch_corpus_corporum(
+        {"id": "corpus-corporum", "delay_seconds": 0,
+         "exclude_series": [r"Patrologia\s+Latina", "digilibLT"],
+         "id_source": "x", "url_template": "https://h/?idno={idno}"}, dest)
+    assert result["works_cached"] == 2
+    assert [c.rsplit("=", 1)[-1] for c in calls] == ["50"]
+
+
+@pytest.mark.parametrize("blob,expected", [
+    (b"PK\x03\x04...", "zip"),
+    (b'<?xml version="1.0"?>', "xml"),
+    (b"\xef\xbb\xbf<?xml ", "xml"),          # byte-order mark
+    (b"   \n<TEI xmlns=", "xml"),            # leading whitespace
+    (b"File not found. Sorry", None),
+    (b"<html><body>error", None),            # not TEI, not a work
+])
+def test_response_sniffing(blob, expected):
+    from fetch import _served_kind
+    assert _served_kind(blob) == expected

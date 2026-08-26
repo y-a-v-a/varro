@@ -323,10 +323,26 @@ CC_MAX_RETRIES = 3
 CC_BACKOFF_SECONDS = 60.0
 
 # The endpoint answers a missing work with `File not found. Sorry` and HTTP
-# 200. Nothing in the status line says anything is wrong, so without this
-# check a long run ends with thousands of 21-byte files that every reader
+# 200. Nothing in the status line says anything is wrong, so without a check
+# a long run ends with thousands of 21-byte files that every reader
 # downstream reports as empty, and the fetch reports success.
+#
+# But the check cannot simply be "is it a zip". Some works come back as raw
+# TEI instead — measured at 2 in the first 100 — and rejecting those loses
+# good text just as quietly as keeping the 404s would have added bad text.
+# So the response is sniffed and stored under the extension it actually is.
 ZIP_MAGIC = b"PK\x03\x04"
+XML_OPENINGS = (b"<?xml", b"<TEI", b"<!DOCTYPE")
+
+
+def _served_kind(blob: bytes) -> Optional[str]:
+    """"zip", "xml", or None if the server did not serve the work."""
+    if blob[:4] == ZIP_MAGIC:
+        return "zip"
+    head = blob.lstrip()[:200].lstrip(b"\xef\xbb\xbf").lstrip()
+    if head.startswith(XML_OPENINGS):
+        return "xml"
+    return None
 
 
 def _cc_selection(src: Dict[str, Any], meta_path: Path) -> List[Dict[str, str]]:
@@ -371,20 +387,24 @@ def fetch_corpus_corporum(src: Dict[str, Any], dest: Path) -> Dict[str, Any]:
     print(f"    {len(works):,} works selected; {delay:.0f}s between requests "
           f"— about {len(works) * delay / 3600:.1f} h if none are cached")
 
-    got = skipped = failed = unavailable = 0
+    got = skipped = failed = unavailable = raw_xml = 0
     for i, row in enumerate(works, 1):
         idno = row["work_id"]
-        target = dest / "works" / f"{idno}.zip"
-        if target.exists() and target.stat().st_size:
+        works_dir = dest / "works"
+        existing = [works_dir / f"{idno}{ext}" for ext in (".zip", ".xml")]
+        if any(p.exists() and p.stat().st_size for p in existing):
             skipped += 1
             continue
+        # Provisional; renamed below once the response has been sniffed.
+        target = works_dir / f"{idno}.download"
         if got:                       # only wait between actual requests
             time.sleep(delay)
         url = template.format(idno=idno)
         for attempt in range(1, CC_MAX_RETRIES + 1):
             try:
                 _download(url, target)
-                if target.read_bytes()[:4] != ZIP_MAGIC:
+                kind = _served_kind(target.read_bytes())
+                if kind is None:
                     # A soft 404, not a transient fault: retrying it three
                     # times with a backoff would waste three minutes to be
                     # told the same thing.
@@ -393,7 +413,10 @@ def fetch_corpus_corporum(src: Dict[str, Any], dest: Path) -> Dict[str, Any]:
                     unavailable += 1
                     print(f"    [{idno}] not served: {body!r}", flush=True)
                     break
+                target.replace(works_dir / f"{idno}.{kind}")
                 got += 1
+                if kind == "xml":
+                    raw_xml += 1
                 break
             except (urllib.error.URLError, urllib.error.HTTPError, OSError) as exc:
                 target.unlink(missing_ok=True)
@@ -421,6 +444,7 @@ def fetch_corpus_corporum(src: Dict[str, Any], dest: Path) -> Dict[str, Any]:
         "works_cached": skipped,
         "works_failed": failed,
         "works_unavailable": unavailable,
+        "works_served_unzipped": raw_xml,
         **_tree_stats(dest),
     }
 
