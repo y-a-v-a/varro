@@ -25,8 +25,10 @@ Usage:
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
+import time
 import sys
 import urllib.error
 import urllib.request
@@ -57,7 +59,7 @@ TRACKS = {
     "B": {"green", "amber"},       # research only: adds non-commercial sources
     "eval": {"eval"},              # held-out evaluation data; never in either corpus
 }
-VALID_METHODS = {"git", "http", "zenodo", "manual"}
+VALID_METHODS = {"git", "http", "zenodo", "manual", "corpus-corporum"}
 
 # How a source's text came to be text. Not a licence question and not a quality
 # one: it is about whether a later model would be learning from an earlier
@@ -299,6 +301,130 @@ def fetch_zenodo(src: Dict[str, Any], dest: Path) -> Dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Corpus Corporum — one work per request, slowly
+# ---------------------------------------------------------------------------
+#
+# There is no bulk export. The site serves one zipped TEI file per work from
+#   download.php?type=file-pos-xml&idno=<id>
+# and the ids come from a metadata table published by the Centre for
+# Computational Studies in Plzeň (CC BY-SA 4.0), which also supplies dates and
+# word counts.
+#
+# This is a small university server, so the request rate is a courtesy, not a
+# throttle to tune down: 20 seconds between works, single-threaded, and no
+# retry storm. The whole selection takes about fourteen hours and is meant to.
+#
+# It is RESUMABLE by construction — a work whose file already exists is
+# skipped without a request — because a fourteen-hour job will be interrupted.
+
+CC_DELAY_SECONDS = 20.0
+CC_MAX_RETRIES = 3
+CC_BACKOFF_SECONDS = 60.0
+
+# The endpoint answers a missing work with `File not found. Sorry` and HTTP
+# 200. Nothing in the status line says anything is wrong, so without this
+# check a long run ends with thousands of 21-byte files that every reader
+# downstream reports as empty, and the fetch reports success.
+ZIP_MAGIC = b"PK\x03\x04"
+
+
+def _cc_selection(src: Dict[str, Any], meta_path: Path) -> List[Dict[str, str]]:
+    """The works to fetch: everything except what the corpus already holds.
+
+    Excluding by series rather than trusting dedupe to clean up afterwards.
+    Patrologia Latina alone is 5,248 works and 118M words against the ~66M we
+    already carry through Vicifons, so fetching it would triple the run time
+    to re-acquire text we have.
+    """
+    import csv as _csv
+    exclude = [re.compile(p, re.I) for p in (src.get("exclude_series") or [])]
+    rows = []
+    with meta_path.open(encoding="utf-8") as fh:
+        for row in _csv.DictReader(fh):
+            series = row.get("series_title") or ""
+            if any(p.search(series) for p in exclude):
+                continue
+            # `type=file-pos-xml` serves only works that have been lemmatised,
+            # and the metadata says which those are. 129 of 7,819 have not
+            # been; asking for them earns a soft 404 apiece, so they are
+            # skipped rather than discovered one 20-second wait at a time.
+            if (row.get("prelemmatized") or "").strip().lower() != "true":
+                continue
+            if row.get("work_id"):
+                rows.append(row)
+    return rows
+
+
+def fetch_corpus_corporum(src: Dict[str, Any], dest: Path) -> Dict[str, Any]:
+    dest.mkdir(parents=True, exist_ok=True)
+    meta_dir = dest / "_metadata"
+    meta_dir.mkdir(exist_ok=True)
+    meta_path = meta_dir / "cc_metadata.csv"
+    if not meta_path.exists():
+        print(f"    fetching the work list from {src['id_source']}")
+        _download(src["id_source"], meta_path)
+
+    works = _cc_selection(src, meta_path)
+    delay = float(src.get("delay_seconds") or CC_DELAY_SECONDS)
+    template = src["url_template"]
+    print(f"    {len(works):,} works selected; {delay:.0f}s between requests "
+          f"— about {len(works) * delay / 3600:.1f} h if none are cached")
+
+    got = skipped = failed = unavailable = 0
+    for i, row in enumerate(works, 1):
+        idno = row["work_id"]
+        target = dest / "works" / f"{idno}.zip"
+        if target.exists() and target.stat().st_size:
+            skipped += 1
+            continue
+        if got:                       # only wait between actual requests
+            time.sleep(delay)
+        url = template.format(idno=idno)
+        for attempt in range(1, CC_MAX_RETRIES + 1):
+            try:
+                _download(url, target)
+                if target.read_bytes()[:4] != ZIP_MAGIC:
+                    # A soft 404, not a transient fault: retrying it three
+                    # times with a backoff would waste three minutes to be
+                    # told the same thing.
+                    body = target.read_text(errors="replace")[:60].strip()
+                    target.unlink(missing_ok=True)
+                    unavailable += 1
+                    print(f"    [{idno}] not served: {body!r}", flush=True)
+                    break
+                got += 1
+                break
+            except (urllib.error.URLError, urllib.error.HTTPError, OSError) as exc:
+                target.unlink(missing_ok=True)
+                if attempt == CC_MAX_RETRIES:
+                    failed += 1
+                    print(f"    [{idno}] giving up after {attempt}: {exc}")
+                    break
+                # Back off hard rather than hammering a server that is
+                # already unhappy.
+                wait = CC_BACKOFF_SECONDS * attempt
+                print(f"    [{idno}] attempt {attempt} failed ({exc}); "
+                      f"waiting {wait:.0f}s", flush=True)
+                time.sleep(wait)
+        if i % 25 == 0 or i == len(works):
+            print(f"    {i:,}/{len(works):,}  fetched {got:,}  cached {skipped:,}"
+                  f"  unavailable {unavailable:,}  failed {failed:,}", flush=True)
+
+    if failed:
+        print(f"    {failed:,} work(s) could not be fetched — re-run to retry "
+              f"only those")
+    return {
+        "resolved_pin": None,
+        "works_selected": len(works),
+        "works_fetched": got,
+        "works_cached": skipped,
+        "works_failed": failed,
+        "works_unavailable": unavailable,
+        **_tree_stats(dest),
+    }
+
+
 def fetch_manual(src: Dict[str, Any], dest: Path) -> Dict[str, Any]:
     present = dest.exists() and any(dest.iterdir())
     status = "present" if present else "MISSING"
@@ -316,6 +442,7 @@ DISPATCH = {
     "http": fetch_http,
     "zenodo": fetch_zenodo,
     "manual": fetch_manual,
+    "corpus-corporum": fetch_corpus_corporum,
 }
 
 

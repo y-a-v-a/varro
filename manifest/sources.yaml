@@ -316,8 +316,21 @@ sources:
   - id: corpus-corporum
     name: Corpus Corporum (University of Zurich)
     url: https://www.mlat.uzh.ch/
-    method: manual
+    method: corpus-corporum
     pin: null
+    # One zipped TEI file per work. 20s between requests because this is a
+    # small university server and there is no bulk export to ask it for.
+    url_template: https://mlat.uzh.ch/php_modules/download.php?type=file-pos-xml&idno={idno}
+    id_source: https://raw.githubusercontent.com/CCS-ZCU/corpus-corporum/master/data/cc_metadata.csv
+    delay_seconds: 20
+    # Excluded because the corpus already holds this text, and re-acquiring it
+    # would triple the run for nothing. Patrologia Latina is 5,248 works and
+    # 118M words against the ~66M we carry via Vicifons; digilibLT is a source
+    # in its own right. Everything else is fetched: 2,446 works, ~113M words,
+    # ~14 hours.
+    exclude_series:
+      - 'Patrologia\s+Latina'
+      - 'digilibLT'
     license: NonCommercial
     tier: amber
     include: true
