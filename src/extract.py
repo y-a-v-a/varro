@@ -2022,9 +2022,12 @@ CC_ANNOTATION_NS = "{http://mlat.uzh.ch/2.0}"
 # below.
 PL_VOLUME_IN_SERIES = re.compile(r"Patrologia\s+Latina,?\s*vol\.?\s*(\d{1,3})", re.I)
 
-# `<author>Petrus Damianus<date>1007-1072</date></author>` — a lifespan, which
-# is the only composition evidence these headers carry.
+# `<author>Petrus Damianus<date>1007-1072</date></author>` — a lifespan.
+# Approximations are written `c.1449-c.1504` and `ca.400`, so the qualifier is
+# stripped before matching rather than being allowed to break the range.
+CIRCA = re.compile(r"\b(?:c|ca|circa)\.?\s*", re.I)
 AUTHOR_LIFESPAN = re.compile(r"(-?\d{1,4})\s*[-–]\s*(-?\d{1,4})")
+YEAR = re.compile(r"(-?\d{1,4})")
 # `\b` after the digits is wrong: the real filenames are `[CC]PL10_19_DE.xml`
 # and `_` is a word character, so there is no boundary there. What is meant
 # is "not followed by another digit" — volumes run 1 to 217.
@@ -2061,7 +2064,10 @@ def tei_title(root: ET.Element) -> Optional[str]:
     """
     for stmt in root.iter(f"{TEI_NS}titleStmt"):
         for el in stmt.iter(f"{TEI_NS}title"):
-            text = " ".join("".join(el.itertext()).split())
+            # `<title>De cometis<date>c.1472</date></title>` — without this
+            # the record is titled "De cometisc.1472".
+            parts = [el.text or ""] + [(c.tail or "") for c in el]
+            text = " ".join(" ".join(parts).split())
             if text:
                 return text
         break
@@ -2124,11 +2130,35 @@ def tei_author_midpoint(root: ET.Element) -> Optional[int]:
     """
     for el in root.iter(f"{TEI_NS}author"):
         for date in el.iter(f"{TEI_NS}date"):
-            match = AUTHOR_LIFESPAN.search("".join(date.itertext()))
+            match = AUTHOR_LIFESPAN.search(CIRCA.sub("", "".join(date.itertext())))
             if match:
                 born, died = int(match.group(1)), int(match.group(2))
                 if born <= died:
                     return (born + died) // 2
+    return None
+
+
+
+def tei_work_date(root: ET.Element) -> Optional[int]:
+    """The work's own date, from a <date> inside its <title>.
+
+    The strongest dating evidence these files carry: per work, stated by the
+    editor, and independent of the author's lifespan. `De cometis` is dated
+    c.1472 while its author lived c.1449-c.1504, so the lifespan midpoint
+    would put it 1476 — close here, but the two are different claims and only
+    one of them is about the text.
+    """
+    for stmt in root.iter(f"{TEI_NS}titleStmt"):
+        for title in stmt.iter(f"{TEI_NS}title"):
+            for date in title.iter(f"{TEI_NS}date"):
+                raw = CIRCA.sub("", "".join(date.itertext()))
+                span = AUTHOR_LIFESPAN.search(raw)
+                if span:
+                    return (int(span.group(1)) + int(span.group(2))) // 2
+                match = YEAR.search(raw)
+                if match:
+                    return int(match.group(1))
+        break
     return None
 
 
@@ -2200,9 +2230,12 @@ def tei_documents(root_dir: Path) -> Iterator[TeiDocument]:
         if path.name == "__cts__.xml" or not path.is_file():
             continue
         if path.suffix.lower() == ".xml":
+            # A work served unzipped is saved as `<work_id>.xml`, so the
+            # stem still keys the metadata table. Other feeds name their
+            # files things like `[CC]PL10_19_DE.xml`, which is not an id.
             yield TeiDocument(path.name,
                               path.read_text(encoding="utf-8", errors="replace"),
-                              None)
+                              path.stem if path.stem.isdigit() else None)
         elif path.suffix.lower() == ".zip":
             try:
                 with zipfile.ZipFile(path) as archive:
@@ -2296,9 +2329,13 @@ def extract_tei_xml(source_id: str, greek: str, limit: Optional[int]) -> Tuple[L
             # that error is what filed the CSEL prefaces under LATE. The
             # author's lifespan is the one real signal, and enrich ranks it
             # below every curated authority as `source-metadata`.
-            "approximate_date": (stated_dates.get(work_id)
-                                 if stated_dates.get(work_id) is not None
-                                 else tei_author_midpoint(root)),
+            # Strongest first: the work's own date, then the metadata
+            # table's bounds, then the author's lifespan. All three are
+            # `source-metadata` to enrich, which ranks them under every
+            # curated authority.
+            "approximate_date": (tei_work_date(root)
+                                 or stated_dates.get(work_id)
+                                 or tei_author_midpoint(root)),
             "pl_volume": tei_pl_volume(root, path.name),
             "period": entry.get("period"),
             "genre": None,

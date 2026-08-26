@@ -1207,3 +1207,61 @@ def test_a_corrupt_archive_is_skipped_not_fatal(tmp_path):
     (tmp_path / "broken.zip").write_bytes(b"not really a zip")
     (tmp_path / "good.xml").write_text(TEI_DOC, encoding="utf-8")
     assert [d.name for d in tei_documents(tmp_path)] == ["good.xml"]
+
+
+# --- the work's own date, and titles that swallow it ------------------------
+
+from extract import tei_work_date  # noqa: E402
+
+DATED_TITLE = """<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc>
+<titleStmt>
+  <title>De cometis<date>c.1472</date></title>
+  <author ref="http://viaf.org/viaf/32339827">Eberhard Schleusinger<date>c.1449-c.1504</date></author>
+</titleStmt></fileDesc></teiHeader><text><body><p>Cometa est stella crinita
+quae raro apparet et multa portendit hominibus in terra manentibus atque
+ideo veteres eam signum futurorum esse arbitrabantur, cum tamen ratio
+naturalis aliud doceat et causas in aere quaerendas esse demonstret.</p>
+</body></text></TEI>"""
+
+
+def test_the_title_does_not_swallow_its_own_date():
+    """Without this the record is titled `De cometisc.1472`."""
+    assert tei_title(ET.fromstring(DATED_TITLE)) == "De cometis"
+
+
+def test_the_works_own_date_is_read_from_the_title():
+    assert tei_work_date(ET.fromstring(DATED_TITLE)) == 1472
+
+
+def test_a_circa_lifespan_still_parses():
+    """`c.1449-c.1504` — the qualifier used to break the range and yield None."""
+    assert tei_author_midpoint(ET.fromstring(DATED_TITLE)) == 1476
+
+
+def test_the_work_date_beats_the_author_midpoint(tmp_path, monkeypatch):
+    """They are different claims and only one is about the text."""
+    records, _ = _tei_source(tmp_path, monkeypatch, {"12151.xml": DATED_TITLE})
+    assert records[0]["approximate_date"] == 1472       # not 1476
+    assert records[0]["work"] == "De cometis"
+    assert records[0]["author"] == "Eberhard Schleusinger"
+
+
+def test_a_title_with_no_date_yields_none():
+    assert tei_work_date(ET.fromstring(TEI_DOC)) is None
+
+
+def test_a_series_date_is_not_mistaken_for_the_works():
+    """seriesStmt also holds a title; only titleStmt is consulted."""
+    doc = CC_EXPORT.replace("<seriesStmt><title>Patrologia Latina, vol. 144</title>",
+                            "<seriesStmt><title>Patrologia Latina<date>1853</date>, vol. 144</title>")
+    assert tei_work_date(ET.fromstring(doc)) is None
+
+
+def test_an_unzipped_work_is_still_keyed_to_the_metadata_table(tmp_path):
+    """Saved as `<work_id>.xml`, so the stem is the id — unlike a feed that
+    names its files `[CC]PL10_19_DE.xml`."""
+    (tmp_path / "12151.xml").write_text(DATED_TITLE, encoding="utf-8")
+    (tmp_path / "[CC]PL10_19_DE.xml").write_text(TEI_DOC, encoding="utf-8")
+    by_name = {d.name: d.work_id for d in tei_documents(tmp_path)}
+    assert by_name["12151.xml"] == "12151"
+    assert by_name["[CC]PL10_19_DE.xml"] is None
