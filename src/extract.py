@@ -2001,9 +2001,26 @@ UNTERMINATED_NAMED = re.compile(r"&(amp|lt|gt|quot|apos)(?![a-zA-Z;])")
 # the walker, so by this point the newline is adjacent.
 LINE_HYPHENATION = re.compile(r"(\w)-[ \t]*\n[ \t]*(\w)")
 
-# `[CC]PL10_19_DE.xml` -> volume 10. enrich already interpolates a year from a
-# Patrologia Latina volume number, so recovering it here is worth more than a
-# date from the TEI header would be — see below.
+# Corpus Corporum's own exports carry a POS layer in their own namespace, and
+# it repeats the text: `<cc:s><cc:w>LIBER</cc:w><cc:w>PRIMUS</cc:w></cc:s>`
+# is immediately followed by the running text `LIBER PRIMUS.`. Walking that
+# naively yields "LIBER PRIMUS LIBER PRIMUS." — measured at 226,051 words
+# against a true 113,622, i.e. every word in the corpus doubled.
+#
+# The annotation is removed rather than the plain text because the plain text
+# is the readable form: it keeps punctuation and capitalisation, which the
+# tokenised copy drops.
+CC_ANNOTATION_NS = "{http://mlat.uzh.ch/2.0}"
+
+# `Patrologia Latina, vol. 144` in <seriesStmt>, or `[CC]PL10_19_DE.xml` in a
+# filename -> the volume number. enrich already interpolates a year from it,
+# so recovering it here is worth more than a date from the TEI header — see
+# below.
+PL_VOLUME_IN_SERIES = re.compile(r"Patrologia\s+Latina,?\s*vol\.?\s*(\d{1,3})", re.I)
+
+# `<author>Petrus Damianus<date>1007-1072</date></author>` — a lifespan, which
+# is the only composition evidence these headers carry.
+AUTHOR_LIFESPAN = re.compile(r"(-?\d{1,4})\s*[-–]\s*(-?\d{1,4})")
 # `\b` after the digits is wrong: the real filenames are `[CC]PL10_19_DE.xml`
 # and `_` is a word character, so there is no boundary there. What is meant
 # is "not followed by another digit" — volumes run 1 to 217.
@@ -2027,12 +2044,24 @@ def rejoin_hyphenation(text: str) -> Tuple[str, int]:
 
 
 def tei_title(root: ET.Element) -> Optional[str]:
-    """The work's title, preferring the body's own heading to the header's.
+    """The work's title: the titleStmt if it has one, else the body's heading.
 
-    Corpus Corporum's headers are frequently stubs — `<title/>` empty and
-    `<idno>TO BE ADDED BY LEIPZIG</idno>` — while the text itself opens with
-    `<head><title>DE ESSENTIA PATRIS ET FILII ...</title></head>`.
+    Both halves are needed, because the two feeds fail in opposite ways.
+    Corpus Corporum's own export names the work properly —
+    `<titleStmt><title>Epistolae</title>` — while the Patrologia Latina feed
+    on GitHub ships stubs, `<title/>` empty beside a `TO BE ADDED BY LEIPZIG`
+    idno, and puts the real title in `<head>` at the top of the text.
+
+    Only titleStmt is consulted, never any <title>: <seriesStmt> carries one
+    too ("Patrologia Latina, vol. 144"), and that is the series, not the work.
     """
+    for stmt in root.iter(f"{TEI_NS}titleStmt"):
+        for el in stmt.iter(f"{TEI_NS}title"):
+            text = " ".join("".join(el.itertext()).split())
+            if text:
+                return text
+        break
+
     body = root.find(f".//{TEI_NS}body")
     if body is not None:
         for head in body.iter(f"{TEI_NS}head"):
@@ -2041,19 +2070,72 @@ def tei_title(root: ET.Element) -> Optional[str]:
                 if text:
                     return text
             break
-    for el in root.iter(f"{TEI_NS}title"):
-        text = " ".join("".join(el.itertext()).split())
-        if text:
-            return text
     return None
+
+
+def strip_cc_annotation(elem: ET.Element) -> int:
+    """Remove Corpus Corporum's POS layer, keeping the running text it shadows.
+
+    The tail matters: the plain text sits in the annotation element's tail, so
+    removing the element without reattaching its tail deletes the very text
+    this is meant to preserve.
+    """
+    removed = 0
+    for child in list(elem):
+        if child.tag.startswith(CC_ANNOTATION_NS):
+            index = list(elem).index(child)
+            tail = child.tail or ""
+            elem.remove(child)
+            removed += 1
+            if tail:
+                if index == 0:
+                    elem.text = (elem.text or "") + tail
+                else:
+                    previous = list(elem)[index - 1]
+                    previous.tail = (previous.tail or "") + tail
+        else:
+            removed += strip_cc_annotation(child)
+    return removed
 
 
 def tei_author(root: ET.Element) -> Optional[str]:
     for el in root.iter(f"{TEI_NS}author"):
-        text = " ".join("".join(el.itertext()).split())
+        # The <date> child is the author's lifespan, not part of their name.
+        parts = [el.text or ""] + [(c.tail or "") for c in el]
+        text = " ".join(" ".join(parts).split())
         if text:
             return text
     return None
+
+
+def tei_author_midpoint(root: ET.Element) -> Optional[int]:
+    """A composition estimate from the author's lifespan, or None.
+
+    `<author>Petrus Damianus<date>1007-1072</date></author>` gives 1039. That
+    is the midpoint of a life, not a date of writing, and it is deliberately
+    NOT presented as more than it is: enrich ranks it under every curated
+    authority and records it as `source-metadata`. For period bucketing —
+    which is what it feeds — a life's midpoint and its writing years fall in
+    the same bucket except at a boundary.
+    """
+    for el in root.iter(f"{TEI_NS}author"):
+        for date in el.iter(f"{TEI_NS}date"):
+            match = AUTHOR_LIFESPAN.search("".join(date.itertext()))
+            if match:
+                born, died = int(match.group(1)), int(match.group(2))
+                if born <= died:
+                    return (born + died) // 2
+    return None
+
+
+def tei_pl_volume(root: ET.Element, filename: str) -> Optional[int]:
+    """The Patrologia Latina volume, from <seriesStmt> or from the filename."""
+    for el in root.iter(f"{TEI_NS}seriesStmt"):
+        match = PL_VOLUME_IN_SERIES.search("".join(el.itertext()))
+        if match:
+            return int(match.group(1))
+    match = PL_VOLUME_IN_NAME.search(filename)
+    return int(match.group(1)) if match else None
 
 
 def tei_body_lang(root: ET.Element) -> Optional[str]:
@@ -2114,6 +2196,11 @@ def extract_tei_xml(source_id: str, greek: str, limit: Optional[int]) -> Tuple[L
             stats["no_body"] += 1
             continue
 
+        stripped = strip_cc_annotation(body)
+        if stripped:
+            stats["annotation_elements_removed"] += stripped
+            stats["files_with_annotation_layer"] += 1
+
         text, joined = rejoin_hyphenation(_walk(body, stats, greek, LITERARY))
         stats["hyphenation_rejoined"] += joined
         text = strip_inline_greek(tidy(text), stats, greek)
@@ -2122,7 +2209,6 @@ def extract_tei_xml(source_id: str, greek: str, limit: Optional[int]) -> Tuple[L
             stats["empty_after_extraction"] += 1
             continue
 
-        volume = PL_VOLUME_IN_NAME.search(path.name)
         records.append({
             "id": f"{source_id}/{path.relative_to(root_dir).with_suffix('')}",
             "text": text,
@@ -2134,8 +2220,13 @@ def extract_tei_xml(source_id: str, greek: str, limit: Optional[int]) -> Tuple[L
             # exactly the error that filed the CSEL prefaces under LATE.
             # enrich resolves this properly from the author, or from the
             # Patrologia Latina volume below.
-            "approximate_date": None,
-            "pl_volume": int(volume.group(1)) if volume else None,
+            # The header's own <date> is the *printing* — these files say
+            # 1853, meaning Migne — so it is never read as a composition date;
+            # that error is what filed the CSEL prefaces under LATE. The
+            # author's lifespan is the one real signal, and enrich ranks it
+            # below every curated authority as `source-metadata`.
+            "approximate_date": tei_author_midpoint(root),
+            "pl_volume": tei_pl_volume(root, path.name),
             "period": entry.get("period"),
             "genre": None,
             "source": source_id,

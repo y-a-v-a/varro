@@ -361,12 +361,41 @@ sources:
           (`Victo-\nrina`). At PL's scale that is ~3.5M broken tokens.
       Together: one volume went from 50,980 words to 218,818.
 
-      WHAT IS STILL BLOCKED: there is no bulk export. Texts download one at a
-      time; pulling 200M words that way off a small university server is an
-      imposition even where robots.txt permits it. `method: manual` is honest.
-      The unblocking action is an email to turicense@gmail.com asking for an
-      export of the non-Perseus/OGL/digilibLT corpora. The reader is ready for
-      it; nothing else needs writing.
+      ACQUISITION IS NOW MECHANISABLE, which it was not when this entry was
+      first written. Two things closed the gap, both found via
+      github.com/CCS-ZCU/corpus-corporum (Vojtěch Kaše, CCS Plzeň, CC BY-SA 4.0):
+        - the per-work endpoint
+            https://mlat.uzh.ch/php_modules/download.php?type=file-pos-xml&idno=<id>
+          which returns a zipped TEI file. Verified: idno 10045 gives
+          144_Petrus-Damianus_Epistolae.POS.xml.zip, 1.18 MB, HTTP 200.
+        - data/cc_metadata.csv in that repo: 7,819 works with work_id, title,
+          author, year / not_before / not_after (70.4% dated), word_count,
+          series title, edition, editor, publisher and VIAF ids. That is both
+          the id list to iterate and a dating layer better than anything we
+          could infer.
+
+      It is still `method: manual`, deliberately. 7,819 requests against a
+      small university server is an imposition whatever robots.txt permits,
+      and the courteous move remains an email to turicense@gmail.com — now
+      asking to confirm a rate-limited pull rather than asking them to build
+      an export. If they decline or do not answer, the fallback is the
+      endpoint above with a real delay between requests.
+
+      THE EXPORT CARRIES A POS LAYER THAT SHADOWS THE TEXT. Each word appears
+      twice: once tokenised in the mlat.uzh.ch/2.0 namespace
+      (`<cc:s><cc:w>LIBER</cc:w><cc:w>PRIMUS</cc:w></cc:s>`) and then again as
+      running text (`LIBER PRIMUS.`). Measured on Petrus Damianus, Epistolae:
+      a naive walk gives 226,051 words against a true 113,622 — every word in
+      the corpus doubled. The reader strips the annotation and keeps the plain
+      text, which is the readable form; the tokenised copy loses punctuation
+      and capitalisation.
+
+      Its headers are also much richer than the GitHub feed's:
+      `<author>Petrus Damianus<date>1007-1072</date></author>` and
+      `<seriesStmt><title>Patrologia Latina, vol. 144</title>`. The reader uses
+      the lifespan midpoint as a `source-metadata` date and reads the PL volume
+      from the series statement. It still ignores the header's own <date>,
+      which is the printing — 1853, meaning Migne, not Petrus Damianus.
 
   - id: lasla
     name: LASLA / Opera Latina

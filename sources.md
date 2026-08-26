@@ -247,6 +247,34 @@ Keep these in a separate shard. Fine for a research model; drop them if you ever
   interpolation `enrich` already has. Taking the header date would repeat the mistake that filed
   the CSEL prefaces under LATE.
 
+### Two Corpus Corporum derivatives, assessed 2026-08-26
+
+**`CCS-ZCU/corpus-corporum`** (Vojtěch Kaše, Centre for Computational Studies, Plzeň) —
+**take the metadata and the method, not the data.** CC BY-SA 4.0, so green in its own right.
+- `data/cc_metadata.csv` — **7,819 works** with `work_id`, title, author, `year` /
+  `not_before` / `not_after` (**70.4% dated**), `word_count`, series title, edition, editor,
+  publisher, VIAF and Wikidata ids. This is simultaneously the id list needed to iterate the
+  corpus and a dating layer better than anything we could infer. Directly relevant to the 42%
+  `UNASSIGNED` problem.
+- `scripts/0_downloading-lemmatized-cc.ipynb` — reveals the per-work endpoint
+  `https://mlat.uzh.ch/php_modules/download.php?type=file-pos-xml&idno=<id>`.
+  Verified: `idno=10045` → `144_Petrus-Damianus_Epistolae.POS.xml.zip`, 1.18 MB, HTTP 200.
+- Its own `data/` is a research sample (a few POS XMLs, sentence JSONs), not a corpus dump.
+
+**`Fece228/latin-literature-dataset-170M` on HuggingFace — do not ingest.**
+- 6.15 GB, two CSVs (`latin_raw.csv`, `latin_lemmas.csv`), "collected from all the texts
+  available at Corpus Corporum".
+- **`license: None`.** No licence field, no licence file. The upstream material is
+  NonCommercial with rights varying per constituent corpus; a third party republishing it does
+  not launder those terms, and this project's entire premise is that a *properly licensed*
+  Latin corpus does not yet exist. Ingesting an unlicensed scrape of an NC source would make us
+  the thing we are trying to replace.
+- Its own card admits the raw half "contains text in Greek, Hebrew, and other languages, with
+  references and contractions" — uncleaned.
+- It also flattens away per-work provenance: which edition, which constituent corpus, which
+  licence. Going to the source costs more requests and returns strictly more information.
+- Useful only as confirmation that a full pull is feasible.
+
 ### LASLA / Opera Latina
 - **https://www.lasla.uliege.be/** — corpus release announcement:
   https://ancientworldonline.blogspot.com/2023/10/the-lasla-latin-corpus-has-been.html

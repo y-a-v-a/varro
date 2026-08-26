@@ -1017,3 +1017,116 @@ def test_a_non_latin_file_is_skipped(tmp_path, monkeypatch):
     records, stats = _tei_source(tmp_path, monkeypatch, {"greek.xml": greek})
     assert records == []
     assert stats["skipped:lang:grc"] == 1
+
+
+# --- Corpus Corporum's own export: a POS layer that shadows the text --------
+#
+# The export at download.php?type=file-pos-xml carries every word twice: once
+# tokenised in its own namespace, then again as running text. Measured on
+# Petrus Damianus, Epistolae: a naive walk gives 226,051 words against a true
+# 113,622. Every word in the corpus, doubled.
+
+from extract import TEI_NS  # noqa: E402
+from extract import (CC_ANNOTATION_NS, strip_cc_annotation,  # noqa: E402
+                     tei_author_midpoint, tei_pl_volume)
+
+CC_EXPORT = """<TEI xmlns="http://www.tei-c.org/ns/1.0"
+     xmlns:cc="http://mlat.uzh.ch/2.0"><teiHeader><fileDesc>
+<titleStmt><title>Epistolae</title>
+  <author ref="http://viaf.org/viaf/50018008">Petrus Damianus<date>1007-1072</date></author>
+</titleStmt>
+<publicationStmt><publisher>J. P. Migne</publisher><date>1853</date></publicationStmt>
+<seriesStmt><title>Patrologia Latina, vol. 144</title><idno>PetDam.Episto243</idno></seriesStmt>
+</fileDesc></teiHeader><text><body>
+<div><head><cc:s n="1"><cc:w lemma="liber" pos="N:nom">LIBER</cc:w><cc:w
+  lemma="unus" pos="ADJ:NUM">PRIMUS</cc:w></cc:s>LIBER PRIMUS.</head>
+<p><cc:s n="2"><cc:w lemma="ad" pos="PREP">AD</cc:w><cc:w
+  lemma="summus">SUMMOS</cc:w></cc:s>AD SUMMOS CHRISTIANAE REIPUBLICAE PASTORES,
+et Cadaloum antipapam scripsit hic auctor plura volumina quae nunc leguntur
+atque in bibliothecis multis adhuc servantur integra manentia.</p>
+</div></body></text></TEI>"""
+
+
+def test_the_annotation_layer_is_removed_not_the_text():
+    root = ET.fromstring(CC_EXPORT)
+    body = root.find(f".//{TEI_NS}body")
+    removed = strip_cc_annotation(body)
+    assert removed == 2                      # two <cc:s> elements
+    text = "".join(body.itertext())
+    assert "LIBER PRIMUS." in text
+    assert text.count("LIBER") == 1          # the tokenised echo is gone
+    assert text.count("SUMMOS") == 1
+
+
+def test_the_tail_of_an_annotation_element_survives_its_removal():
+    """The running text sits in the annotation's tail. Drop it and the text
+    this whole reader exists to collect goes with it."""
+    root = ET.fromstring(
+        '<d xmlns:cc="http://mlat.uzh.ch/2.0"><cc:s>ECHO</cc:s>real text here</d>')
+    strip_cc_annotation(root)
+    assert "".join(root.itertext()) == "real text here"
+
+
+def test_a_tail_on_a_later_child_reattaches_to_its_predecessor():
+    root = ET.fromstring('<d xmlns:cc="http://mlat.uzh.ch/2.0">'
+                         '<p>first</p><cc:s>ECHO</cc:s>second</d>')
+    strip_cc_annotation(root)
+    assert "".join(root.itertext()) == "firstsecond"
+
+
+def test_files_without_an_annotation_layer_are_untouched():
+    root = ET.fromstring(TEI_DOC)
+    assert strip_cc_annotation(root) == 0
+
+
+def test_reader_does_not_double_the_text(tmp_path, monkeypatch):
+    records, stats = _tei_source(tmp_path, monkeypatch, {"144_PetDam.POS.xml": CC_EXPORT})
+    assert len(records) == 1
+    text = records[0]["text"]
+    assert text.count("LIBER") == 1 and text.count("SUMMOS") == 1
+    assert stats["files_with_annotation_layer"] == 1
+    assert stats["annotation_elements_removed"] == 2
+
+
+def test_titlestmt_wins_over_the_body_heading(tmp_path, monkeypatch):
+    """Opposite failure from the GitHub feed, where titleStmt is a stub.
+
+    Only titleStmt is consulted — seriesStmt also holds a <title>, and
+    "Patrologia Latina, vol. 144" is the series, not the work.
+    """
+    records, _ = _tei_source(tmp_path, monkeypatch, {"144_PetDam.POS.xml": CC_EXPORT})
+    assert records[0]["work"] == "Epistolae"
+
+
+def test_author_name_excludes_the_lifespan(tmp_path, monkeypatch):
+    records, _ = _tei_source(tmp_path, monkeypatch, {"144_PetDam.POS.xml": CC_EXPORT})
+    assert records[0]["author"] == "Petrus Damianus"
+
+
+def test_lifespan_gives_a_midpoint_and_the_printing_date_is_ignored():
+    """1853 is Migne printing him, not Petrus Damianus writing."""
+    root = ET.fromstring(CC_EXPORT)
+    assert tei_author_midpoint(root) == 1039
+
+
+def test_a_bc_lifespan_is_handled():
+    root = ET.fromstring('<TEI xmlns="http://www.tei-c.org/ns/1.0"><author>'
+                         'Cicero<date>-106--43</date></author></TEI>')
+    assert tei_author_midpoint(root) == -75
+
+
+def test_an_undated_author_yields_no_midpoint():
+    root = ET.fromstring(TEI_DOC)
+    assert tei_author_midpoint(root) is None
+
+
+def test_pl_volume_prefers_the_series_statement_to_the_filename():
+    root = ET.fromstring(CC_EXPORT)
+    assert tei_pl_volume(root, "144_PetDam.POS.xml") == 144
+    assert tei_pl_volume(root, "no-volume-here.xml") == 144
+
+
+def test_pl_volume_falls_back_to_the_filename():
+    root = ET.fromstring(TEI_DOC)
+    assert tei_pl_volume(root, "[CC]PL10_19_DE.xml") == 10
+    assert tei_pl_volume(root, "mqdq_carmen.xml") is None
