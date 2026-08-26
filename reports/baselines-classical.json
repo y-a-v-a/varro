@@ -3,70 +3,70 @@
     "by": {
       "form": {
         "PROSE": {
-          "documents": 13,
-          "perplexity": 200.34885119505248,
-          "tokens": 333900
+          "documents": 9,
+          "perplexity": 216.96737679925366,
+          "tokens": 332454
         },
-        "PROSIMETRUM": {
+        "UNKNOWN": {
           "documents": 1,
-          "perplexity": 200.82778548116858,
-          "tokens": 72013
+          "perplexity": 143.2915344470678,
+          "tokens": 22546
         },
         "VERSE": {
-          "documents": 6,
-          "perplexity": 140.1370898826297,
-          "tokens": 120398
+          "documents": 12,
+          "perplexity": 148.52775345937846,
+          "tokens": 205886
         }
       },
       "genre": {
         "COMMENTARY": {
-          "documents": 2,
-          "perplexity": 279.9582442321368,
-          "tokens": 90970
-        },
-        "ELEGY": {
           "documents": 1,
-          "perplexity": 131.61002627958493,
-          "tokens": 30503
+          "perplexity": 288.8112356916372,
+          "tokens": 82801
         },
         "EPISTOLOGRAPHY": {
           "documents": 1,
-          "perplexity": 144.82733691852857,
-          "tokens": 24456
+          "perplexity": 145.48664678190187,
+          "tokens": 24462
         },
         "HISTORY": {
-          "documents": 10,
-          "perplexity": 180.74213382965715,
-          "tokens": 218474
+          "documents": 6,
+          "perplexity": 181.16606598436368,
+          "tokens": 98940
         },
         "LYRIC": {
-          "documents": 3,
-          "perplexity": 131.13754445822786,
-          "tokens": 46475
-        },
-        "NOVEL": {
-          "documents": 1,
-          "perplexity": 200.82778548116858,
-          "tokens": 72013
+          "documents": 4,
+          "perplexity": 136.8787769372849,
+          "tokens": 78993
         },
         "SATIRE": {
-          "documents": 2,
-          "perplexity": 157.23913567405097,
-          "tokens": 43420
+          "documents": 8,
+          "perplexity": 156.27489212098644,
+          "tokens": 126893
+        },
+        "TECHNICAL": {
+          "documents": 1,
+          "perplexity": 223.83706937442997,
+          "tokens": 126251
+        },
+        "UNKNOWN": {
+          "documents": 1,
+          "perplexity": 143.2915344470678,
+          "tokens": 22546
         }
       },
       "period": {
         "CLASSICAL": {
-          "documents": 20,
-          "perplexity": 184.67909112691737,
-          "tokens": 526311
+          "documents": 22,
+          "perplexity": 185.6678113965847,
+          "tokens": 560886
         }
       }
     },
     "lambda_bigram": 0.7,
     "model": "interpolated-bigram",
-    "overall_perplexity": 184.67909112691737,
-    "train_tokens": 10241858,
+    "overall_perplexity": 185.6678113965847,
+    "train_tokens": 10671431,
     "vocab": 4000
   },
   "corpus": {
@@ -74,18 +74,18 @@
     "period_filter": [
       "CLASSICAL"
     ],
-    "records": 256,
+    "records": 261,
     "seed": 20260815,
     "track": "A",
-    "train_words": 4592600,
-    "validation_words": 239255,
-    "words": 4831855
+    "train_words": 4805330,
+    "validation_words": 250583,
+    "words": 5055913
   },
   "corpus_name": "classical",
-  "generated": "2026-08-25T23:17:07+00:00",
+  "generated": "2026-08-26T09:07:31+00:00",
   "schema_version": 1,
   "tokenizer": {
-    "sha256": "801206db8485a407",
+    "sha256": "f1086bbe7f1fd140",
     "vocab": 4000
   }
 }

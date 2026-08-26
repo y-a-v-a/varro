@@ -187,12 +187,65 @@ tokenizer care, and possibly staged pretraining rather than expecting web-scale 
 
 Keep these in a separate shard. Fine for a research model; drop them if you ever go commercial.
 
-### Corpus Corporum (University of Zurich)
-- **https://www.mlat.uzh.ch/**
-- The largest structured Latin collection anywhere: ~226 million words, ~30 corpora, antiquity →
-  20th c. TEI XML and txt download.
-- Licence: **non-commercial use only**, and rights vary by constituent corpus ("heterogeneous
-  origin"). Enormous value, real legal friction. Classical subset is a minority of the total.
+### Corpus Corporum (University of Zurich) — the Stage 2 corpus, pending an ask
+- **https://www.mlat.uzh.ch/** — Philipp Roelli, Institute for Greek and Latin Philology.
+  Contact: turicense@gmail.com.
+- Size, from the site's own changelog: **over 200 million words** (19.12.2024). Note the
+  15.3.2024 entry — a reload recounted more strictly, "paratextual elements and punctuation are
+  no longer included", and the total *dropped* to 161M. Treat any single figure with care.
+- Licence, quoted from `?p=about`: "The data we transcribed ourselves ... is published under
+  **Creative Commons Share-Alike** and may thus be reused freely (**but non-commercially**) as
+  long as the source is indicated. Most of the texts present here, however, stem from various
+  online sources. As far as we could determine they are either in the public domain or their use
+  was granted us by their owners." Also: "Texts may be downloaded as **TEI xml for
+  non-commercial use**", and loaded/downloaded "unless copyrights or the texts' providers
+  restrict this".
+  → **amber, Track B.** Consistent with what the manifest already assumed.
+- **robots.txt is `User-agent: * / Allow: /`** — the opposite of IntraText. Nothing technical
+  or stated forbids automated access.
+- **Do not extrapolate Tesserae's 95% duplication here, and the reason is on the page.** The
+  site names its sixteen constituent projects and which corpus number each feeds. Three of them
+  are already three of our own sources:
+  | constituent | corpus no. | we already have it |
+  |---|---|---|
+  | Perseus | 5 | yes |
+  | OpenGreekAndLatin | 2, 19 | yes (CSEL) |
+  | digilibLT | 16 | yes |
+  The other thirteen are **not** in this corpus and are largely not in Perseus or the Latin
+  Library either: dMGH (Monumenta Germaniae Historica), CAMENA (neo-Latin), CroALa (Croatian
+  Latin), ALIM (Italian medieval), mirabile/SISMEL, Nova scientia/noscemus (early modern
+  science), Biblioteca Italiana, Bullinger Digital (Reformation letters), PAL (astrological),
+  SourcEncyMe, CGL, Richard Rufus, Peter King. That is medieval and neo-Latin at scale —
+  precisely the material Stage 2 wants and the one kind our 70%-Vicifons corpus is not already
+  saturated with. **Overlap is excludable by corpus number**, which is a far better position
+  than dedup-and-hope.
+- **What blocks it: there is no bulk export.** Texts download individually as TEI XML; there is
+  no documented dump, API or archive. Pulling 200M words text-by-text off a small university
+  server is an imposition even where robots.txt permits it, and the site explicitly invites
+  contact. **The unblocking action is an email to turicense@gmail.com asking for an export of
+  the non-Perseus/OGL/digilibLT corpora** — same move as LTA/BBAW and IntraText.
+- **The `tei-xml` reader now exists and is tested** — written against real data, not guessed.
+  The route in: Corpus Corporum's largest corpus is fed from
+  `github.com/OpenGreekAndLatin/patrologia_latina-dev`, whose 6,411 files carry a literal
+  `[CC]` prefix because they *are* the Corpus Corporum copies. No scraping needed. Those files
+  also declare **CC BY-SA 4.0** in their own teiHeader, so that constituent is greener than the
+  platform's blanket NC term.
+- Two defects found there, both of which a guessed reader would have sailed past:
+  | defect | scale | effect if ignored |
+  |---|---|---|
+  | unterminated character references (`&#171 ;`, `&gt5`, `&#0160`) | 5 of 21 files in one volume | the file is a `parse_errors` counter and nothing else |
+  | words split across a printed line (`Victo-\nrina`) | **4.06% of all words** | ~3.5M broken tokens at PL's scale |
+  Repairing both took one volume from **50,980 words to 218,818** — a 4.3× difference between a
+  reader that looks like it works and one that does.
+- Repair placement matters and is not arbitrary. Entity repair runs *only after a parse fails*,
+  so a file broken for some other reason still reports a genuine error instead of being masked.
+  De-hyphenation runs *before* `tidy()`, which collapses the newline and destroys the only
+  evidence that the hyphen was a line break rather than a real one.
+- The TEI header's `<date>` is **not** a composition date — the PL files say `<date>2015</date>`,
+  meaning when Leipzig encoded them. The reader therefore leaves `approximate_date` unset and
+  recovers the **Patrologia Latina volume from the filename** instead, feeding the `pl_volume`
+  interpolation `enrich` already has. Taking the header date would repeat the mistake that filed
+  the CSEL prefaces under LATE.
 
 ### LASLA / Opera Latina
 - **https://www.lasla.uliege.be/** — corpus release announcement:
@@ -204,20 +257,45 @@ Keep these in a separate shard. Fine for a research model; drop them if you ever
 - Linked data version: https://github.com/CIRCSE/LASLA and the LiLa knowledge base
   (https://lila-erc.eu/).
 
-### IntraText — Bibliotheca Latina
-- **https://www.intratext.com/LAT/**
-- Licence: **CC BY-NC-SA 3.0**.
+### IntraText — Bibliotheca Latina — BLOCKED (access terms, not licence)
+- **https://www.intratext.com/LAT/** — 716 IntraTexts / 876 works, EuloTech SRL.
+- Licence: **CC BY-NC-SA 3.0**. That is amber, and amber is fine: Track B never redistributes.
+  The licence is **not** what stops us.
+- **The access terms are.** robots.txt disallows `/Dwnld/` and denies roughly 25 named mirroring
+  agents outright — Wget, HTTrack, WebZIP and the rest — and the copyright page asks readers to
+  "link to the contents in The IntraText Digital Library itself" rather than republish them.
+  A user-agent not on that list might technically slip through; the publisher's intent does not.
+  This project honours terms as offered rather than as argued, so: **do not write a scraper.**
+- The way in is to **ask EuloTech for a dataset**, the same move as the LTA/BBAW question.
+- Worth knowing before spending that ask: substantially derived from other collections, and the
+  closest measured comparison — Tesserae — came back 95% already present.
 
 ### Index Thomisticus Treebank / CIRCSE resources
 - **https://itreebank.marginalia.it/**
 - Medieval (Aquinas), outside classical scope, but the tooling and models are relevant.
 - Licence: **CC BY-NC-SA 3.0**.
 
-### Tesserae corpus
+### Tesserae corpus — INGESTED, green
 - **https://tesserae.caset.buffalo.edu/** — texts: https://github.com/cltk/lat_text_tesserae
-- Aggregated from Latin Library, Perseus, DigilibLT, OGL, Musisque Deoque — so it is mostly
-  *derivative* of Tier A. Useful mainly for its normalisation.
-- Licence: **UB Public License 1.0** (custom university licence — read it; **VERIFY** for your use).
+- Licence **RESOLVED, 2026-08-26**: UB Public License 1.0 (https://cse.buffalo.edu/sneps/ubpl.pdf)
+  is a **Mozilla Public License 1.1 derivative**. §2.1 grants a "world-wide, royalty-free,
+  non-exclusive license ... to use, reproduce, modify, display, perform, sublicense and
+  distribute". The strings "non-commercial", "research only" and "academic use only" appear
+  **nowhere in it**. §3.1 is file-level copyleft: redistribute the source form under the same
+  licence and ship a copy of the licence with it.
+  → **green, Track A**, obligation closer to CC BY-SA than to anything amber. The PDF does not
+  extract through ordinary fetching; the text was recovered from its FlateDecode streams.
+- Format is **`.tess`, not `.txt`** as the manifest first claimed: 748 files, one citation per
+  line (`<verg. aen. 1.1>\tArma virumque cano`). Reader hazards, all from the real data —
+  byte-order marks on three files; citation tags that lose their opening `<`
+  (`cic. phil. 7.1>`); and angle brackets that are *editorial supplements*, not references, so
+  `pronos> intelligebat` is Latin and must survive.
+- **metadata/metadata.json dates every one of the 748 files** and gives a prose/verse/mixed
+  mode. That is per-work evidence, better than an author-level floruit, and it is why
+  `Authority.resolve` now has a `source-metadata` rank above interpolation.
+- **Measured yield: 6,735,635 words extracted, 95.0% already in the corpus.**
+  Only **334,010 words are new** — 128,523 of them classical. The derivation warning in §5 was
+  right, and this is the number to calibrate the other derived collections against.
 
 ### Musisque Deoque — Latin poetry with critical apparatus
 - **https://www.mqdq.it/**

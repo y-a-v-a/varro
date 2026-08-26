@@ -6,6 +6,113 @@ stale, and what to do next.
 
 ---
 
+## Update 2026-08-26 (later still) — three candidate corpora, worked in order
+
+Cheapest first: Tesserae, IntraText, Corpus Corporum. One landed, one is
+blocked by its publisher, one is ready and waiting on an email.
+
+| corpus | records | words | train tokens |
+|---|---:|---:|---:|
+| Track A · full | 10,782 | 94,923,570 | **183,253,029** |
+| Track A · classical | 261 | 5,055,913 | **10,671,431** |
+| Track B · full | 10,807 | 94,991,578 | — |
+
+Floors: **180.62** full, **185.67** classical. **Classical passed 5M words for
+the first time** — it had not moved since the Latin Library.
+
+### Tesserae — the licence was the whole blocker, and it is green
+
+The manifest said "a custom university licence nobody here has read, so the
+tier is `unknown` rather than `amber`: the terms are not merely restrictive,
+they are unassessed." Now read. **UB Public License 1.0 is an MPL-1.1
+derivative**: §2.1 grants a "world-wide, royalty-free, non-exclusive license
+... to use, reproduce, modify, display, perform, sublicense and distribute",
+and "non-commercial", "research only" and "academic use only" appear nowhere
+in it. §3.1 is file-level copyleft. So **green, Track A** — it helps LATIN-VII,
+not just LATIN-LII. The PDF does not extract through ordinary fetching; the
+text came out of its FlateDecode streams.
+
+`provenance.py` reports it as its own obligation class, "attribution +
+per-file copyleft, ship licence", rather than folding it into ShareAlike or
+dropping it in UNRESOLVED. Per-file copyleft is a different shape and a reader
+deciding what to ship needs to be told which applies.
+
+**Measured yield: 6,735,635 words extracted, 95.0% already present.** Only
+334,010 words are new, 128,523 of them classical. sources.md's warning that
+these aggregators are "substantially derived from Perseus and The Latin
+Library" was right, and now has a number on it. Calibrate the other derived
+collections against this, not against their headline size.
+
+Two things still made it worth doing. The format was declared `txt` and is
+actually 748 `.tess` files, so the plaintext reader would have found nothing
+and reported success. And **metadata.json dates all 748 files individually** —
+which mattered, because 44 of 70 Tesserae author slugs are bare surnames
+(`cicero`, `vergil`) that miss the authority aliases. Rather than hand-add 44
+aliases, `Authority.resolve` gained a **`source-metadata`** rank: a date the
+source states for a work now outranks PL interpolation and source priors,
+while still sitting under the human-checked authorities and recording its own
+origin. That generalises to every future dated source.
+
+### IntraText — blocked, and not by its licence
+
+CC BY-NC-SA 3.0 is amber, and amber is fine; Track B never redistributes. The
+**access terms** are the blocker: robots.txt disallows `/Dwnld/` and denies
+roughly 25 named mirroring agents outright, and the copyright page asks
+readers to link rather than republish. A user-agent not on that list might
+slip through; the intent does not. `include: false`, reasoning recorded, **no
+scraper written**. The way in is to ask EuloTech for a dataset.
+
+### Corpus Corporum — reader written, acquisition still needs an ask
+
+robots.txt is `User-agent: * / Allow: /`, the opposite of IntraText. Licence
+confirmed amber from the site's own words. The browser lists all 30 corpora
+with counts, totalling **226,311,326 words**, and — crucially — **the overlap
+is excludable by corpus number rather than left to dedupe**: Perseus is 5,
+OpenGreekAndLatin 2 and 19, digilibLT 16, Greek is 99, and Patrologia Latina
+(2, 85.5M) overlaps the ~66M of PL we already carry via Vicifons. Excluding
+those leaves **~115.9M words** of largely-new medieval and neo-Latin, of which
+**Acta Sanctorum alone is 52.7M**.
+
+**The `tei-xml` reader exists and is tested against real files.** The route in
+was that Corpus Corporum's largest corpus is fed from a public GitHub repo
+whose 6,411 files carry a literal `[CC]` prefix because they are the Corpus
+Corporum copies — no scraping required. They also declare CC BY-SA 4.0 in
+their own teiHeader, so that constituent is greener than the platform's
+blanket term.
+
+Two defects there, both of which a guessed reader would have sailed past:
+
+| defect | scale | effect if ignored |
+|---|---|---|
+| unterminated character references (`&#171 ;`, `&gt5`, `&#0160`) | 5 of 21 files in one volume | the file is a `parse_errors` counter and nothing else |
+| words split across a printed line (`Victo-\nrina`) | **4.06% of all words** | ~3.5M broken tokens at PL's scale |
+
+Repairing both took one volume from **50,980 words to 218,818**. Placement is
+not arbitrary: entity repair runs *only after a parse fails*, so a file broken
+some other way still reports a real error rather than being masked; and
+de-hyphenation runs *before* `tidy()`, which collapses the newline and
+destroys the only evidence that the hyphen was a line break.
+
+The header's `<date>` is **not** a composition date — the PL files say 2015,
+meaning when Leipzig encoded them. The reader leaves `approximate_date` unset
+and recovers the **PL volume from the filename** instead, feeding the
+`pl_volume` interpolation `enrich` already has. Taking the header date would
+repeat the CSEL-preface mistake exactly.
+
+**What is left is not code.** There is no bulk export; texts download one at a
+time. The unblocking action is an email to turicense@gmail.com.
+
+### Two bugs of my own worth remembering
+
+- `\bPL(\d{1,3})\b` never matched `[CC]PL10_19_DE.xml`, because `_` is a word
+  character so there is no boundary after `10`. Caught by a test written from
+  a real filename rather than an imagined one.
+- Waiting with `until ! pgrep -f "src/pipeline.py"` never terminates: `pgrep
+  -f` matches the waiter's own command line, which contains that string. Two
+  watcher shells span forever and no completion was ever reported.
+
+---
+
 ## Update 2026-08-26 (later) — half of the CSEL repo was never read
 
 `csel-dev` ships its texts twice. `data/` holds one file per work in CapiTainS

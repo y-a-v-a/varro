@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-24T22:01:35+00:00",
+  "generated": "2026-08-26T08:36:39+00:00",
   "note": "Resolved versions of fetched sources. Commit this file \u2014 it is what makes the corpus reproducible and the licence trail auditable.",
   "sources": {
     "digiliblt": {
@@ -110,6 +110,17 @@
       "resolved_pin": "4620cf8ab32865b127dce42a61e80c58b4c06de9",
       "tier": "green",
       "url": "https://github.com/PerseusDL/canonical-latinLit"
+    },
+    "tesserae": {
+      "bytes": 53858959,
+      "fetched": "2026-08-26T08:36:39+00:00",
+      "license": "UB-Public-License-1.0",
+      "method": "git",
+      "n_files": 755,
+      "name": "Tesserae Latin corpus",
+      "resolved_pin": "61a14f04966bf8c52185dbe8dd1bdc39f8adc38c",
+      "tier": "green",
+      "url": "https://github.com/cltk/lat_text_tesserae"
     },
     "vicifons": {
       "bytes": 203531435,

@@ -54,6 +54,14 @@ SHAREALIKE = {"CC-BY-SA-4.0", "CC-BY-SA-3.0"}
 ATTRIBUTION_ONLY = {"CC-BY-4.0", "CC-BY-3.0"}
 NO_OBLIGATION = {"public-domain", "CC0-1.0"}
 
+# Mozilla-style file-level copyleft. Kept as its own class rather than folded
+# into SHAREALIKE, because the obligation is genuinely a different shape: it
+# attaches per file rather than to the work as a whole, and it requires the
+# licence text to travel with the distribution. Both are redistributable and
+# commercially usable, so the corpus's effective licence is unaffected — but
+# a reader deciding what they must ship needs to be told which one applies.
+FILE_COPYLEFT = {"UB-Public-License-1.0"}
+
 
 def load_manifest() -> Dict[str, Dict[str, Any]]:
     with MANIFEST.open(encoding="utf-8") as fh:
@@ -116,6 +124,10 @@ def corpus_licence(rows: List[Dict[str, Any]]) -> str:
     licences = {r["license"] for r in rows}
     if licences & SHAREALIKE:
         return "CC-BY-SA-4.0"
+    if licences & FILE_COPYLEFT:
+        # No CC identifier describes this. Naming it is more use than
+        # inventing a label the source does not carry.
+        return "CC-BY-SA-4.0 + UBPL-1.0"
     if licences & ATTRIBUTION_ONLY:
         return "CC-BY-4.0"
     if licences and licences <= NO_OBLIGATION:
@@ -257,6 +269,8 @@ def main() -> int:
     for row in rows:
         if row["license"] in SHAREALIKE:
             obligations["attribution + ShareAlike"].append(row["id"])
+        elif row["license"] in FILE_COPYLEFT:
+            obligations["attribution + per-file copyleft, ship licence"].append(row["id"])
         elif row["license"] in ATTRIBUTION_ONLY:
             obligations["attribution"].append(row["id"])
         elif row["license"] in NO_OBLIGATION:

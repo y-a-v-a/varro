@@ -229,10 +229,14 @@ def test_plaintext_sources_share_one_reader():
 
 
 def test_formats_without_a_reader_yet_return_none_rather_than_raising():
-    """What is left are the two sources that cannot be fetched anyway:
-    Corpus Corporum's TEI and IntraText's HTML."""
-    assert extractor_for("corpus-corporum") is None
+    """IntraText's HTML is the last format with no reader, and deliberately so.
+
+    Its licence is fine; its access terms are not — robots.txt denies the
+    mirroring agents by name — so there is nothing to point a reader at.
+    Corpus Corporum used to be listed here too, until its TEI got one.
+    """
     assert extractor_for("intratext") is None
+    assert extractor_for("corpus-corporum") is not None
 
 
 def test_eval_tier_is_never_extractable(): 
@@ -253,7 +257,16 @@ def test_eval_tier_is_never_extractable():
 
 
 def test_excluded_sources_are_not_extractable():
-    assert "tesserae" not in extractable_sources()   # include: false
+    """Named no source in particular, so the manifest can change under it.
+
+    This asserted `tesserae` until its licence was read and it turned out to
+    be green; a test that pins one id fails for the wrong reason the moment
+    the answer changes.
+    """
+    excluded = [e["id"] for e in load_manifest()["sources"]
+                if not e.get("include", True)]
+    assert excluded, "expected the manifest to still exclude something"
+    assert not set(excluded) & set(extractable_sources())
 
 
 def test_every_registered_format_is_declared_by_some_source():
@@ -735,3 +748,272 @@ def test_clean_prose_passes_straight_through():
 def test_rejudged_threshold_sits_between_the_two_populations():
     """0.102 is the worst preface, 0.139 the best table. Do not tune finer."""
     assert 0.102 < REJUDGE_DIGIT < 0.139
+
+
+# --- Tesserae .tess ---------------------------------------------------------
+#
+# A line-per-citation format built for intertextual search:
+#     <verg. aen. 1.1>\tArma virumque cano, Troiae qui primus ab oris
+# The hazards below are all taken from the real 748-file corpus, not invented.
+
+import json  # noqa: E402
+
+from extract import (TESS_MODE_FORM, extract_tess, strip_tess_tag,  # noqa: E402
+                     tess_name)
+
+
+def test_tag_is_stripped_and_text_kept():
+    assert strip_tess_tag("<verg. aen. 1.1>\tArma virumque cano") == \
+        "Arma virumque cano"
+
+
+def test_unclosed_tag_is_stripped_too():
+    """cicero.philippicae.part.7 and macrobius.fragment both lose the `<`."""
+    assert strip_tess_tag("cic. phil. 7.1> parvis de rebus") == "parvis de rebus"
+    assert strip_tess_tag("mac. frag 1> Ludunt alea studiose") == \
+        "Ludunt alea studiose"
+
+
+def test_an_editorial_supplement_is_not_mistaken_for_a_tag():
+    """Angle brackets also mark a conjectural supplement, and `<pronos>`
+    reaches the line start as `pronos>`. Requiring a digit is what keeps
+    those Latin words in the text — they are the reading, not a reference.
+    """
+    assert strip_tess_tag("pronos> intelligebat; neque ego abnuo") == \
+        "pronos> intelligebat; neque ego abnuo"
+    assert strip_tess_tag("quem> adeo percoluerat") == "quem> adeo percoluerat"
+    assert strip_tess_tag("nuntius> auctoribus exitio") == \
+        "nuntius> auctoribus exitio"
+
+
+def test_an_untagged_line_is_left_alone():
+    """Continuation lines and Latin headings carry no citation at all."""
+    assert strip_tess_tag("Eloquentiae regulae in Amos") == \
+        "Eloquentiae regulae in Amos"
+
+
+def test_name_from_filename():
+    assert tess_name("vergil.aeneid.part.1") == ("Vergil", "Aeneid 1")
+    assert tess_name("ammianus.rerum_gestarum.part.14") == \
+        ("Ammianus", "Rerum Gestarum 14")
+    assert tess_name("apuleius.apologia") == ("Apuleius", "Apologia")
+    assert tess_name("pliny_the_younger.epistulae.part.1") == \
+        ("Pliny The Younger", "Epistulae 1")
+
+
+def test_mode_maps_onto_the_projects_forms():
+    assert TESS_MODE_FORM == {"prose": "PROSE", "verse": "VERSE",
+                              "mixed": "PROSIMETRUM"}
+
+
+def _tess_source(tmp_path, monkeypatch, files, meta=None):
+    import extract
+    monkeypatch.setattr(extract, "RAW", tmp_path)
+    root = tmp_path / "tesserae"
+    (root / "metadata").mkdir(parents=True)
+    for name, body in files.items():
+        (root / name).write_text(body, encoding="utf-8")
+    if meta is not None:
+        (root / "metadata" / "metadata.json").write_text(json.dumps(meta),
+                                                         encoding="utf-8")
+    monkeypatch.setattr(extract, "load_manifest_entry",
+                        lambda s: {"name": "Tesserae", "period": "MIXED",
+                                   "license": "UB-Public-License-1.0",
+                                   "url": "u", "text_provenance": "unknown"})
+    monkeypatch.setattr(extract, "load_lock_entry", lambda s: {"resolved_pin": "abc"})
+    return extract.extract_tess("tesserae", "drop", None)
+
+
+LINES = "\n".join(f"<verg. aen. 1.{i}> Arma virumque cano Troiae qui primus "
+                  f"ab oris Italiam fato profugus" for i in range(1, 6))
+
+
+def test_reader_carries_the_stated_date_and_mode(tmp_path, monkeypatch):
+    records, stats = _tess_source(
+        tmp_path, monkeypatch, {"vergil.aeneid.part.1.tess": LINES},
+        {"vergil.aeneid.part.1.tess": {"date": "-19", "mode": "verse"}})
+    assert len(records) == 1
+    rec = records[0]
+    assert rec["approximate_date"] == -19
+    assert rec["form"] == "VERSE"
+    assert rec["author"] == "Vergil" and rec["work"] == "Aeneid 1"
+    assert "verg. aen." not in rec["text"]
+    assert stats["dated_by_source"] == 1
+
+
+def test_a_byte_order_mark_does_not_defeat_the_tag(tmp_path, monkeypatch):
+    """jerome.epistulae, ovid.ibis and macrobius.fragment all open with one."""
+    records, _ = _tess_source(
+        tmp_path, monkeypatch, {"ovid.ibis.tess": "﻿" + LINES},
+        {"ovid.ibis.tess": {"date": "10", "mode": "verse"}})
+    assert records and not records[0]["text"].startswith("<")
+    assert "verg. aen." not in records[0]["text"]
+
+
+def test_missing_metadata_leaves_the_date_unset_and_is_counted(tmp_path, monkeypatch):
+    records, stats = _tess_source(tmp_path, monkeypatch,
+                                  {"vergil.aeneid.part.1.tess": LINES}, meta={})
+    assert records[0]["approximate_date"] is None
+    assert stats["no_stated_date"] == 1
+
+
+def test_control_characters_are_removed(tmp_path, monkeypatch):
+    """anonymous.laudes_domini ends with a stray ^Z."""
+    records, _ = _tess_source(
+        tmp_path, monkeypatch, {"anonymous.laudes_domini.tess": LINES + "\x1a"},
+        {"anonymous.laudes_domini.tess": {"date": "400", "mode": "verse"}})
+    assert "\x1a" not in records[0]["text"]
+
+
+# --- Generic TEI XML: Corpus Corporum ---------------------------------------
+#
+# Every fixture below is a real reading from the Patrologia Latina feed that
+# supplies Corpus Corporum's largest corpus (85.5M words). Measured on one
+# volume: 5 of 21 files do not parse, and 4.06% of words are split across a
+# printed line. Repairing both took that volume from 50,980 words to 218,818.
+
+import xml.etree.ElementTree as ET  # noqa: E402
+
+from extract import (extract_tei_xml, rejoin_hyphenation,  # noqa: E402
+                     repair_entities, tei_author, tei_body_lang, tei_title)
+
+
+def test_drifted_semicolon_is_consumed_not_duplicated():
+    """`&#171 ;` — repairing it must not leave the stray `;` in the text."""
+    assert repair_entities("memorabantur : &#171 ; Erat Deus") == \
+        ("memorabantur : &#171; Erat Deus", 1)
+
+
+def test_missing_semicolon_is_supplied():
+    """`&gt5` in a <foreign> element; the 5 is text and must survive."""
+    assert repair_entities('<foreign>&gt5 καί</foreign>') == \
+        ('<foreign>&gt;5 καί</foreign>', 1)
+
+
+def test_unterminated_reference_before_punctuation():
+    assert repair_entities("Tuis ( ; ) ; &#0160  .")[0] == "Tuis ( ; ) ; &#0160;  ."
+
+
+def test_well_formed_entities_are_left_alone():
+    """The repair must be a no-op on every file that already parses."""
+    for clean in ("clean &amp; fine", "&lt;tag&gt;", "&#171; already",
+                  "&#x2014; hex", "R&amp;D"):
+        assert repair_entities(clean) == (clean, 0)
+
+
+def test_hyphenation_is_rejoined_across_the_line_break():
+    text = "ex Victo-\nrina bibliotheca, e libris de Trinitate confla-\ntum esse"
+    joined, n = rejoin_hyphenation(text)
+    assert "Victorina" in joined and "conflatum" in joined
+    assert n == 2
+
+
+def test_hyphenation_tolerates_indentation_in_the_gap():
+    assert rejoin_hyphenation("sup-\n\t  pressit") == ("suppressit", 1)
+
+
+def test_a_real_hyphen_within_a_line_survives():
+    """Only a hyphen at a LINE BREAK is a printing artefact."""
+    assert rejoin_hyphenation("Franco-Gallia et prae-clarus") == \
+        ("Franco-Gallia et prae-clarus", 0)
+
+
+def test_hyphen_before_a_blank_line_is_not_rejoined():
+    """A paragraph boundary is not a broken word."""
+    assert rejoin_hyphenation("finis-\n\nAliud caput")[1] == 0
+
+
+TEI_DOC = """<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc>
+<titleStmt><title/><author ref="urn:tmp"/></titleStmt>
+<publicationStmt><date>2015</date>
+<availability><p>Creative Commons Attribution-ShareAlike 4.0</p></availability>
+</publicationStmt>
+<sourceDesc><listBibl xml:lang="la"><biblStruct/></listBibl></sourceDesc>
+</fileDesc></teiHeader><text><body><div type="edition">
+<head><title>DE ESSENTIA PATRIS ET FILII</title></head>
+<p>Hunc quoque librum a Ludovico Miroeo ex Victo-
+rina bibliotheca vulgatum, e libris de Trinitate confla-
+<milestone unit="PLSection" n="B"/>tum esse primus observavit Gillotius, qui locis notatis
+coetera suppressit atque omnia adversus haeretici furoris
+ingenia conclusa sunt, ut conscientiam potius naturae
+demonstraret et audiamus eum omnem fidei cognitionem.</p>
+</div></body></text></TEI>"""
+
+
+def test_title_comes_from_the_body_when_the_header_is_a_stub():
+    """Corpus Corporum headers are frequently `<title/>` and a TO BE ADDED."""
+    root = ET.fromstring(TEI_DOC)
+    assert tei_title(root) == "DE ESSENTIA PATRIS ET FILII"
+    assert tei_author(root) is None
+    assert tei_body_lang(root) == "la"
+
+
+def _tei_source(tmp_path, monkeypatch, files, period="MEDIEVAL"):
+    import extract
+    monkeypatch.setattr(extract, "RAW", tmp_path)
+    root = tmp_path / "corpus-corporum"
+    root.mkdir(parents=True)
+    for name, body in files.items():
+        (root / name).write_text(body, encoding="utf-8")
+    monkeypatch.setattr(extract, "load_manifest_entry",
+                        lambda s: {"name": "Corpus Corporum", "period": period,
+                                   "license": "NonCommercial", "url": "u",
+                                   "method": "manual",
+                                   "text_provenance": "unknown"})
+    monkeypatch.setattr(extract, "load_lock_entry", lambda s: {"resolved_pin": None})
+    return extract.extract_tei_xml("corpus-corporum", "drop", None)
+
+
+def test_reader_rejoins_hyphenation_and_titles_the_record(tmp_path, monkeypatch):
+    records, stats = _tei_source(tmp_path, monkeypatch,
+                                 {"[CC]PL10_19_DE.xml": TEI_DOC})
+    assert len(records) == 1
+    rec = records[0]
+    assert "Victorina" in rec["text"] and "conflatum" in rec["text"]
+    assert "Victo- rina" not in rec["text"]
+    assert rec["work"] == "DE ESSENTIA PATRIS ET FILII"
+    assert stats["hyphenation_rejoined"] == 2
+
+
+def test_reader_recovers_a_file_that_does_not_parse(tmp_path, monkeypatch):
+    """Without the repair this file is a parse_errors counter and nothing else."""
+    broken = TEI_DOC.replace("Gillotius,", "Gillotius &#171 ; ")
+    records, stats = _tei_source(tmp_path, monkeypatch,
+                                 {"[CC]PL10_10_56.xml": broken})
+    assert len(records) == 1
+    assert stats["files_repaired"] == 1
+    assert stats["parse_errors"] == 0
+
+
+def test_a_file_broken_for_some_other_reason_is_still_an_error(tmp_path, monkeypatch):
+    """The repair must not mask damage it does not understand."""
+    records, stats = _tei_source(tmp_path, monkeypatch,
+                                 {"bad.xml": "<TEI><body><p>unclosed"})
+    assert records == []
+    assert stats["parse_errors"] == 1
+
+
+def test_the_patrologia_volume_is_read_from_the_filename(tmp_path, monkeypatch):
+    """enrich interpolates a year from a PL volume; the header cannot help.
+
+    The header's <date> is 2015 — when Leipzig encoded it, not when it was
+    written. Reading that as a composition date is the error that filed the
+    CSEL prefaces under LATE.
+    """
+    records, _ = _tei_source(tmp_path, monkeypatch,
+                             {"[CC]PL10_19_DE.xml": TEI_DOC})
+    assert records[0]["pl_volume"] == 10
+    assert records[0]["approximate_date"] is None
+
+
+def test_a_file_with_no_volume_in_its_name_simply_has_none(tmp_path, monkeypatch):
+    records, _ = _tei_source(tmp_path, monkeypatch, {"mqdq_carmen.xml": TEI_DOC})
+    assert records[0]["pl_volume"] is None
+
+
+def test_a_non_latin_file_is_skipped(tmp_path, monkeypatch):
+    """Corpus 99, Graeca miscellanea, is 10.8M words of Greek."""
+    greek = TEI_DOC.replace('xml:lang="la"', 'xml:lang="grc"')
+    records, stats = _tei_source(tmp_path, monkeypatch, {"greek.xml": greek})
+    assert records == []
+    assert stats["skipped:lang:grc"] == 1

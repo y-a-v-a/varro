@@ -1832,6 +1832,326 @@ def extract_plaintext(source_id: str, greek: str, limit: Optional[int]) -> Tuple
 # Format labels are as precise as the parsing actually requires. `tei-capitains`
 # is not `tei-xml`: Corpus Corporum ships TEI with a different structure, and
 # pretending otherwise would dispatch it to a parser that cannot read it.
+
+# ---------------------------------------------------------------------------
+# Tesserae — .tess, one citation per line
+# ---------------------------------------------------------------------------
+#
+# The Tesserae corpus is a line-per-citation format built for intertextual
+# search, not for reading:
+#
+#     <verg. aen. 1.1>\tArma virumque cano, Troiae qui primus ab oris
+#
+# Two things make it worth the reader. It is 69% classical by file count, and
+# classical is the one part of this corpus that cannot be grown by finding
+# more sources — and metadata/metadata.json dates every one of its 748 files
+# individually, which is better evidence than the author-level floruits the
+# authority file carries.
+
+# A citation tag. Some files lose the opening bracket — `cic. phil. 7.1>` and
+# `mac. frag 1>` both occur — so the closing form is matched too, but only
+# when it looks like a citation: lowercase, dotted, and containing a digit.
+# That last condition is what protects the text, because angle brackets are
+# also the editorial mark for a conjectural supplement, and lines beginning
+# `pronos> intelligebat` or `quem> adeo` are Latin words, not references.
+TESS_TAG = re.compile(r"^\s*<[^>]*>\s*")
+TESS_TAG_UNCLOSED = re.compile(r"^\s*(?=[a-z][a-z0-9.\s]*\d)[a-z0-9.\s]{1,30}>\s*")
+
+# ^Z, left at the end of at least one file by whatever wrote it.
+TESS_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def strip_tess_tag(line: str) -> str:
+    """Remove the leading citation reference from one .tess line."""
+    line = TESS_TAG.sub("", line, count=1)
+    return TESS_TAG_UNCLOSED.sub("", line, count=1)
+
+
+def tess_name(stem: str) -> Tuple[str, str]:
+    """`ammianus.rerum_gestarum.part.14` -> ("Ammianus", "Rerum Gestarum 14").
+
+    Parts are kept as separate records rather than stitched into one work,
+    because metadata.json is keyed by file and stitching would throw away the
+    per-file date that is the main reason for reading this source at all.
+    """
+    bits = stem.split(".")
+    author = bits[0].replace("_", " ").title()
+    rest = [b for b in bits[1:] if b != "part"]
+    work = " ".join(b.replace("_", " ").title() for b in rest) if rest else stem
+    return author, work
+
+
+# Tesserae's `mode`, which is the same distinction the project calls `form`.
+TESS_MODE_FORM = {"prose": "PROSE", "verse": "VERSE", "mixed": "PROSIMETRUM"}
+
+
+def extract_tess(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
+    entry = load_manifest_entry(source_id)
+    lock = load_lock_entry(source_id)
+    stats = Stats()
+    records: List[Dict[str, Any]] = []
+
+    root_dir = RAW / source_id
+    if not root_dir.exists():
+        raise RuntimeError(f"{root_dir} missing — fetched?")
+    files = sorted(root_dir.rglob("*.tess"))
+    if not files:
+        raise RuntimeError(f"no .tess under {root_dir} — fetched?")
+
+    meta_path = next(iter(root_dir.rglob("metadata.json")), None)
+    meta: Dict[str, Any] = {}
+    if meta_path is not None:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    else:
+        stats["metadata_missing"] += 1
+
+    for path in files:
+        if limit is not None and len(records) >= limit:
+            break
+        stats["works_seen"] += 1
+        lines = []
+        for raw in path.read_text(encoding="utf-8-sig", errors="replace").splitlines():
+            raw = TESS_CONTROL.sub("", raw)
+            if not raw.strip():
+                continue
+            text = strip_tess_tag(raw).strip()
+            if text:
+                lines.append(text)
+
+        text = tidy("\n".join(lines))
+        text = strip_inline_greek(text, stats, greek)
+        text = drop_english_paragraphs(text, stats)
+        if len(text.split()) < 20:
+            stats["empty_after_extraction"] += 1
+            continue
+
+        info = meta.get(path.name, {})
+        date = info.get("date")
+        try:
+            date = int(date)
+        except (TypeError, ValueError):
+            date = None
+            stats["no_stated_date"] += 1
+        author, work = tess_name(path.stem)
+        records.append({
+            "id": f"{source_id}/{path.stem}",
+            "text": text,
+            "author": author,
+            "work": work,
+            # enrich ranks this under the curated authorities and records it
+            # as `source-metadata`; see Authority.resolve.
+            "approximate_date": date,
+            "period": entry.get("period"),
+            "genre": None,
+            "form": TESS_MODE_FORM.get(info.get("mode")),
+            "source": source_id,
+            "source_url": entry.get("url"),
+            "source_version": lock.get("resolved_pin"),
+            "license": entry.get("license"),
+            "text_provenance": entry.get("text_provenance", "unknown"),
+            "edition": entry.get("name"),
+            "language_variant": "lat",
+            "normalization": None,
+            "n_words": len(text.split()),
+        })
+        stats["records"] += 1
+        stats["words"] += records[-1]["n_words"]
+        if date is not None:
+            stats["dated_by_source"] += 1
+    return records, stats
+
+
+# ---------------------------------------------------------------------------
+# Generic TEI XML — Corpus Corporum and anything else shipping plain TEI
+# ---------------------------------------------------------------------------
+#
+# Distinct from tei-capitains, which navigates a CTS tree of __cts__.xml
+# catalogues. This reads a directory of TEI files directly, which is the shape
+# Corpus Corporum exports and the shape its upstream feeds already publish.
+#
+# Two repairs are applied that the other TEI readers do not need, both
+# measured on real Corpus Corporum files (the Patrologia Latina feed, whose
+# filenames literally carry a [CC] prefix):
+#
+#   entity repair       5 of 21 files in one volume are not well-formed XML
+#   de-hyphenation      4.06% of all words are split across a printed line
+#
+# Together they took one volume from 50,980 words to 218,836 — a 4.3x
+# difference between a reader that looks like it works and one that does.
+
+# Character references left unterminated by the OCR pipeline. All four forms
+# below are real readings: `&#171 ;` with a space before the semicolon,
+# `&gt5` with none at all, `&#0160  .` likewise. An XML parser rejects the
+# whole file for any one of them, so without this a quarter of the corpus
+# would arrive as a parse_errors counter and nothing else.
+# Two shapes, and the order matters. A reference whose semicolon has drifted
+# away from it (`&#171 ;`) must have that semicolon CONSUMED, or repairing it
+# leaves a stray `;` behind in the text; one with no semicolon at all
+# (`&gt5`) just needs one supplied.
+DRIFTED_NUMERIC = re.compile(r"&#(x?[0-9A-Fa-f]+)[ \t]+;")
+DRIFTED_NAMED = re.compile(r"&(amp|lt|gt|quot|apos)[ \t]+;")
+UNTERMINATED_NUMERIC = re.compile(r"&#(x?[0-9A-Fa-f]+)(?![0-9A-Fa-f;])")
+UNTERMINATED_NAMED = re.compile(r"&(amp|lt|gt|quot|apos)(?![a-zA-Z;])")
+
+# A word broken across a line of the printed page: `Victo-\nrina`,
+# `confla-\ntum`, `sup-\npressit`. Rejoining must happen BEFORE tidy(), which
+# collapses the newline to a space and destroys the only evidence that this
+# was a line break rather than a real hyphen. A milestone or page break may
+# sit in the gap — `qui-\n<milestone/>bus` — but those elide to nothing in
+# the walker, so by this point the newline is adjacent.
+LINE_HYPHENATION = re.compile(r"(\w)-[ \t]*\n[ \t]*(\w)")
+
+# `[CC]PL10_19_DE.xml` -> volume 10. enrich already interpolates a year from a
+# Patrologia Latina volume number, so recovering it here is worth more than a
+# date from the TEI header would be — see below.
+# `\b` after the digits is wrong: the real filenames are `[CC]PL10_19_DE.xml`
+# and `_` is a word character, so there is no boundary there. What is meant
+# is "not followed by another digit" — volumes run 1 to 217.
+PL_VOLUME_IN_NAME = re.compile(r"\bPL(\d{1,3})(?!\d)")
+
+
+def repair_entities(raw: str) -> Tuple[str, int]:
+    """Terminate character references the source left open. Returns (xml, n)."""
+    total = 0
+    for pattern, form in ((DRIFTED_NUMERIC, "&#{};"), (DRIFTED_NAMED, "&{};"),
+                          (UNTERMINATED_NUMERIC, "&#{};"),
+                          (UNTERMINATED_NAMED, "&{};")):
+        raw, n = pattern.subn(lambda m: form.format(m.group(1)), raw)
+        total += n
+    return raw, total
+
+
+def rejoin_hyphenation(text: str) -> Tuple[str, int]:
+    """Reunite words split across a printed line. Returns (text, n)."""
+    return LINE_HYPHENATION.subn(r"\1\2", text)
+
+
+def tei_title(root: ET.Element) -> Optional[str]:
+    """The work's title, preferring the body's own heading to the header's.
+
+    Corpus Corporum's headers are frequently stubs — `<title/>` empty and
+    `<idno>TO BE ADDED BY LEIPZIG</idno>` — while the text itself opens with
+    `<head><title>DE ESSENTIA PATRIS ET FILII ...</title></head>`.
+    """
+    body = root.find(f".//{TEI_NS}body")
+    if body is not None:
+        for head in body.iter(f"{TEI_NS}head"):
+            for el in list(head.iter(f"{TEI_NS}title")) + [head]:
+                text = " ".join("".join(el.itertext()).split())
+                if text:
+                    return text
+            break
+    for el in root.iter(f"{TEI_NS}title"):
+        text = " ".join("".join(el.itertext()).split())
+        if text:
+            return text
+    return None
+
+
+def tei_author(root: ET.Element) -> Optional[str]:
+    for el in root.iter(f"{TEI_NS}author"):
+        text = " ".join("".join(el.itertext()).split())
+        if text:
+            return text
+    return None
+
+
+def tei_body_lang(root: ET.Element) -> Optional[str]:
+    """Whatever language the file declares nearest the text, if any."""
+    for tag in ("text", "body", "listBibl"):
+        el = root.find(f".//{TEI_NS}{tag}")
+        if el is not None and el.get(XML_LANG):
+            return el.get(XML_LANG).lower()
+    return (root.get(XML_LANG) or "").lower() or None
+
+
+def extract_tei_xml(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
+    entry = load_manifest_entry(source_id)
+    lock = load_lock_entry(source_id)
+    stats = Stats()
+    records: List[Dict[str, Any]] = []
+
+    root_dir = RAW / source_id
+    if not root_dir.exists():
+        raise RuntimeError(f"{root_dir} missing — fetched?")
+    files = sorted(p for p in root_dir.rglob("*.xml")
+                   if p.name != "__cts__.xml")
+    if not files:
+        method = entry.get("method")
+        raise RuntimeError(
+            f"no .xml under {root_dir}. "
+            + (f"`{source_id}` is a manual source: obtain it from "
+               f"{entry.get('url')} and place the files there."
+               if method == "manual" else "Fetched?"))
+
+    for path in files:
+        if limit is not None and len(records) >= limit:
+            break
+        stats["works_seen"] += 1
+        raw = path.read_text(encoding="utf-8", errors="replace")
+        try:
+            root = ET.fromstring(raw)
+        except ET.ParseError:
+            raw, repaired = repair_entities(raw)
+            if not repaired:
+                stats["parse_errors"] += 1
+                continue
+            try:
+                root = ET.fromstring(raw)
+            except ET.ParseError:
+                stats["parse_errors_after_repair"] += 1
+                continue
+            stats["files_repaired"] += 1
+            stats["entities_repaired"] += repaired
+
+        lang = tei_body_lang(root)
+        if lang and lang.split("-")[0] not in LATIN_LANGS:
+            stats[f"skipped:lang:{lang}"] += 1
+            continue
+
+        body = root.find(f".//{TEI_NS}body")
+        if body is None:
+            stats["no_body"] += 1
+            continue
+
+        text, joined = rejoin_hyphenation(_walk(body, stats, greek, LITERARY))
+        stats["hyphenation_rejoined"] += joined
+        text = strip_inline_greek(tidy(text), stats, greek)
+        text = drop_english_paragraphs(text, stats)
+        if len(text.split()) < 20:
+            stats["empty_after_extraction"] += 1
+            continue
+
+        volume = PL_VOLUME_IN_NAME.search(path.name)
+        records.append({
+            "id": f"{source_id}/{path.relative_to(root_dir).with_suffix('')}",
+            "text": text,
+            "author": tei_author(root),
+            "work": tei_title(root) or path.stem,
+            # Deliberately NOT taken from the TEI header. Corpus Corporum's
+            # headers date the *encoding* — the Patrologia Latina files say
+            # <date>2015</date> — and reading that as a composition date is
+            # exactly the error that filed the CSEL prefaces under LATE.
+            # enrich resolves this properly from the author, or from the
+            # Patrologia Latina volume below.
+            "approximate_date": None,
+            "pl_volume": int(volume.group(1)) if volume else None,
+            "period": entry.get("period"),
+            "genre": None,
+            "source": source_id,
+            "source_url": entry.get("url"),
+            "source_version": lock.get("resolved_pin"),
+            "license": entry.get("license"),
+            "text_provenance": entry.get("text_provenance", "unknown"),
+            "edition": entry.get("name"),
+            "language_variant": "lat",
+            "normalization": None,
+            "n_words": len(text.split()),
+        })
+        stats["records"] += 1
+        stats["words"] += records[-1]["n_words"]
+    return records, stats
+
 FORMAT_EXTRACTORS = {
     "tei-capitains": extract_capitains,
     "conllu": extract_conllu,
@@ -1840,6 +2160,8 @@ FORMAT_EXTRACTORS = {
     "lasla-conllup": extract_lasla,
     "epidoc-xml": extract_epidoc,
     "txt": extract_plaintext,
+    "tess": extract_tess,
+    "tei-xml": extract_tei_xml,
 }
 
 

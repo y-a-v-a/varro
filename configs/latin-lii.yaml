@@ -1,0 +1,74 @@
+# LATIN-LII — stage two: all the Latin there is, era-tagged, then Rome.
+#
+# WHAT MAKES IT DIFFERENT FROM LATIN-XXV
+#   Not size. LATIN-XXV trains on Track A and narrows onto classical, and its
+#   own comment records the confound: classical.train is a SUBSET of
+#   corpus.train, so phase two re-reads text phase one already contained.
+#   That is "read Rome again", not transfer, and the phase boundary earns
+#   little.
+#
+#   Here phase one trains on corpus-b — Track A plus the amber, NonCommercial
+#   sources — so the annealing phase narrows from a corpus that is broader in
+#   licence as well as in period. The confound is not eliminated (classical is
+#   still a subset) but the ratio it narrows from is far larger.
+#
+# THE LICENCE THIS MODEL CARRIES
+#   corpus-b contains NonCommercial material. These weights are research-only
+#   and cannot be released for commercial use. LATIN-VII exists so that the
+#   project still has a model that can be. Do not merge the two.
+#
+# TOKEN BUDGET, AND WHY epochs: 4.0 IS WRITTEN FOR A CORPUS WE DO NOT YET HAVE
+#   52.07M parameters wants 1.04B training tokens at 20:1, which is 260M
+#   unique tokens at four epochs. Track B holds 182.4M today, so running this
+#   recipe now gives 730M tokens — 14.0 per parameter, undertrained.
+#
+#   The recipe is still written at 4.0 because epochs mean the same thing at
+#   any corpus size, which is the entire reason this project states recipes in
+#   epochs. As the amber sources land the same recipe trains the same model
+#   correctly, with no edit. Until then, either accept 14 tokens/param or
+#   raise phase one to 5.7 epochs for a one-off run and say so in the report.
+#
+# BATCH SIZE IS A GUESS AND MUST BE MEASURED
+#   LATIN-XXV measured batch 8, 16 and 24 within 8% of each other at dim 512 /
+#   8 layers, and chose 16. This model is ~1.6x the activation memory, and the
+#   failure mode on a 16GB machine is not degradation but collapse — 13x
+#   slower per token once the working set stops fitting. 8 is the conservative
+#   start. Measure before committing to a 60-hour run.
+
+name: latin-lii
+description: 52.07M parameters, all Latin including NonCommercial sources, era-tagged.
+
+defaults:
+  vocab: 4000
+  dim: 640
+  layers: 10
+  heads: 10
+  context: 512
+  batch: 8
+  eval_every: 500
+  checkpoint_every: 1000
+  period_tags: true
+
+phases:
+  # Latinitas — fifteen centuries of Latin, every document era-tagged so the
+  # period is a thing the model can be asked for rather than a thing it has
+  # to infer. Note that 42% of the corpus is currently UNASSIGNED and carries
+  # no tag at all; improving that coverage is worth more to conditioned
+  # generation than the next ten million words are.
+  - name: latin-lii-latinitas
+    corpus: corpus-b
+    epochs: 4.0          # the line past which repeated data stops paying
+    lr: 2.5e-4
+    warmup: 1000
+
+  # Romanitas — narrow onto classical. Short, because adapting register inside
+  # a language already known is far cheaper than learning the language.
+  # Optimizer state is deliberately not carried over: a phase change wants a
+  # fresh schedule.
+  - name: latin-lii
+    corpus: classical
+    init_from: latin-lii-latinitas
+    epochs: 2.0
+    lr: 1.0e-4
+    warmup: 100
+    eval_every: 250

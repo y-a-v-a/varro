@@ -1,0 +1,46 @@
+# LATIN-VII — stage one: classical Latin alone, and as large as classical
+# Latin allows.
+#
+# WHY THIS IS THE CEILING AND NOT A BUDGET CHOICE
+#   The classical corpus is 10,241,858 tokens. That is not a funding limit or
+#   a crawling limit; it is roughly half of the classical Latin that survives
+#   at all, and the other half sits in copyrighted 20th-century editions. No
+#   OCR campaign and no new repository creates more Cicero.
+#
+#   At the repeated-data limit of ~16 epochs, 10.24M tokens supports about
+#   8.2M parameters at 20 tokens per parameter. This recipe is 7.28M at 14.2
+#   epochs, which leaves a little headroom under that line rather than sitting
+#   exactly on it.
+#
+# WHY IT STAYS SEPARATE FROM STAGE TWO
+#   Every source in the classical corpus is green: CC-BY-SA, CC-BY or public
+#   domain, with no NonCommercial term anywhere. LATIN-LII deliberately takes
+#   NC material, and its weights inherit that restriction. Keeping stage one
+#   on Track A is what keeps one model in the project commercially usable.
+#
+# WHY period_tags STAYS ON FOR A SINGLE-PERIOD CORPUS
+#   It is very nearly a no-op here — every document is tagged <CLASSICAL>.
+#   It is kept so that the two stages are tokenised identically and their
+#   perplexities are comparable; turning it off would change the token stream
+#   and silently make the comparison meaningless.
+
+name: latin-vii
+description: 7.28M parameters, classical Latin only, from random weights.
+
+defaults:
+  vocab: 4000
+  dim: 288
+  layers: 6
+  heads: 8
+  context: 512
+  batch: 32
+  eval_every: 250
+  checkpoint_every: 500
+  period_tags: true
+
+phases:
+  - name: latin-vii
+    corpus: classical
+    epochs: 14.2         # 20 tokens/param on 10.24M tokens
+    lr: 3.0e-4
+    warmup: 300
