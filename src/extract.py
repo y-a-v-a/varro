@@ -47,7 +47,7 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from hashlib import blake2b
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import (Any, Dict, Iterator, List, NamedTuple, Optional, Set,
                     Tuple)
 
@@ -1156,6 +1156,10 @@ def main() -> int:
     for key in ("greek_passages", "greek_inline_runs", "dropped_english_words",
                 "volume_divisions_seen", "volume_words",
                 "dropped_apparatus_division_words", "dropped_apparatus_words",
+                "files_repaired", "entities_repaired", "hyphenation_rejoined",
+                "files_with_annotation_layer", "annotation_elements_removed",
+                "dated_by_source", "no_stated_date", "no_body",
+                "parse_errors_after_repair",
                 "duplicate_docids", "empty_after_extraction", "rejected_body_lang",
                 "author_from_title", "pl_volume_found", "pages_seen", "skipped:namespace",
                 "skipped:redirect", "skipped:too_short", "parse_errors"):
@@ -1789,7 +1793,7 @@ def extract_plaintext(source_id: str, greek: str, limit: Optional[int]) -> Tuple
             continue
 
         records.append({
-            "id": f"{source_id}/{path.relative_to(root_dir).with_suffix('')}",
+            "id": f"{source_id}/{path.stem}",
             "text": text,
             "author": author,
             "work": work,
@@ -2147,6 +2151,35 @@ def tei_body_lang(root: ET.Element) -> Optional[str]:
     return (root.get(XML_LANG) or "").lower() or None
 
 
+def tei_documents(root_dir: Path) -> Iterator[Tuple[str, str]]:
+    """Yield (name, xml) for every TEI document under a source directory.
+
+    Zipped members are read in place rather than unpacked, which is how the
+    DigilibLT reader already handles its tarballs: Corpus Corporum arrives as
+    one zip per work, and unpacking 2,317 of them would double the disk for
+    nothing. The name yielded is the member's, not the archive's, because it
+    is the member that carries the Patrologia Latina volume.
+    """
+    import zipfile
+
+    for path in sorted(root_dir.rglob("*")):
+        if path.name == "__cts__.xml" or not path.is_file():
+            continue
+        if path.suffix.lower() == ".xml":
+            yield path.name, path.read_text(encoding="utf-8", errors="replace")
+        elif path.suffix.lower() == ".zip":
+            try:
+                with zipfile.ZipFile(path) as archive:
+                    for member in archive.namelist():
+                        if not member.lower().endswith(".xml"):
+                            continue
+                        with archive.open(member) as handle:
+                            yield (PurePosixPath(member).name,
+                                   handle.read().decode("utf-8", errors="replace"))
+            except zipfile.BadZipFile:
+                continue
+
+
 def extract_tei_xml(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List[Dict], Stats]:
     entry = load_manifest_entry(source_id)
     lock = load_lock_entry(source_id)
@@ -2156,21 +2189,20 @@ def extract_tei_xml(source_id: str, greek: str, limit: Optional[int]) -> Tuple[L
     root_dir = RAW / source_id
     if not root_dir.exists():
         raise RuntimeError(f"{root_dir} missing — fetched?")
-    files = sorted(p for p in root_dir.rglob("*.xml")
-                   if p.name != "__cts__.xml")
-    if not files:
+    sources = list(tei_documents(root_dir))
+    if not sources:
         method = entry.get("method")
         raise RuntimeError(
-            f"no .xml under {root_dir}. "
+            f"no .xml or .zip under {root_dir}. "
             + (f"`{source_id}` is a manual source: obtain it from "
                f"{entry.get('url')} and place the files there."
                if method == "manual" else "Fetched?"))
 
-    for path in files:
+    for name, raw in sources:
         if limit is not None and len(records) >= limit:
             break
         stats["works_seen"] += 1
-        raw = path.read_text(encoding="utf-8", errors="replace")
+        path = PurePosixPath(name)
         try:
             root = ET.fromstring(raw)
         except ET.ParseError:
@@ -2210,7 +2242,7 @@ def extract_tei_xml(source_id: str, greek: str, limit: Optional[int]) -> Tuple[L
             continue
 
         records.append({
-            "id": f"{source_id}/{path.relative_to(root_dir).with_suffix('')}",
+            "id": f"{source_id}/{path.stem}",
             "text": text,
             "author": tei_author(root),
             "work": tei_title(root) or path.stem,
