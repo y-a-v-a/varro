@@ -2151,8 +2151,42 @@ def tei_body_lang(root: ET.Element) -> Optional[str]:
     return (root.get(XML_LANG) or "").lower() or None
 
 
-def tei_documents(root_dir: Path) -> Iterator[Tuple[str, str]]:
-    """Yield (name, xml) for every TEI document under a source directory.
+class TeiDocument(NamedTuple):
+    name: str            # the member's own filename, which carries the PL volume
+    xml: str
+    work_id: Optional[str]   # the archive's stem, which keys the metadata table
+
+
+def cc_work_dates(root_dir: Path) -> Dict[str, int]:
+    """work_id -> a year, from the metadata table fetched alongside the works.
+
+    Better evidence than the author element in the TEI, and available where
+    that is not: `De facto Ungarie` and `De decem categoriis` both carry an
+    author with no parseable lifespan, and the table dates them 1236 and 400.
+    The table's own `year` column is free text — `fl.1236`, `c.1175-1253` —
+    so the already-parsed not_before/not_after pair is used instead.
+    """
+    import csv as _csv
+
+    path = root_dir / "_metadata" / "cc_metadata.csv"
+    if not path.exists():
+        return {}
+    dates: Dict[str, int] = {}
+    with path.open(encoding="utf-8") as fh:
+        for row in _csv.DictReader(fh):
+            bounds = []
+            for key in ("not_before", "not_after"):
+                try:
+                    bounds.append(float(row.get(key) or ""))
+                except ValueError:
+                    pass
+            if bounds and row.get("work_id"):
+                dates[row["work_id"]] = int(sum(bounds) / len(bounds))
+    return dates
+
+
+def tei_documents(root_dir: Path) -> Iterator[TeiDocument]:
+    """Yield every TEI document under a source directory.
 
     Zipped members are read in place rather than unpacked, which is how the
     DigilibLT reader already handles its tarballs: Corpus Corporum arrives as
@@ -2166,7 +2200,9 @@ def tei_documents(root_dir: Path) -> Iterator[Tuple[str, str]]:
         if path.name == "__cts__.xml" or not path.is_file():
             continue
         if path.suffix.lower() == ".xml":
-            yield path.name, path.read_text(encoding="utf-8", errors="replace")
+            yield TeiDocument(path.name,
+                              path.read_text(encoding="utf-8", errors="replace"),
+                              None)
         elif path.suffix.lower() == ".zip":
             try:
                 with zipfile.ZipFile(path) as archive:
@@ -2174,8 +2210,10 @@ def tei_documents(root_dir: Path) -> Iterator[Tuple[str, str]]:
                         if not member.lower().endswith(".xml"):
                             continue
                         with archive.open(member) as handle:
-                            yield (PurePosixPath(member).name,
-                                   handle.read().decode("utf-8", errors="replace"))
+                            yield TeiDocument(
+                                PurePosixPath(member).name,
+                                handle.read().decode("utf-8", errors="replace"),
+                                path.stem)
             except zipfile.BadZipFile:
                 continue
 
@@ -2198,7 +2236,8 @@ def extract_tei_xml(source_id: str, greek: str, limit: Optional[int]) -> Tuple[L
                f"{entry.get('url')} and place the files there."
                if method == "manual" else "Fetched?"))
 
-    for name, raw in sources:
+    stated_dates = cc_work_dates(root_dir)
+    for name, raw, work_id in sources:
         if limit is not None and len(records) >= limit:
             break
         stats["works_seen"] += 1
@@ -2257,7 +2296,9 @@ def extract_tei_xml(source_id: str, greek: str, limit: Optional[int]) -> Tuple[L
             # that error is what filed the CSEL prefaces under LATE. The
             # author's lifespan is the one real signal, and enrich ranks it
             # below every curated authority as `source-metadata`.
-            "approximate_date": tei_author_midpoint(root),
+            "approximate_date": (stated_dates.get(work_id)
+                                 if stated_dates.get(work_id) is not None
+                                 else tei_author_midpoint(root)),
             "pl_volume": tei_pl_volume(root, path.name),
             "period": entry.get("period"),
             "genre": None,

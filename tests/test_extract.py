@@ -1130,3 +1130,80 @@ def test_pl_volume_falls_back_to_the_filename():
     root = ET.fromstring(TEI_DOC)
     assert tei_pl_volume(root, "[CC]PL10_19_DE.xml") == 10
     assert tei_pl_volume(root, "mqdq_carmen.xml") is None
+
+
+# --- dates from the metadata table ------------------------------------------
+
+from extract import TeiDocument, cc_work_dates, tei_documents  # noqa: E402
+
+CC_META = """,work_id,title_cc,year,not_before,not_after,prelemmatized
+0,10,De facto Ungarie,fl.1236,1236.0,1236.0,True
+1,11,Utopia,1478-1535,1478.0,1535.0,True
+2,12,De decem categoriis,ca.400,400.0,400.0,True
+3,13,Undated thing,,,,True
+"""
+
+
+def _meta_dir(tmp_path, body=CC_META):
+    (tmp_path / "_metadata").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "_metadata" / "cc_metadata.csv").write_text(body, encoding="utf-8")
+    return tmp_path
+
+
+def test_work_dates_are_the_midpoint_of_the_bounds(tmp_path):
+    dates = cc_work_dates(_meta_dir(tmp_path))
+    assert dates["11"] == 1506          # 1478-1535
+    assert dates["10"] == 1236          # fl.1236, a single year
+    assert dates["12"] == 400
+
+
+def test_a_work_with_no_bounds_is_simply_absent(tmp_path):
+    assert "13" not in cc_work_dates(_meta_dir(tmp_path))
+
+
+def test_missing_metadata_table_is_not_an_error(tmp_path):
+    assert cc_work_dates(tmp_path) == {}
+
+
+def test_the_table_beats_the_author_lifespan(tmp_path, monkeypatch):
+    """Both are available for Utopia and agree; the point is the table also
+    covers works whose author element has no parseable dates at all."""
+    import extract, zipfile
+    monkeypatch.setattr(extract, "RAW", tmp_path)
+    root = tmp_path / "corpus-corporum"
+    (root / "works").mkdir(parents=True)
+    _meta_dir(root)
+    # work 12 has NO lifespan in its TEI, but the table dates it 400.
+    with zipfile.ZipFile(root / "works" / "12.zip", "w") as z:
+        z.writestr("Anon_De-decem-categoriis.POS.xml", TEI_DOC)
+    monkeypatch.setattr(extract, "load_manifest_entry",
+                        lambda s: {"name": "CC", "period": "MIXED", "url": "u",
+                                   "license": "NonCommercial", "method": "manual",
+                                   "text_provenance": "unknown"})
+    monkeypatch.setattr(extract, "load_lock_entry", lambda s: {"resolved_pin": None})
+    records, _ = extract.extract_tei_xml("corpus-corporum", "drop", None)
+    assert tei_author_midpoint(ET.fromstring(TEI_DOC)) is None
+    assert records[0]["approximate_date"] == 400
+
+
+def test_a_zip_yields_the_member_name_and_the_archive_id(tmp_path):
+    """The member carries the PL volume; the archive stem keys the table."""
+    import zipfile
+    (tmp_path / "works").mkdir()
+    with zipfile.ZipFile(tmp_path / "works" / "10045.zip", "w") as z:
+        z.writestr("144_Petrus-Damianus_Epistolae.POS.xml", TEI_DOC)
+    docs = list(tei_documents(tmp_path))
+    assert len(docs) == 1
+    assert docs[0].name == "144_Petrus-Damianus_Epistolae.POS.xml"
+    assert docs[0].work_id == "10045"
+
+
+def test_a_loose_xml_has_no_archive_id(tmp_path):
+    (tmp_path / "plain.xml").write_text(TEI_DOC, encoding="utf-8")
+    assert list(tei_documents(tmp_path))[0].work_id is None
+
+
+def test_a_corrupt_archive_is_skipped_not_fatal(tmp_path):
+    (tmp_path / "broken.zip").write_bytes(b"not really a zip")
+    (tmp_path / "good.xml").write_text(TEI_DOC, encoding="utf-8")
+    assert [d.name for d in tei_documents(tmp_path)] == ["good.xml"]
