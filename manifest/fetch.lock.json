@@ -1,7 +1,24 @@
 {
-  "generated": "2026-08-26T08:36:39+00:00",
+  "generated": "2026-08-27T02:22:43+00:00",
   "note": "Resolved versions of fetched sources. Commit this file \u2014 it is what makes the corpus reproducible and the licence trail auditable.",
   "sources": {
+    "corpus-corporum": {
+      "bytes": 627614930,
+      "fetched": "2026-08-27T02:22:43+00:00",
+      "license": "NonCommercial",
+      "method": "corpus-corporum",
+      "n_files": 2318,
+      "name": "Corpus Corporum (University of Zurich)",
+      "resolved_pin": null,
+      "tier": "amber",
+      "url": "https://www.mlat.uzh.ch/",
+      "works_cached": 147,
+      "works_failed": 0,
+      "works_fetched": 2170,
+      "works_selected": 2317,
+      "works_served_unzipped": 3,
+      "works_unavailable": 0
+    },
     "digiliblt": {
       "bytes": 339778448,
       "fetched": "2026-08-24T22:01:15+00:00",

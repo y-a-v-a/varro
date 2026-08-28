@@ -82,10 +82,10 @@
     "words": 5055913
   },
   "corpus_name": "classical",
-  "generated": "2026-08-26T09:07:31+00:00",
+  "generated": "2026-08-27T03:02:06+00:00",
   "schema_version": 1,
   "tokenizer": {
-    "sha256": "f1086bbe7f1fd140",
+    "sha256": "f64b7246a477af75",
     "vocab": 4000
   }
 }
