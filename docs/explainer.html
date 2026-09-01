@@ -76,7 +76,12 @@
   }
 
   .page { max-width: 58rem; margin: 0 auto; display: flex; flex-direction: column; gap: 3rem; }
-  .prose { max-width: 33em; display: flex; flex-direction: column; gap: .85rem; }
+  /* A width constraint, nothing more. This carried display:flex once, which
+     made every inline child of a paragraph its own flex item — so an inline
+     code span broke onto a line of its own mid-sentence. Vertical rhythm comes
+     from the gap on `section`, and `ul` sets its own flex, so nothing here
+     needed it. */
+  .prose { max-width: 33em; }
   p { margin: 0; }
 
   h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 600; }
@@ -427,7 +432,8 @@ blocks.6.attn.value_proj.weight   ( 640, 640)   float32</pre>
       <em>failed</em> — it would have produced fluent, confident, meaningless Latin.
       That file was recovered by rebuilding the corpus that produced it and
       retraining the vocabulary, which came back <b>byte for byte identical</b>.
-      <br><br>
+    </div>
+    <div class="note">
       On 1 September the older LATIN-XXV-2 was scored against today's corpus by
       mistake, through today's vocabulary rather than the one it was trained on. It
       reported a perplexity of <b>3,740</b> — against its true 28.3. Nothing crashed;
@@ -448,7 +454,8 @@ blocks.6.attn.value_proj.weight   ( 640, 640)   float32</pre>
       twelve-word passages it generated, 2 appear in its training text. LATIN-VII,
       which read every classical passage <em>fourteen times over</em>, produced 3,476
       and matched on <b>none</b> at all.
-      <br><br>
+    </p>
+    <p class="prose">
       The control matters more than either figure: genuinely unseen Latin, held out
       of training entirely, overlaps the training text at 6.0% of twelve-word
       windows, because scripture and liturgy and formula recur across centuries.
