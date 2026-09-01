@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claudius &mdash; Latin instruments</title>
+<style>
+/* Served under Content-Security-Policy default-src 'self', so there are no
+   webfonts and no CDN here by construction: system stacks only. The Latin
+   under study gets a reading serif; the machine's own output gets a mono with
+   tabular figures so columns of numbers line up. */
+:root {
+  --ground:   #f7f8fa;
+  --panel:    #ffffff;
+  --sunken:   #eef1f5;
+  --line:     #d8dee7;
+  --ink:      #171b22;
+  --ink-2:    #4b5563;
+  --ink-3:    #7b8697;
+  --accent:   #4338ca;
+  --accent-2: #ede9fe;
+  --on-accent:#ffffff;
+  --good:     #047857;
+  --warn:     #b45309;
+  --bad:      #b91c1c;
+  --heat-0:   #eef1f5;
+  --heat-1:   #fde9c8;
+  --heat-2:   #fbc98a;
+  --heat-3:   #f59e6b;
+  --heat-4:   #e2615a;
+  --heat-ink: #171b22;
+  --radius: 7px;
+  --serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0e1116; --panel: #161b22; --sunken: #10151c; --line: #2a323d;
+    --ink: #e6eaf0; --ink-2: #a8b3c2; --ink-3: #6b7686;
+    --accent: #a5b4fc; --accent-2: #1e1b4b; --on-accent: #0e1116;
+    --good: #34d399; --warn: #fbbf24; --bad: #f87171;
+    --heat-0: #10151c; --heat-1: #3a2f1c; --heat-2: #5c4420;
+    --heat-3: #8a4a2c; --heat-4: #c2453f; --heat-ink: #f4f6f9;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0e1116; --panel: #161b22; --sunken: #10151c; --line: #2a323d;
+  --ink: #e6eaf0; --ink-2: #a8b3c2; --ink-3: #6b7686;
+  --accent: #a5b4fc; --accent-2: #1e1b4b; --on-accent: #0e1116;
+  --good: #34d399; --warn: #fbbf24; --bad: #f87171;
+  --heat-0: #10151c; --heat-1: #3a2f1c; --heat-2: #5c4420;
+  --heat-3: #8a4a2c; --heat-4: #c2453f; --heat-ink: #f4f6f9;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font-family: var(--sans); font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1080px; margin: 0 auto; padding: 1.6rem 1.2rem 4rem; }
+
+header { display: flex; flex-wrap: wrap; gap: .6rem 1.4rem;
+         align-items: baseline; padding-bottom: 1rem;
+         border-bottom: 1px solid var(--line); }
+h1 { font-family: var(--serif); font-size: 1.5rem; font-weight: 600;
+     margin: 0; letter-spacing: -.01em; }
+h1 span { color: var(--ink-3); font-weight: 400; }
+#meta { font-family: var(--mono); font-size: .78rem; color: var(--ink-2);
+        display: flex; flex-wrap: wrap; gap: .35rem .9rem; }
+#meta b { font-weight: 600; color: var(--ink); }
+.badge { font-family: var(--mono); font-size: .7rem; letter-spacing: .03em;
+         text-transform: uppercase; padding: .12rem .45rem; border-radius: 4px;
+         background: var(--accent-2); color: var(--accent); }
+
+nav { display: flex; gap: .3rem; margin: 1.2rem 0 0; flex-wrap: wrap; }
+nav button { font: inherit; font-size: .9rem; cursor: pointer;
+  background: none; border: 1px solid transparent; color: var(--ink-2);
+  padding: .45rem .8rem; border-radius: var(--radius); }
+nav button:hover { color: var(--ink); background: var(--sunken); }
+nav button[aria-selected="true"] { background: var(--panel); color: var(--ink);
+  border-color: var(--line); font-weight: 600; }
+nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+section[hidden] { display: none; }
+.panel { background: var(--panel); border: 1px solid var(--line);
+         border-radius: var(--radius); padding: 1.1rem; margin-top: .9rem; }
+.lede { color: var(--ink-2); font-size: .9rem; margin: 0 0 .9rem;
+        max-width: 62ch; }
+.lede code { font-family: var(--mono); font-size: .85em;
+             background: var(--sunken); padding: .05em .3em; border-radius: 3px; }
+
+textarea { width: 100%; min-height: 8.5rem; resize: vertical;
+  font-family: var(--serif); font-size: 1.02rem; line-height: 1.65;
+  color: var(--ink); background: var(--sunken);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: .7rem .8rem; }
+textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: .55rem .9rem;
+            align-items: center; margin-top: .75rem; }
+label { font-size: .84rem; color: var(--ink-2); display: inline-flex;
+        align-items: center; gap: .35rem; }
+select, input[type=number] { font: inherit; font-size: .84rem;
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 5px; padding: .22rem .4rem; }
+input[type=number] { width: 4.2rem; font-family: var(--mono); }
+.run { font: inherit; font-weight: 600; font-size: .88rem; cursor: pointer;
+  background: var(--accent); color: var(--on-accent); border: none;
+  border-radius: var(--radius); padding: .48rem 1.1rem; margin-left: auto; }
+.run:disabled { opacity: .5; cursor: progress; }
+.run:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.out { margin-top: 1rem; }
+.note { font-family: var(--mono); font-size: .78rem; color: var(--ink-2);
+        background: var(--sunken); border-left: 2px solid var(--accent);
+        padding: .4rem .6rem; border-radius: 0 4px 4px 0; margin: 0 0 .8rem; }
+.err { border-left-color: var(--bad); color: var(--bad); }
+
+table { border-collapse: collapse; width: 100%; font-size: .87rem; }
+th, td { text-align: left; padding: .28rem .5rem; border-bottom: 1px solid var(--line); }
+th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
+     color: var(--ink-3); font-weight: 600; }
+td.n, th.n { text-align: right; font-family: var(--mono);
+             font-variant-numeric: tabular-nums; }
+td.f { font-family: var(--serif); font-size: 1rem; }
+tr.hit td { background: var(--accent-2); }
+.scroll { overflow-x: auto; }
+
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+@media (max-width: 720px) { .cols { grid-template-columns: 1fr; } }
+h3 { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em;
+     color: var(--ink-3); margin: 0 0 .4rem; font-weight: 600; }
+
+.text { font-family: var(--serif); font-size: 1.08rem; line-height: 2.05;
+        margin: 0 0 1rem; }
+.text span { padding: .1em .22em; border-radius: 3px; }
+.b0 { background: var(--heat-0); color: var(--ink-3); }
+.b1 { background: var(--heat-1); color: var(--heat-ink); }
+.b2 { background: var(--heat-2); color: var(--heat-ink); }
+.b3 { background: var(--heat-3); color: var(--heat-ink); }
+.b4 { background: var(--heat-4); color: #fff; font-weight: 600; }
+
+.key { display: flex; gap: .8rem; flex-wrap: wrap; font-size: .75rem;
+       color: var(--ink-2); font-family: var(--mono); margin-bottom: .9rem; }
+/* The hairline is load-bearing: the coolest band is deliberately the page's
+   own background, so without a border the legend's first swatch is invisible. */
+.key i { display: inline-block; width: .8rem; height: .8rem; border-radius: 3px;
+         margin-right: .25rem; vertical-align: -1px;
+         border: 1px solid var(--line); }
+
+.bars { display: grid; grid-template-columns: max-content 1fr max-content;
+        gap: .3rem .7rem; align-items: center; font-size: .87rem; }
+.bars .era { font-family: var(--mono); }
+.bars .track { background: var(--sunken); border-radius: 3px; height: .65rem; }
+.bars .fill { background: var(--accent); height: 100%; border-radius: 3px; }
+.bars .win .fill { background: var(--good); }
+.bars .val { font-family: var(--mono); font-variant-numeric: tabular-nums;
+             color: var(--ink-2); }
+
+.verdict { font-size: 1.05rem; margin: 1rem 0 .5rem; }
+.verdict b { font-family: var(--mono); color: var(--accent); }
+.recon { font-family: var(--serif); font-size: 1.1rem; line-height: 1.7;
+         background: var(--sunken); border-radius: var(--radius);
+         padding: .7rem .9rem; margin-top: 1rem; }
+footer { margin-top: 2rem; font-size: .8rem; color: var(--ink-3);
+         border-top: 1px solid var(--line); padding-top: .9rem; }
+footer code { font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Claudius <span>&mdash; Latin instruments</span></h1>
+  <div id="meta">loading model&hellip;</div>
+</header>
+
+<nav role="tablist">
+  <button role="tab" aria-selected="true"  data-tab="lacuna">Lacuna</button>
+  <button role="tab" aria-selected="false" data-tab="surprisal">Surprisal</button>
+  <button role="tab" aria-selected="false" data-tab="aetas">Era</button>
+</nav>
+
+<!-- ── Lacuna ─────────────────────────────────────────────────────────── -->
+<section id="tab-lacuna">
+  <div class="panel">
+    <p class="lede">Mark a hole with <code>[...]</code>. The model proposes
+    supplements reading forward, then every candidate is re-scored across the
+    text <em>after</em> the gap &mdash; which is what a left-to-right model
+    cannot do by generating. The two columns are that difference.</p>
+    <textarea id="lac-text">Gallia est omnis divisa in [...] tres, quarum unam incolunt Belgae, aliam Aquitani, tertiam qui ipsorum lingua Celtae, nostra Galli appellantur.</textarea>
+    <div class="controls">
+      <label>words in gap <input type="number" id="lac-words" value="1" min="1" max="8"></label>
+      <label>candidates <input type="number" id="lac-k" value="32" min="4" max="64" step="4"></label>
+      <label>era <select id="lac-period"></select></label>
+      <label><input type="checkbox" id="lac-raw"> raw spelling</label>
+      <button class="run" data-run="lacuna">Fill the gap</button>
+    </div>
+    <div class="out" id="lac-out"></div>
+  </div>
+</section>
+
+<!-- ── Surprisal ──────────────────────────────────────────────────────── -->
+<section id="tab-surprisal" hidden>
+  <div class="panel">
+    <p class="lede">Every word shaded by how surprised the model was to see it.
+    It reports <em>improbability, not error</em> &mdash; proper names and rare
+    words light up exactly the way OCR damage does. A hot word is a place to
+    look, never a verdict.</p>
+    <textarea id="sur-text">Horum omnium fortissirni sunt Belgae, propterea quod a cu1tu atque hurnanitate provinciae longissime absunt, minirneque ad eos rnercatores saepe commeant atque ea quae ad effeminandos animos pertinent important.</textarea>
+    <div class="controls">
+      <label>era <select id="sur-period"></select></label>
+      <label><input type="checkbox" id="sur-raw"> raw spelling</label>
+      <button class="run" data-run="surprisal">Score it</button>
+    </div>
+    <div class="out" id="sur-out"></div>
+  </div>
+</section>
+
+<!-- ── Era ────────────────────────────────────────────────────────────── -->
+<section id="tab-aetas" hidden>
+  <div class="panel">
+    <p class="lede">The same tokens scored four times, changing only the era
+    tag in front of them. Margins are small by construction &mdash; a tag is
+    two tokens against a few hundred &mdash; so the answer comes with the
+    accuracy actually measured on held-out text of known date.</p>
+    <textarea id="ae-text">Quo usque tandem abutere, Catilina, patientia nostra? quam diu etiam furor iste tuus nos eludet? quem ad finem sese effrenata iactabit audacia? Nihilne te nocturnum praesidium Palati, nihil urbis vigiliae, nihil timor populi, nihil concursus bonorum omnium moverunt?</textarea>
+    <div class="controls">
+      <label><input type="checkbox" id="ae-raw"> raw spelling</label>
+      <button class="run" data-run="aetas">Date it</button>
+    </div>
+    <div class="out" id="ae-out"></div>
+  </div>
+</section>
+
+<footer>
+  Served by <code>demos/serve.py</code> on localhost. One model, one lock,
+  no network calls &mdash; this page has no external assets by design.
+</footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fixed = (x, n) => (x === null || x === undefined) ? '—' : x.toFixed(n);
+const pct = (x) => (x === null || x === undefined) ? '—' : (x * 100).toFixed(1) + '%';
+
+let MODEL = null;
+
+async function api(path, body) {
+  const res = await fetch(path, body === undefined
+    ? {} : {method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)});
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+function folding(f) {
+  if (!f || !Object.keys(f).length) return '';
+  const parts = Object.entries(f).map(([k, v]) => `${v} ${k}`).join(', ');
+  return `<p class="note">folded to the corpus spelling: ${esc(parts)}. The
+    corpus has no letter v inside words, so unfolded text scores as damage.</p>`;
+}
+
+/* ── tabs ─────────────────────────────────────────────────────────────── */
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('nav button').forEach(b =>
+      b.setAttribute('aria-selected', String(b === btn)));
+    ['lacuna', 'surprisal', 'aetas'].forEach(name =>
+      $('tab-' + name).hidden = (name !== btn.dataset.tab));
+  };
+});
+
+/* ── model header ─────────────────────────────────────────────────────── */
+(async () => {
+  try {
+    MODEL = await api('/api/model');
+    $('meta').innerHTML =
+      `<span><b>${esc(MODEL.name)}</b></span>` +
+      `<span>${(MODEL.parameters / 1e6).toFixed(2)}M params</span>` +
+      `<span>corpus ${esc(String(MODEL.corpus))}</span>` +
+      `<span>held-out ppl <b>${MODEL.perplexity.toFixed(1)}</b></span>` +
+      (MODEL.calibrated
+        ? `<span class="badge">era ${pct(MODEL.era_accuracy)} measured</span>`
+        : `<span class="badge">era uncalibrated</span>`);
+    for (const sel of [$('lac-period'), $('sur-period')]) {
+      sel.innerHTML = '<option value="">(none)</option>' +
+        MODEL.periods.map(p => `<option value="${p}">${p}</option>`).join('');
+      sel.disabled = !MODEL.period_tags;
+    }
+  } catch (e) {
+    $('meta').innerHTML = `<span style="color:var(--bad)">${esc(e.message)}</span>`;
+  }
+})();
+
+/* ── run buttons ──────────────────────────────────────────────────────── */
+document.querySelectorAll('.run').forEach(btn => {
+  btn.onclick = async () => {
+    const which = btn.dataset.run;
+    const out = {lacuna: $('lac-out'), surprisal: $('sur-out'), aetas: $('ae-out')}[which];
+    btn.disabled = true;
+    out.innerHTML = '<p class="note">scoring&hellip;</p>';
+    try {
+      out.innerHTML = await RUN[which]();
+    } catch (e) {
+      out.innerHTML = `<p class="note err">${esc(e.message)}</p>`;
+    } finally {
+      btn.disabled = false;
+    }
+  };
+});
+
+const RUN = {
+  async lacuna() {
+    const d = await api('/api/lacuna', {
+      text: $('lac-text').value,
+      words: +$('lac-words').value,
+      candidates: +$('lac-k').value,
+      period: $('lac-period').value || null,
+      raw: $('lac-raw').checked,
+    });
+    let html = folding(d.folding);
+    d.gaps.forEach((gap, i) => {
+      const rows = (list) => list.map(r =>
+        `<tr${r.bits_worse === 0 ? ' class="hit"' : ''}>
+           <td class="n">${fixed(r.bits_worse, 2)}</td>
+           <td class="n">${r.tokens}</td>
+           <td class="f">${esc(r.fill)}</td></tr>`).join('');
+      const head = `<tr><th class="n">bits worse</th><th class="n">tok</th>
+                    <th>supplement</th></tr>`;
+      html += `<h3>Gap ${i + 1} of ${d.gaps.length} &mdash;
+               ${gap.n_candidates} candidates</h3>
+        <div class="cols">
+          <div><h3>with the text after the gap</h3>
+            <div class="scroll"><table>${head}${rows(gap.ranked)}</table></div></div>
+          <div><h3>left context only (plain generation)</h3>
+            <div class="scroll"><table>${head}${rows(gap.blind)}</table></div></div>
+        </div>`;
+    });
+    return html + `<div class="recon">${esc(d.reconstruction)}</div>`;
+  },
+
+  async surprisal() {
+    const d = await api('/api/surprisal', {
+      text: $('sur-text').value,
+      period: $('sur-period').value || null,
+      raw: $('sur-raw').checked,
+    });
+    const edges = d.bands;
+    const cls = (b) => 'b' + (edges.findIndex(e => b < e) === -1
+      ? edges.length : edges.findIndex(e => b < e));
+    const names = ['unremarkable', 'ordinary', 'notable', 'suspicious', 'look here'];
+    const key = names.map((n, i) =>
+      `<span><i class="b${i}" style="background:var(--heat-${i})"></i>${n}</span>`).join('');
+    const body = d.words.map(w =>
+      `<span class="${cls(w.bits)}" title="${fixed(w.bits, 1)} bits, ${w.tokens} tokens">${esc(w.text)}</span>`
+    ).join(' ');
+    const hot = [...d.words].sort((a, b) => b.bits - a.bits).slice(0, 12).map(w =>
+      `<tr><td class="n">${fixed(w.bits, 1)}</td><td class="n">${w.tokens}</td>
+       <td class="f">${esc(w.text)}</td></tr>`).join('');
+    return folding(d.folding) +
+      `<div class="key">${key}</div><p class="text">${body}</p>
+       <p class="note">${d.n_tokens.toLocaleString()} tokens,
+         perplexity ${fixed(d.perplexity, 1)},
+         median ${fixed(d.median_bits, 1)} bits/word,
+         90th percentile ${fixed(d.p90_bits, 1)}</p>
+       <h3>hottest words</h3>
+       <div class="scroll"><table>
+         <tr><th class="n">bits</th><th class="n">tok</th><th>word</th></tr>
+         ${hot}</table></div>`;
+  },
+
+  async aetas() {
+    const d = await api('/api/aetas', {
+      text: $('ae-text').value, raw: $('ae-raw').checked,
+    });
+    const entries = Object.entries(d.scores).sort((a, b) => a[1] - b[1]);
+    const best = entries[0][1], worst = entries[entries.length - 1][1];
+    const span = Math.max(worst - best, 1e-9);
+    const bars = entries.map(([era, ppl]) => {
+      // Bar length shows the RATIO to the best fit, exaggerated across the
+      // observed range: the raw differences are ~2%, invisible at true scale.
+      const frac = 1 - (ppl - best) / span;
+      return `<div class="era">${era}</div>
+        <div class="track ${era === d.best ? 'win' : ''}">
+          <div class="fill" style="width:${(8 + frac * 92).toFixed(1)}%"></div></div>
+        <div class="val">${ppl.toFixed(2)}</div>`;
+    }).join('');
+    const c = d.calibration;
+    const cal = !c
+      ? `<p class="note err">No calibration for this checkpoint. The ranking
+         above is unmeasured &mdash; run
+         <code>python3 demos/aetas.py --calibrate 15</code>.</p>`
+      : `<p class="note">On ${c.n} held-out documents of known date this model
+         was right ${pct(c.accuracy)} of the time, against ${pct(c.chance)} for
+         a coin. Among those with a &lsquo;${d.band}&rsquo; margin like this
+         one: ${c.band_n ? pct(c.band_accuracy) + ` (n=${c.band_n})` :
+         'no calibration document landed in this band'}.</p>`;
+    return folding(d.folding) +
+      `<div class="bars">${bars}</div>
+       <p class="verdict"><b>${d.best}</b> over ${d.runner_up} by
+         ${d.margin_bits.toFixed(4)} bits/token &mdash; ${d.band}.
+         ${d.n_tokens.toLocaleString()} tokens.</p>` + cal;
+  },
+};
+</script>
+</body>
+</html>

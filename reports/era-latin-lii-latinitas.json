@@ -1,0 +1,829 @@
+{
+  "model": "latin-lii-latinitas",
+  "corpus": "corpus-b",
+  "n": 60,
+  "tokens_per_doc": 539,
+  "words_per_doc": 250,
+  "accuracy": 0.6166666666666667,
+  "periods": [
+    "CLASSICAL",
+    "LATE",
+    "MEDIEVAL",
+    "NEOLATIN"
+  ],
+  "matrix": {
+    "CLASSICAL->CLASSICAL": 12,
+    "CLASSICAL->LATE": 3,
+    "LATE->CLASSICAL": 1,
+    "LATE->LATE": 12,
+    "LATE->MEDIEVAL": 1,
+    "LATE->NEOLATIN": 1,
+    "MEDIEVAL->LATE": 8,
+    "MEDIEVAL->MEDIEVAL": 6,
+    "MEDIEVAL->NEOLATIN": 1,
+    "NEOLATIN->CLASSICAL": 4,
+    "NEOLATIN->LATE": 1,
+    "NEOLATIN->MEDIEVAL": 3,
+    "NEOLATIN->NEOLATIN": 7
+  },
+  "bands": {
+    "very weak": {
+      "n": 6,
+      "accuracy": 0.3333333333333333
+    },
+    "weak": {
+      "n": 14,
+      "accuracy": 0.6428571428571429
+    },
+    "moderate": {
+      "n": 30,
+      "accuracy": 0.6333333333333333
+    },
+    "clear": {
+      "n": 10,
+      "accuracy": 0.7
+    }
+  },
+  "results": [
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.019158505549506512,
+      "n_tokens": 464,
+      "perplexity": {
+        "CLASSICAL": 42.23587037882461,
+        "LATE": 42.8004892274872,
+        "MEDIEVAL": 43.7189626818883,
+        "NEOLATIN": 42.823530700683804
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.010505226130509726,
+      "n_tokens": 488,
+      "perplexity": {
+        "CLASSICAL": 44.08141813644835,
+        "LATE": 44.7845444934834,
+        "MEDIEVAL": 45.773379123237724,
+        "NEOLATIN": 44.40357588209332
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "LATE",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.015483352183295156,
+      "n_tokens": 533,
+      "perplexity": {
+        "CLASSICAL": 4.241517499999997,
+        "LATE": 4.19623990774731,
+        "MEDIEVAL": 4.482583831921454,
+        "NEOLATIN": 4.487332490740361
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.009198721147650921,
+      "n_tokens": 470,
+      "perplexity": {
+        "CLASSICAL": 38.96487580958025,
+        "LATE": 39.73915580435692,
+        "MEDIEVAL": 40.919075540143766,
+        "NEOLATIN": 39.21411222260517
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.011162817438423622,
+      "n_tokens": 509,
+      "perplexity": {
+        "CLASSICAL": 50.1472600929201,
+        "LATE": 50.536778286404285,
+        "MEDIEVAL": 52.78599329504627,
+        "NEOLATIN": 51.16253803784482
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.005636643923274305,
+      "n_tokens": 586,
+      "perplexity": {
+        "CLASSICAL": 11.942733001088873,
+        "LATE": 11.989484814430726,
+        "MEDIEVAL": 12.419122859368935,
+        "NEOLATIN": 12.137315730571352
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.010737686831700751,
+      "n_tokens": 499,
+      "perplexity": {
+        "CLASSICAL": 45.04187943688882,
+        "LATE": 45.37836767149369,
+        "MEDIEVAL": 48.21842693595383,
+        "NEOLATIN": 47.07845378938447
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.02014295136645995,
+      "n_tokens": 515,
+      "perplexity": {
+        "CLASSICAL": 64.22203915747859,
+        "LATE": 65.12499809296384,
+        "MEDIEVAL": 68.32203654254289,
+        "NEOLATIN": 65.68733485670523
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.0015495030551372923,
+      "n_tokens": 573,
+      "perplexity": {
+        "CLASSICAL": 80.01600610614203,
+        "LATE": 80.1019921588463,
+        "MEDIEVAL": 81.47271402033861,
+        "NEOLATIN": 80.69947585847508
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.0043218737381919775,
+      "n_tokens": 431,
+      "perplexity": {
+        "CLASSICAL": 52.34643449338091,
+        "LATE": 52.50348354237643,
+        "MEDIEVAL": 53.852410545684116,
+        "NEOLATIN": 53.10784549311376
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.004220328780553666,
+      "n_tokens": 477,
+      "perplexity": {
+        "CLASSICAL": 59.657559212146275,
+        "LATE": 59.83233151360511,
+        "MEDIEVAL": 60.92697666334668,
+        "NEOLATIN": 60.747045495763295
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "LATE",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.001242765073201015,
+      "n_tokens": 541,
+      "perplexity": {
+        "CLASSICAL": 38.152502080321995,
+        "LATE": 38.11965093739838,
+        "MEDIEVAL": 39.20986097473755,
+        "NEOLATIN": 38.670043096090836
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.011731060385293417,
+      "n_tokens": 478,
+      "perplexity": {
+        "CLASSICAL": 3.2853090591867105,
+        "LATE": 3.3450990212688465,
+        "MEDIEVAL": 3.3902927182273497,
+        "NEOLATIN": 3.3121319671605733
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "LATE",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.008081788416434301,
+      "n_tokens": 508,
+      "perplexity": {
+        "CLASSICAL": 98.96910148588013,
+        "LATE": 98.41623953453484,
+        "MEDIEVAL": 100.54076318549598,
+        "NEOLATIN": 99.54690481480141
+      }
+    },
+    {
+      "true": "CLASSICAL",
+      "predicted": "CLASSICAL",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.009313216473533403,
+      "n_tokens": 460,
+      "perplexity": {
+        "CLASSICAL": 36.03894365923949,
+        "LATE": 36.273807350596186,
+        "MEDIEVAL": 37.51670118099769,
+        "NEOLATIN": 36.272343064157276
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.007922967796259903,
+      "n_tokens": 552,
+      "perplexity": {
+        "CLASSICAL": 19.290827368984274,
+        "LATE": 19.150347615177346,
+        "MEDIEVAL": 19.511164658011484,
+        "NEOLATIN": 19.25580647816015
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.019765544604201764,
+      "n_tokens": 506,
+      "perplexity": {
+        "CLASSICAL": 10.561903090252523,
+        "LATE": 10.40742023062158,
+        "MEDIEVAL": 10.550987600547195,
+        "NEOLATIN": 10.561201235396743
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.011317444916769982,
+      "n_tokens": 553,
+      "perplexity": {
+        "CLASSICAL": 29.636160371735933,
+        "LATE": 29.290103398050086,
+        "MEDIEVAL": 29.520777752574432,
+        "NEOLATIN": 29.700986658813058
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.00837501823647587,
+      "n_tokens": 551,
+      "perplexity": {
+        "CLASSICAL": 18.26552276196675,
+        "LATE": 18.090285981749968,
+        "MEDIEVAL": 18.362555720596834,
+        "NEOLATIN": 18.195607674506928
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.0037245619243691016,
+      "n_tokens": 534,
+      "perplexity": {
+        "CLASSICAL": 28.146663444117415,
+        "LATE": 27.865813892027848,
+        "MEDIEVAL": 27.93784715957994,
+        "NEOLATIN": 28.138441966786985
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.020260024503846355,
+      "n_tokens": 501,
+      "perplexity": {
+        "CLASSICAL": 21.045625794535205,
+        "LATE": 20.752143840146637,
+        "MEDIEVAL": 21.102861534132945,
+        "NEOLATIN": 21.188515256003797
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.0035251036345866154,
+      "n_tokens": 514,
+      "perplexity": {
+        "CLASSICAL": 67.04863868682398,
+        "LATE": 66.8850109807046,
+        "MEDIEVAL": 69.28795120262784,
+        "NEOLATIN": 67.64164283106474
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.0112559205336691,
+      "n_tokens": 586,
+      "perplexity": {
+        "CLASSICAL": 18.65086835128576,
+        "LATE": 18.505920276087263,
+        "MEDIEVAL": 18.98628049512841,
+        "NEOLATIN": 18.805814308221176
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.003732708782751343,
+      "n_tokens": 515,
+      "perplexity": {
+        "CLASSICAL": 20.089103391369648,
+        "LATE": 19.893016827800484,
+        "MEDIEVAL": 19.94455300128709,
+        "NEOLATIN": 20.142414998239563
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "NEOLATIN",
+      "runner_up": "LATE",
+      "margin_bits": 0.0011426159726814944,
+      "n_tokens": 524,
+      "perplexity": {
+        "CLASSICAL": 29.147468059028988,
+        "LATE": 29.067901115256593,
+        "MEDIEVAL": 29.62385241943724,
+        "NEOLATIN": 29.044888421586396
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.011403490891873343,
+      "n_tokens": 707,
+      "perplexity": {
+        "CLASSICAL": 14.865367053310568,
+        "LATE": 14.738478931648425,
+        "MEDIEVAL": 14.855437884948781,
+        "NEOLATIN": 15.004108437027087
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "MEDIEVAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.014080641124601976,
+      "n_tokens": 488,
+      "perplexity": {
+        "CLASSICAL": 11.389799324618604,
+        "LATE": 11.328687405869086,
+        "MEDIEVAL": 11.218657723255294,
+        "NEOLATIN": 11.509298445675443
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.008305386175466755,
+      "n_tokens": 476,
+      "perplexity": {
+        "CLASSICAL": 25.52170381084994,
+        "LATE": 25.375201164233285,
+        "MEDIEVAL": 27.17086783630957,
+        "NEOLATIN": 26.00011045102918
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "CLASSICAL",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.006732970879583024,
+      "n_tokens": 553,
+      "perplexity": {
+        "CLASSICAL": 42.05581231741469,
+        "LATE": 42.44434525238648,
+        "MEDIEVAL": 43.23364917057465,
+        "NEOLATIN": 42.25254296896277
+      }
+    },
+    {
+      "true": "LATE",
+      "predicted": "LATE",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.003831292982829544,
+      "n_tokens": 577,
+      "perplexity": {
+        "CLASSICAL": 24.42348717663893,
+        "LATE": 24.358712991501914,
+        "MEDIEVAL": 24.600657865532817,
+        "NEOLATIN": 24.72235024230392
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "LATE",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.024557012303529475,
+      "n_tokens": 548,
+      "perplexity": {
+        "CLASSICAL": 19.21911155211062,
+        "LATE": 18.894739565486596,
+        "MEDIEVAL": 19.221766832220297,
+        "NEOLATIN": 19.48874631607696
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "MEDIEVAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.006399603846529906,
+      "n_tokens": 715,
+      "perplexity": {
+        "CLASSICAL": 17.78126889620468,
+        "LATE": 17.69014049569567,
+        "MEDIEVAL": 17.611843165498584,
+        "NEOLATIN": 17.7295685782681
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "MEDIEVAL",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.019852502230132185,
+      "n_tokens": 500,
+      "perplexity": {
+        "CLASSICAL": 36.97629268187501,
+        "LATE": 37.4130097578353,
+        "MEDIEVAL": 36.19334807590367,
+        "NEOLATIN": 36.69483660076901
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "MEDIEVAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.011613302440218666,
+      "n_tokens": 527,
+      "perplexity": {
+        "CLASSICAL": 25.105780577450147,
+        "LATE": 24.92226681300912,
+        "MEDIEVAL": 24.72245464366783,
+        "NEOLATIN": 25.300109597859166
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "MEDIEVAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.007590676287620553,
+      "n_tokens": 564,
+      "perplexity": {
+        "CLASSICAL": 32.14706203482441,
+        "LATE": 31.66141096709402,
+        "MEDIEVAL": 31.495263323129514,
+        "NEOLATIN": 32.50184011665569
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "LATE",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.021765307115025938,
+      "n_tokens": 495,
+      "perplexity": {
+        "CLASSICAL": 5.623370008341392,
+        "LATE": 5.525123225172219,
+        "MEDIEVAL": 5.60911028012837,
+        "NEOLATIN": 5.655059627861964
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "NEOLATIN",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.0069552183237969805,
+      "n_tokens": 605,
+      "perplexity": {
+        "CLASSICAL": 18.988641437415083,
+        "LATE": 18.927043909731587,
+        "MEDIEVAL": 18.85570679319739,
+        "NEOLATIN": 18.765022389785045
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "LATE",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.0057253564696062844,
+      "n_tokens": 503,
+      "perplexity": {
+        "CLASSICAL": 25.11492646780401,
+        "LATE": 24.6702909975561,
+        "MEDIEVAL": 24.768389934689395,
+        "NEOLATIN": 25.291706791335102
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "LATE",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.002711477175520751,
+      "n_tokens": 530,
+      "perplexity": {
+        "CLASSICAL": 23.785599142427667,
+        "LATE": 23.580973782703634,
+        "MEDIEVAL": 23.71582115039721,
+        "NEOLATIN": 23.625334783092153
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "LATE",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.006339262333774382,
+      "n_tokens": 492,
+      "perplexity": {
+        "CLASSICAL": 25.194205985525702,
+        "LATE": 24.766606711306903,
+        "MEDIEVAL": 24.87567165926355,
+        "NEOLATIN": 25.494075410865484
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "MEDIEVAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.00992484130238087,
+      "n_tokens": 507,
+      "perplexity": {
+        "CLASSICAL": 44.31072559078219,
+        "LATE": 43.84573073301709,
+        "MEDIEVAL": 43.54513461786914,
+        "NEOLATIN": 44.0723007970038
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "LATE",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.008364339999327883,
+      "n_tokens": 489,
+      "perplexity": {
+        "CLASSICAL": 19.218181301465396,
+        "LATE": 19.097750540815554,
+        "MEDIEVAL": 19.208795518741354,
+        "NEOLATIN": 19.325266530996977
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "LATE",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.0057600006897617195,
+      "n_tokens": 521,
+      "perplexity": {
+        "CLASSICAL": 25.513257682086817,
+        "LATE": 25.24177471577781,
+        "MEDIEVAL": 25.342754662618372,
+        "NEOLATIN": 25.524113215614964
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "LATE",
+      "runner_up": "MEDIEVAL",
+      "margin_bits": 0.006000575933750798,
+      "n_tokens": 513,
+      "perplexity": {
+        "CLASSICAL": 28.752759389298085,
+        "LATE": 28.28014410786519,
+        "MEDIEVAL": 28.398014167918788,
+        "NEOLATIN": 29.24594869484201
+      }
+    },
+    {
+      "true": "MEDIEVAL",
+      "predicted": "MEDIEVAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.012800689086848118,
+      "n_tokens": 540,
+      "perplexity": {
+        "CLASSICAL": 30.8882217069013,
+        "LATE": 30.595417678922473,
+        "MEDIEVAL": 30.325152605188297,
+        "NEOLATIN": 30.94181888650079
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "MEDIEVAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.005913499723410093,
+      "n_tokens": 613,
+      "perplexity": {
+        "CLASSICAL": 40.03032211953637,
+        "LATE": 39.61566149400133,
+        "MEDIEVAL": 39.45361218346862,
+        "NEOLATIN": 39.86782484487495
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "CLASSICAL",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.004749833961295249,
+      "n_tokens": 583,
+      "perplexity": {
+        "CLASSICAL": 25.718463350443837,
+        "LATE": 26.07038688325815,
+        "MEDIEVAL": 26.503490527830774,
+        "NEOLATIN": 25.803276662498828
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "CLASSICAL",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.006097036183700518,
+      "n_tokens": 534,
+      "perplexity": {
+        "CLASSICAL": 39.32618953179344,
+        "LATE": 39.61776833411321,
+        "MEDIEVAL": 39.65643198169784,
+        "NEOLATIN": 39.492739333513725
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "NEOLATIN",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.01829839224181019,
+      "n_tokens": 540,
+      "perplexity": {
+        "CLASSICAL": 41.990156310618815,
+        "LATE": 42.04298100572496,
+        "MEDIEVAL": 42.6073300876387,
+        "NEOLATIN": 41.46093830257723
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "NEOLATIN",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.006420300766552404,
+      "n_tokens": 513,
+      "perplexity": {
+        "CLASSICAL": 49.89733059024051,
+        "LATE": 50.27634157197285,
+        "MEDIEVAL": 50.39878607709709,
+        "NEOLATIN": 49.67577018348535
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "MEDIEVAL",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.007524273604367434,
+      "n_tokens": 506,
+      "perplexity": {
+        "CLASSICAL": 39.709405349249565,
+        "LATE": 39.425783922953414,
+        "MEDIEVAL": 38.95235017438003,
+        "NEOLATIN": 39.15603408022956
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "NEOLATIN",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.005639068574323006,
+      "n_tokens": 563,
+      "perplexity": {
+        "CLASSICAL": 26.143245798273487,
+        "LATE": 26.32363993487051,
+        "MEDIEVAL": 26.753947676058644,
+        "NEOLATIN": 26.041259024140906
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "CLASSICAL",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.0002603040638217836,
+      "n_tokens": 589,
+      "perplexity": {
+        "CLASSICAL": 40.702218924609944,
+        "LATE": 40.816933085232634,
+        "MEDIEVAL": 41.41660582517116,
+        "NEOLATIN": 40.70956344896773
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "NEOLATIN",
+      "runner_up": "LATE",
+      "margin_bits": 0.0011310658882366586,
+      "n_tokens": 618,
+      "perplexity": {
+        "CLASSICAL": 50.44414741598731,
+        "LATE": 49.77152488994521,
+        "MEDIEVAL": 50.00619152797081,
+        "NEOLATIN": 49.73251954874289
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "NEOLATIN",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.002034527754166819,
+      "n_tokens": 968,
+      "perplexity": {
+        "CLASSICAL": 16.977772150632383,
+        "LATE": 17.070466440838846,
+        "MEDIEVAL": 17.11171885338241,
+        "NEOLATIN": 16.953846509207956
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "MEDIEVAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.0008246382896784356,
+      "n_tokens": 520,
+      "perplexity": {
+        "CLASSICAL": 52.90040144118805,
+        "LATE": 52.648027645631934,
+        "MEDIEVAL": 52.61794285811489,
+        "NEOLATIN": 52.78280101006575
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "NEOLATIN",
+      "runner_up": "CLASSICAL",
+      "margin_bits": 0.01985717583409987,
+      "n_tokens": 560,
+      "perplexity": {
+        "CLASSICAL": 48.05598999768441,
+        "LATE": 48.26204039574428,
+        "MEDIEVAL": 48.60637173859345,
+        "NEOLATIN": 47.39908117245584
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "CLASSICAL",
+      "runner_up": "LATE",
+      "margin_bits": 0.008114860097039102,
+      "n_tokens": 493,
+      "perplexity": {
+        "CLASSICAL": 46.943899703633015,
+        "LATE": 47.20869340041851,
+        "MEDIEVAL": 48.04700726147156,
+        "NEOLATIN": 47.69067599756938
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "NEOLATIN",
+      "runner_up": "LATE",
+      "margin_bits": 0.007375467608564502,
+      "n_tokens": 534,
+      "perplexity": {
+        "CLASSICAL": 46.357766695923964,
+        "LATE": 46.35003158920023,
+        "MEDIEVAL": 47.13558166924271,
+        "NEOLATIN": 46.11368169622379
+      }
+    },
+    {
+      "true": "NEOLATIN",
+      "predicted": "LATE",
+      "runner_up": "NEOLATIN",
+      "margin_bits": 0.008147672912214876,
+      "n_tokens": 532,
+      "perplexity": {
+        "CLASSICAL": 50.28222119094571,
+        "LATE": 49.83893227248794,
+        "MEDIEVAL": 50.938320259518065,
+        "NEOLATIN": 50.12119575842411
+      }
+    }
+  ]
+}

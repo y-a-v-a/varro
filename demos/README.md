@@ -96,22 +96,74 @@ nothing. `--benchmark` runs the same task on the **held-out** split:
 ```
 $ python demos/lacuna.py --benchmark 60 --candidates 32
 
-proposed by the model         6/60   10.0%
-chosen, with right context   22/60   36.7%
-chosen, left context only     4/60    6.7%   <-- what generation alone gets
-median rank of the true word  2   top-5 68.3%
+proposed by the model         7/60   11.7%
+chosen, with right context   24/60   40.0%
+chosen, left context only     5/60    8.3%   <-- what generation alone gets
+median rank of the true word  2   top-5 66.7%
 ```
 
 Read that as three separate claims:
 
-- The model **generates** the exact missing word only 10% of the time. That is
-  a ceiling on any pure-generation approach.
+- The model **generates** the exact missing word only 11.7% of the time. That
+  is a ceiling on any pure-generation approach.
 - Given a candidate list, scoring across the right context picks the true word
-  **36.7%** of the time, against **6.7%** for the left context alone. Reading
-  backwards is worth roughly 5.5×, and that gap is the whole argument for this
+  **40.0%** of the time, against **8.3%** for the left context alone. Reading
+  backwards is worth roughly 4.8×, and that gap is the whole argument for this
   demo existing.
-- The true word's median rank is 2 and it is in the top five 68% of the time,
-  so the useful output is the shortlist, not the winner.
+- The true word's median rank is 2 and it is in the top five two thirds of the
+  time, so the useful output is the shortlist, not the winner.
+
+Trimming punctuation off proposals moved all three numbers (36.7 → 40.0%). A
+24-sample pool had been spending four of its slots on `duas`, `duas,`, `duas:`
+and `duas.` while `partes` never made it in.
+
+## aetas.py — which era does this read as
+
+Same tokens, four era prefixes, best fit wins. The tags were real conditioning
+during training, so this is a classifier that falls out of the corpus design
+rather than one that was trained for.
+
+```
+  era           perplexity    vs best
+  CLASSICAL          30.15    1.0000x  <-- best fit
+  LATE               31.92    1.0590x
+  NEOLATIN           33.50    1.1114x
+  MEDIEVAL           38.99    1.2935x
+
+94 tokens.  CLASSICAL over LATE by 0.0827 bits/token (clear).
+```
+
+**The margins are tiny and the demo says so.** A period tag is two tokens in
+front of a few hundred, so best-to-worst is typically ~2.5% of perplexity.
+`--calibrate` measures what that is worth on held-out text of known date, and
+`reports/era-<model>.json` is then quoted back on every estimate:
+
+```
+accuracy 37/60 = 61.7%   (chance 25%)
+
+            CLAS   LATE   MEDI   NEOL   <- predicted
+CLASSICAL     12      3      0      0    80% recall
+LATE           1     12      1      1    80% recall
+MEDIEVAL       0      8      6      1    40% recall
+NEOLATIN       4      1      3      7    47% recall
+
+margin band     n  accuracy
+very weak       6     33.3%
+weak           14     64.3%
+moderate       30     63.3%
+clear          10     70.0%
+```
+
+Read honestly: it separates **CLASSICAL and LATE well (80%)**, cannot hold
+MEDIEVAL apart from LATE (8 of 15 leak), and scatters NEOLATIN. The margin band
+carries real information — 33% at "very weak" against 70% at "clear" — so a
+weak margin should be disbelieved rather than rounded up.
+
+**Do not assume this transfers to another checkpoint.** The same procedure on
+LATIN-XXV-2 gets 53.5% over *three* eras with a median margin of 0.3% — barely
+distinguishable from no conditioning at all. Era estimation arrived with model
+size and corpus breadth; it is not a free consequence of period tagging. Run
+`--calibrate` before trusting it anywhere new.
 
 ## surprisal.py — show me where the text goes wrong
 
@@ -144,6 +196,27 @@ for a pipeline and this renders one document for a person.
 **It reports improbability, not error.** Proper names, hapax legomena and
 technical vocabulary light up exactly the way corruption does. A hot word is a
 place to look, never a verdict.
+
+## serve.py — all three in a browser
+
+```bash
+python demos/serve.py           # http://127.0.0.1:8000
+```
+
+One process, one copy of the weights, one lock around all inference. Three JSON
+endpoints (`/api/lacuna`, `/api/surprisal`, `/api/aetas`, plus `/api/model`)
+and a single page that drives them.
+
+It is **not a service**: no authentication, no rate limiting, no sandbox, and
+it runs a model on anything posted to it. It binds 127.0.0.1 and prints a
+warning if you override that. The page has no external assets at all — the
+server sends `Content-Security-Policy: default-src 'self'`, so system font
+stacks rather than webfonts, and it works with the network unplugged.
+
+```bash
+curl -s localhost:8000/api/aetas -H 'Content-Type: application/json' \
+  -d '{"text":"Quo usque tandem abutere, Catilina, patientia nostra?"}'
+```
 
 ## Notes for anyone extending these
 

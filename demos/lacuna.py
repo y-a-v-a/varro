@@ -56,11 +56,34 @@ SPECIAL = re.compile(r"[<>|]")
 
 WORD = re.compile(r"^[A-Za-z]+$")
 
+# Punctuation is trimmed off both ends of a proposal. A sample of 24 for
+# `Gallia est omnis diuisa in [...] tres` came back holding duas, `duas,`,
+# `duas:` and `duas.` as four separate candidates -- four slots spent on one
+# word, and `partes` crowded out of the pool entirely. The gap is a hole where
+# words were; what punctuation belongs around them is the editor's business and
+# the right context keeps its own.
+EDGE_PUNCT = " .,;:!?\"'()[]{}<>-—–·"
+
 
 def split_gaps(text: str) -> Tuple[List[str], int]:
     """Segments either side of each gap. n segments means n-1 gaps."""
     parts = GAP.split(text)
     return parts, len(parts) - 1
+
+
+def clean_candidate(decoded: str, n_words: int) -> Optional[str]:
+    """One sampled continuation, trimmed to a usable supplement, or None."""
+    words = decoded.split()
+    if len(words) < n_words:
+        return None
+    candidate = " ".join(words[:n_words])
+    # Reject BEFORE trimming, not after. EDGE_PUNCT contains the angle
+    # brackets, so trimming first turns a leaked `<CLASSICAL>` into the
+    # perfectly innocent-looking word CLASSICAL and it enters the pool.
+    if SPECIAL.search(candidate):
+        return None
+    candidate = candidate.strip(EDGE_PUNCT)
+    return candidate or None
 
 
 def propose(m: Loaded, left: str, n_words: int, k: int, temperature: float,
@@ -98,11 +121,9 @@ def propose(m: Loaded, left: str, n_words: int, k: int, temperature: float,
 
     out: List[str] = []
     for row in ids[:, len(base):].tolist():
-        words = m.tok.decode(row).split()
-        if len(words) >= n_words:
-            candidate = " ".join(words[:n_words])
-            if not SPECIAL.search(candidate):
-                out.append(candidate)
+        candidate = clean_candidate(m.tok.decode(row), n_words)
+        if candidate:
+            out.append(candidate)
     return out
 
 

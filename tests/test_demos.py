@@ -203,3 +203,75 @@ def test_special_token_leakage_is_filtered_from_candidates():
     assert SPECIAL.search("<|endoftext|>")
     assert SPECIAL.search("<CLASSICAL>")
     assert not SPECIAL.search("partes")
+
+
+# ---------------------------------------------------------------------------
+# Candidate cleaning
+# ---------------------------------------------------------------------------
+
+def test_punctuation_variants_collapse_to_one_candidate():
+    """The reason edge punctuation is trimmed at all.
+
+    A 24-sample pool for `Gallia est omnis diuisa in [...] tres` came back
+    holding duas, `duas,`, `duas:` and `duas.` as four separate candidates --
+    four slots spent on one word, with `partes` crowded out of the pool.
+    """
+    from lacuna import clean_candidate
+    variants = ["duas", "duas,", "duas:", "duas.", "(duas)", "duas!"]
+    assert {clean_candidate(v, 1) for v in variants} == {"duas"}
+
+
+def test_a_candidate_shorter_than_the_gap_is_rejected():
+    from lacuna import clean_candidate
+    assert clean_candidate("partes", 2) is None
+    assert clean_candidate("partes tres", 2) == "partes tres"
+
+
+def test_a_candidate_that_is_only_punctuation_is_rejected():
+    from lacuna import clean_candidate
+    assert clean_candidate(",", 1) is None
+    assert clean_candidate("...", 1) is None
+
+
+def test_special_tokens_never_become_candidates():
+    from lacuna import clean_candidate
+    assert clean_candidate("<|endoftext|>", 1) is None
+    assert clean_candidate("<CLASSICAL>", 1) is None
+
+
+def test_interior_punctuation_survives_a_multi_word_fill():
+    # Only the edges are trimmed: a comma between two words of a two-word
+    # supplement is part of the reading, not decoration around it.
+    from lacuna import clean_candidate
+    assert clean_candidate("partes, tres", 2) == "partes, tres"
+
+
+# ---------------------------------------------------------------------------
+# Era estimation
+# ---------------------------------------------------------------------------
+
+def test_the_best_era_is_the_highest_mean_logprob_not_the_first_key():
+    from aetas import verdict
+    scores = {
+        "CLASSICAL": {"mean_logprob": -3.20, "perplexity": 24.5},
+        "LATE": {"mean_logprob": -3.10, "perplexity": 22.2},
+        "MEDIEVAL": {"mean_logprob": -3.40, "perplexity": 30.0},
+        "NEOLATIN": {"mean_logprob": -3.50, "perplexity": 33.1},
+    }
+    best, second, margin = verdict(scores)
+    assert best == "LATE"
+    assert second == "CLASSICAL"
+    assert margin == pytest.approx(0.10 / math.log(2))
+
+
+def test_margin_bands_are_ordered_and_cover_everything():
+    from aetas import BAND_NAMES, band_of
+    assert band_of(0.0) == BAND_NAMES[0]
+    assert band_of(1e6) == BAND_NAMES[-1]
+    seen = [band_of(x) for x in (0.0, 0.003, 0.008, 0.02)]
+    assert seen == list(BAND_NAMES)
+
+
+def test_a_missing_calibration_file_is_absence_not_a_crash():
+    import aetas
+    assert aetas.load_calibration("no-such-model-anywhere") is None

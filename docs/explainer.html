@@ -290,7 +290,7 @@
         </thead>
         <tbody>
           <tr>
-            <td class="f">latin-lii.safetensors</td>
+            <td class="f">latin-lii-latinitas.safetensors</td>
             <td class="n">198.6 MB</td>
             <td>The 52,066,560 learned numbers. This is the model.</td>
             <td><span class="tag keep">Essential</span></td>
@@ -302,19 +302,19 @@
             <td><span class="tag keep">Essential</span></td>
           </tr>
           <tr>
-            <td class="f">latin-lii.opt.safetensors</td>
+            <td class="f">latin-lii-latinitas.opt.safetensors</td>
             <td class="n">397.3 MB</td>
             <td>The optimiser's working notes — twice the size of the model, and discardable.</td>
             <td><span class="tag scaffold">Resume only</span></td>
           </tr>
           <tr>
-            <td class="f">latin-lii.state.json</td>
+            <td class="f">latin-lii-latinitas.state.json</td>
             <td class="n">2 KB</td>
             <td>Which step training reached, and the loss at each checkpoint.</td>
             <td><span class="tag scaffold">Resume only</span></td>
           </tr>
           <tr>
-            <td class="f">train-latin-lii.json</td>
+            <td class="f">train-latin-lii-latinitas.json</td>
             <td class="n">4 KB</td>
             <td>What it was trained on, through which vocabulary, and how it scored.</td>
             <td><span class="tag scaffold">Provenance</span></td>
@@ -327,6 +327,14 @@
           </tr>
         </tbody>
       </table>
+    </div>
+    <div class="note">
+      <b>Why the files say <code>latin-lii-latinitas</code> and the model is called
+      LATIN-LII.</b> The recipe once had a second phase that narrowed onto classical
+      Latin; it was measured, it made the model worse, and it was dropped. Its output
+      still sits on disk as <code>latin-lii.safetensors</code>, so the surviving single
+      phase keeps the name it was trained under. Every number on this page belongs to
+      <code>latin-lii-latinitas</code>.
     </div>
     <div class="note">
       The optimiser file is <b>twice the size of the model itself</b>, which surprises
@@ -342,7 +350,7 @@
     <div class="label">Opening the first file</div>
     <h2>The weights are 104 tables of numbers</h2>
     <p class="prose">
-      Inside <code>latin-lii.safetensors</code> there is no code and no text —
+      Inside <code>latin-lii-latinitas.safetensors</code> there is no code and no text —
       just named grids of decimals. Here are four of the hundred and four, at their
       real sizes:
     </p>
@@ -488,7 +496,7 @@ blocks.6.attn.value_proj.weight   ( 640, 640)   float32</pre>
     <h2>Two things it can do today</h2>
     <div class="panel">
       <h3>Write Latin</h3>
-      <pre>python src/sample.py --name latin-lii --n 5 --period CLASSICAL</pre>
+      <pre>python src/sample.py --name latin-lii-latinitas --n 5 --period CLASSICAL</pre>
       <p class="prose" style="max-width:38em">
         Give it a starting point and it continues. Conditioned on
         <code>&lt;CLASSICAL&gt;</code> it writes like a Roman historian; on
@@ -497,8 +505,8 @@ blocks.6.attn.value_proj.weight   ( 640, 640)   float32</pre>
     </div>
     <div class="panel">
       <h3>Judge Latin</h3>
-      <pre>python src/score.py --name latin-lii FILE
-python src/score.py --name latin-lii --period-fit FILE</pre>
+      <pre>python src/score.py --name latin-lii-latinitas FILE
+python src/score.py --name latin-lii-latinitas --period-fit FILE</pre>
       <p class="prose" style="max-width:38em">
         Run backwards, the model reports how surprising a piece of text is. That
         number sorts real Latin from damaged Latin from text that is not Latin at
