@@ -10,6 +10,10 @@ Two deliverables, in order:
    (5.03×), and 0 of 1,339 twelve-word windows appear anywhere in its training
    text. See [`CURRENT_STATE.md`](CURRENT_STATE.md) for the full result.
 
+Published weights: **[LATIN-VII on Hugging Face](https://huggingface.co/vincent-b/latin-vii)**
+— 7.28M parameters, classical Latin only, the one model in the ladder whose
+training corpus is entirely free of NonCommercial terms, released CC-BY-SA-4.0.
+
 Planning documents:
 
 | File | What it is |
@@ -87,6 +91,7 @@ src/
   evaluate.py         # baselines, memorisation, versioned reports [done]
   train.py            # MLX GPT from random init                  [done]
   sample.py           # generation, for memorisation scoring      [done]
+  bundle.py           # reports -> dist/<name>/ Hugging Face bundle [done]
 configs/
 data/                 # gitignored — a build artifact, not source
   raw/ interim/ processed/
@@ -896,6 +901,26 @@ annotation layer. The extractor therefore reads only the `# text =` layer and
 never the lemma/POS/URI columns. Do not start using the annotations without
 revisiting this.
 
+## Publishing a model
+
+```bash
+python src/bundle.py --name latin-vii    # -> dist/latin-vii/
+hf upload vincent-b/latin-vii dist/latin-vii . --repo-type model
+```
+
+The bundle — weights, the exact fingerprinted tokenizer, a generated
+`config.json`, a standalone MLX loader, the corpus attribution notice and the
+model card — is assembled by `src/bundle.py`, never by hand. Prose lives in
+[`docs/modelcards/`](docs/modelcards/); every figure is substituted from a
+generated report, because hand-transcribing numbers is how these docs drifted
+from the builds before.
+
+Two guards, in keeping with the invariants: only Track A models can be
+bundled (`latin-lii-latinitas` is a hard error — NonCommercial propagates
+into weights), and the bigram floor is quoted only if the baseline report
+matches the training report's corpus *and* tokenizer fingerprints. A floor
+measured through a different tokenizer is refused, not approximated.
+
 ## Status
 
 - [x] Source survey, licence-checked (`sources.md`)
@@ -925,6 +950,7 @@ revisiting this.
 - [x] **Restate the floors** — 174.5 full / 149.8 classical; the 17M-corpus figures are retired
 - [x] **Report fingerprinting** — corpus *and* tokenizer stamped; stale floors refused rather than quoted
 - [x] **LATIN-XXV trained** — 27.49M params, two-phase; ppl 29.8 vs 149.8 floor (**5.03×**), **0% memorisation**
+- [x] **LATIN-VII published** — [huggingface.co/vincent-b/latin-vii](https://huggingface.co/vincent-b/latin-vii), assembled by `src/bundle.py`
 - [ ] Strip 927 Perseus editorial datelines (`Scr. ...`) from Cicero's letters — the model learned to generate them
 - [ ] Best-checkpoint tracking in `train.py` — it saves the latest, not the best
 - [ ] Re-run the chat SFT on LATIN-XXV, then serve it
