@@ -6,6 +6,59 @@ stale, and what to do next.
 
 ---
 
+## Update 2026-09-01 (later) — LATIN-VII trained: data beats sizing
+
+3 hours, 7.28M parameters, 14.2 epochs over the classical corpus at 20.8
+tokens/param. Both models of the two-stage plan now exist.
+
+| model | params | tokens seen | classical ppl | x floor |
+|---|---:|---:|---:|---:|
+| LATIN-0 | 3.53M | 10.7M | 74.3 | 2.50 |
+| **LATIN-VII** | 7.28M | 10.7M | **70.1** | **2.65** |
+| **LATIN-LII** | 52.07M | 263.6M | **27.3** | **6.80** |
+
+### The result, and a prediction of mine it refutes
+
+Doubling parameters from LATIN-0 to LATIN-VII — both sized at ~20
+tokens/param on the same corpus — bought 74.3 -> 70.1, about 6%.
+Training on 25x more Latin bought 70.1 -> 27.3, about 61%.
+
+At this scale data dominates sizing, overwhelmingly. I had suggested
+LATIN-VII might beat LATIN-LII on classical because it sits at 20.8
+tokens/param where LATIN-LII sat at 0.4. That conflated two different
+things: Chinchilla says how to balance parameters against the tokens you
+have, and says nothing about how much better you would do with more
+tokens. The measurement is unambiguous — it loses by a factor of 2.5.
+
+**So LATIN-VII's value is its licence, not its quality.** Green sources
+only, CC-BY-SA, redistributable; LATIN-LII is NonCommercial research-only.
+If someone wants the best Latin model here it is LATIN-LII, and no amount
+of correct sizing closes that gap while classical Latin stays capped at
+~10M surviving words.
+
+### A train/validation gap is not a memorisation measurement
+
+LATIN-VII ended with a gap of 0.555, four times LATIN-LII's 0.138, after
+fourteen passes over every passage. It stores nothing:
+
+| window | LATIN-VII's output | real unseen Latin |
+|---:|---:|---:|
+| 3 words | 17.8% | 7.0% |
+| 4 | 2.2% | 3.9% |
+| 5 and above | **0.0%** | 3.1% -> 1.2% |
+
+0 of 3,476 windows memorised, longest verbatim run 0 words. From five
+words upward it matches training text LESS often than genuinely unseen
+Latin does.
+
+I had been reading the widening gap as evidence of memorisation for two
+days. It is not. Distributional overfitting — fitting the training
+distribution more tightly — and verbatim recall are different properties,
+and only the second one is measured by the memorisation report. Both
+models are clean on the second.
+
+---
+
 ## Update 2026-09-01 — LATIN-LII trained: 21.3, 8.73x its floor
 
 74 hours, 52.07M parameters, four epochs over 263,558,393 tokens at 20.2
