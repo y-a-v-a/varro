@@ -110,17 +110,28 @@ wrong, and the ceiling is the accurate statement.
 
 | window | LATIN-LII's output | real unseen Latin |
 |---:|---:|---:|
-| 3 words | 27.6% | 27.1% |
-| 6 | 3.0% | 12.0% |
-| 8 | 0.4% | 9.6% |
+| 3 words | 34.1% | 27.1% |
+| 4 | 9.1% | 16.7% |
+| 6 | 0.4% | 12.0% |
+| 8 | 0.0% | 9.6% |
 | **12** | **0.0%** | **6.0%** |
 
 The control is 547 held-out works, 207,866 words the model never saw,
 scored against the same training corpus. Genuine Latin overlaps training
 text at 6% of 12-word windows because scripture, liturgy and formula
 recur. The model's own output overlaps at 0.0% — from four words upward
-it matches training text LESS than authentic unseen Latin does. Two
-memorised windows in 3,473; longest verbatim run 13 words.
+it matches training text LESS than authentic unseen Latin does. Zero
+memorised windows in 3,411; longest verbatim run **0 words**.
+
+These numbers replace an earlier measurement of 2 in 3,473 with a
+13-word run. That one could not be attributed: `evaluate.py` scored a
+text file without recording which checkpoint wrote it, and two 52M
+checkpoints existed at the time — `latin-lii-latinitas` and the
+abandoned `latin-lii-romanitas`. It is kept as
+`reports/memorization-latin-lii-unattributed.json` rather than deleted.
+`evaluate.py --sampled-from` now records the model, so this cannot
+recur; the table above is measured on `latin-lii-latinitas`, the model
+every other number here refers to.
 
 That settles what the 0.484 gap meant: fits the distribution better, not
 recites Cicero. And it is the evidence Track B's framing needs — weights
