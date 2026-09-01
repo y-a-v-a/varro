@@ -1,4 +1,4 @@
-<title>LATIN-XXV-2 on Disk</title>
+<title>Two Models on Disk</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -180,43 +180,97 @@
 <div class="page">
 
   <header>
-    <div class="label">Claudius · what the trained model actually is</div>
-    <h1>LATIN-XXV-2 on disk</h1>
+    <div class="label">Claudius · what the trained models actually are</div>
+    <h1>Two models on disk</h1>
     <p class="lede">
       A trained language model is not a program. It is a file of numbers, plus a
       small dictionary telling you what the numbers are about. Everything else in
       the folder is bookkeeping.
     </p>
-    <div class="subtitle">27,493,376 numbers · 112 MB · trained 21–22 August 2026</div>
+    <p class="lede">
+      There are now two of them, and the difference between them is not their
+      quality. It is their licence.
+    </p>
+    <div class="subtitle">7,278,912 and 52,066,560 numbers · trained 28 August – 1 September 2026</div>
   </header>
 
   <section class="figure-row">
     <div class="figure">
-      <div class="v">104.9 MB</div>
-      <div class="k">Weights</div>
+      <div class="v">27.8 MB</div>
+      <div class="k">LATIN-VII weights</div>
+    </div>
+    <div class="figure">
+      <div class="v">198.6 MB</div>
+      <div class="k">LATIN-LII weights</div>
     </div>
     <div class="figure">
       <div class="v">250 KB</div>
-      <div class="k">Vocabulary</div>
+      <div class="k">One shared vocabulary</div>
     </div>
     <div class="figure">
       <div class="v">2</div>
-      <div class="k">Files you need</div>
-    </div>
-    <div class="figure">
-      <div class="v">6</div>
-      <div class="k">Files it wrote</div>
+      <div class="k">Files you need, either way</div>
     </div>
   </section>
+
+  <section>
+    <div class="label">Why two</div>
+    <h2>The difference is the licence, not the quality</h2>
+    <p class="prose">
+      Claudius assembles Latin from sources with incompatible terms. Some may be
+      redistributed; some may be trained on but not passed along. Rather than
+      average that into one uncomfortable answer, the corpus is built twice, and
+      each corpus produces its own model.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Model</th><th class="n">Numbers</th><th>Trained on</th><th>Licence</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="f">latin-vii</td>
+            <td class="n">7,278,912</td>
+            <td>Classical Latin only — 5,055,913 words from 5 freely licensed sources</td>
+            <td><span class="tag keep">CC BY-SA · publishable</span></td>
+          </tr>
+          <tr>
+            <td class="f">latin-lii</td>
+            <td class="n">52,066,560</td>
+            <td>All the Latin there is — 134,566,581 words from 11 sources</td>
+            <td><span class="tag scaffold">NonCommercial · research only</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose">
+      The larger model is better at Latin by a wide margin: it scores 27.3 on
+      classical text against LATIN-VII's 70.1, on the same held-out passages
+      through the same vocabulary. But it read material that cannot be
+      redistributed, so its weights cannot be either. LATIN-VII is the weaker
+      model and the only one you can hand to someone.
+    </p>
+    <div class="note">
+      The gap is not about model size. Both models are sized correctly for the text
+      they saw — about twenty tokens per parameter, the ratio that balances the two.
+      LATIN-VII simply had 10.7 million tokens to learn from and LATIN-LII had
+      263.6 million. Doubling the parameters of a small model bought 6%; giving a
+      model twenty-five times more Latin bought 61%. <b>At this scale data matters
+      far more than sizing.</b>
+    </div>
+  </section>
+
+  <hr>
 
   <section>
     <div class="label">The inventory</div>
     <h2>Six files, of which two are the model</h2>
     <p class="prose">
-      Training wrote six files. Only the first two are needed to <em>use</em> the
-      model — the rest let you resume an interrupted run, or establish where the
-      model came from. If you copied just those two onto another machine, it would
-      work.
+      Each training run writes six files. Only the first two are needed to
+      <em>use</em> the model — the rest let you resume an interrupted run, or
+      establish where the model came from. If you copied just those two onto
+      another machine, it would work. The sizes below are LATIN-LII's; LATIN-VII's
+      are the same files, roughly seven times smaller.
     </p>
     <div class="tablewrap">
       <table>
@@ -227,9 +281,9 @@
         </thead>
         <tbody>
           <tr>
-            <td class="f">latin-xxv-2.safetensors</td>
-            <td class="n">104.9 MB</td>
-            <td>The 27,493,376 learned numbers. This is the model.</td>
+            <td class="f">latin-lii.safetensors</td>
+            <td class="n">198.6 MB</td>
+            <td>The 52,066,560 learned numbers. This is the model.</td>
             <td><span class="tag keep">Essential</span></td>
           </tr>
           <tr>
@@ -239,25 +293,25 @@
             <td><span class="tag keep">Essential</span></td>
           </tr>
           <tr>
-            <td class="f">latin-xxv-2.opt.safetensors</td>
-            <td class="n">209.8 MB</td>
+            <td class="f">latin-lii.opt.safetensors</td>
+            <td class="n">397.3 MB</td>
             <td>The optimiser's working notes — twice the size of the model, and discardable.</td>
             <td><span class="tag scaffold">Resume only</span></td>
           </tr>
           <tr>
-            <td class="f">latin-xxv-2.state.json</td>
+            <td class="f">latin-lii.state.json</td>
             <td class="n">2 KB</td>
             <td>Which step training reached, and the loss at each checkpoint.</td>
             <td><span class="tag scaffold">Resume only</span></td>
           </tr>
           <tr>
-            <td class="f">train-latin-xxv-2.json</td>
+            <td class="f">train-latin-lii.json</td>
             <td class="n">4 KB</td>
             <td>What it was trained on, through which vocabulary, and how it scored.</td>
             <td><span class="tag scaffold">Provenance</span></td>
           </tr>
           <tr>
-            <td class="f">latin-xxv.yaml</td>
+            <td class="f">latin-lii.yaml</td>
             <td class="n">2 KB</td>
             <td>The recipe — enough to train it again from scratch.</td>
             <td><span class="tag scaffold">Provenance</span></td>
@@ -277,36 +331,37 @@
 
   <section>
     <div class="label">Opening the first file</div>
-    <h2>The weights are 84 tables of numbers</h2>
+    <h2>The weights are 104 tables of numbers</h2>
     <p class="prose">
-      Inside <code>latin-xxv-2.safetensors</code> there is no code and no text —
-      just named grids of decimals. Here are four of the eighty-four, at their real
-      sizes:
+      Inside <code>latin-lii.safetensors</code> there is no code and no text —
+      just named grids of decimals. Here are four of the hundred and four, at their
+      real sizes:
     </p>
-    <pre>embed.weight                      (4000, 512)   float32
-pos.weight                        ( 512, 512)   float32
-blocks.6.fc1.weight               (2048, 512)   float32
-blocks.6.attn.value_proj.weight   ( 512, 512)   float32</pre>
+    <pre>embed.weight                      (4000, 640)   float32
+pos.weight                        ( 512, 640)   float32
+blocks.6.fc1.weight               (2560, 640)   float32
+blocks.6.attn.value_proj.weight   ( 640, 640)   float32</pre>
     <p class="prose">
       <code>embed.weight</code> is the one worth understanding first. It has
-      <b>one row per word-piece</b> — 4,000 rows — and each row is 512 numbers long.
+      <b>one row per word-piece</b> — 4,000 rows — and each row is 640 numbers long.
       That row <em>is</em> what the model knows about that piece. Row 2247 belongs to
       the piece <code>Gall</code>, and begins:
     </p>
     <pre>-0.0133  -0.0136  -0.0814  -0.0976  -0.0505  0.0753  0.0684  0.0084  …</pre>
     <p class="prose">
       No single number in that row means anything on its own. Nothing in the file
-      says “Gaul” or “noun” or “place”. The meaning is entirely in how the 512
+      says “Gaul” or “noun” or “place”. The meaning is entirely in how the 640
       numbers sit relative to every other row — which is why you cannot open a model
       and read it, and why the only way to find out what it learned is to run it and
       look at what comes out.
     </p>
     <p class="prose">
-      The remaining eighty-odd tables are the layers that transform those rows in
-      context — eight repeating blocks, each with an attention part that lets a word
+      The remaining hundred-odd tables are the layers that transform those rows in
+      context — ten repeating blocks, each with an attention part that lets a word
       look at the words around it, and a larger part that does the actual
       reshaping. <code>blocks.6.fc1.weight</code> is one of the latter, in the
-      seventh of the eight blocks.
+      seventh of the ten blocks. LATIN-VII has the same shape in miniature: six
+      blocks, 288 numbers per row, 64 tables in all.
     </p>
   </section>
 
@@ -323,7 +378,7 @@ blocks.6.attn.value_proj.weight   ( 512, 512)   float32</pre>
         <div class="step"><div class="what">Latin</div><div class="val">amabamus &nbsp;<span style="color:var(--muted)">— “we were loving”</span></div></div>
         <div class="step"><div class="what">Cut into pieces</div><div class="val">am · ab · amus</div></div>
         <div class="step"><div class="what">Looked up</div><div class="val">527 · 344 · 739</div></div>
-        <div class="step"><div class="what">What the model sees</div><div class="val">three rows of 512 numbers</div></div>
+        <div class="step"><div class="what">What the model sees</div><div class="val">three rows of 640 numbers</div></div>
       </div>
     </div>
     <p class="prose">
@@ -350,29 +405,35 @@ blocks.6.attn.value_proj.weight   ( 512, 512)   float32</pre>
       <div class="prop-row">
         <div class="who">weights</div>
         <div class="track"><div class="fill" style="width:100%"></div></div>
-        <div class="amt">104.9 MB</div>
+        <div class="amt">198.6 MB</div>
       </div>
       <div class="prop-row">
         <div class="who">vocabulary</div>
-        <div class="track"><div class="fill" style="width:0.24%"></div></div>
-        <div class="amt">250 KB · 0.24%</div>
+        <div class="track"><div class="fill" style="width:0.13%"></div></div>
+        <div class="amt">250 KB · 0.13%</div>
       </div>
     </div>
     <p class="prose">
-      The vocabulary is a quarter of one per cent of the model's size, and the model
+      The vocabulary is an eighth of one per cent of the model's size, and the model
       is worthless without it. The weights are indexed <em>by position in that list</em>:
       row 2247 means <code>Gall</code> only because the list says entry 2247 is
       <code>Gall</code>. Hand the model a different list and every row points at the
       wrong thing.
     </p>
     <div class="note">
-      This is not hypothetical. On 20 August a corpus rebuild retrained the
-      vocabulary in place, and the previous model's list was overwritten. Its weights
-      were untouched and completely unusable — and it would not have <em>failed</em>,
-      it would have produced fluent, confident, meaningless Latin. The file was
-      recovered by rebuilding the corpus that produced it and retraining the
-      vocabulary, which came back <b>byte for byte identical</b>. Vocabularies are now
-      archived by content and never overwritten.
+      This is not hypothetical, and it has now happened twice. On 20 August a corpus
+      rebuild retrained the vocabulary in place and overwrote the previous model's
+      list; the weights were untouched and completely unusable. It would not have
+      <em>failed</em> — it would have produced fluent, confident, meaningless Latin.
+      That file was recovered by rebuilding the corpus that produced it and
+      retraining the vocabulary, which came back <b>byte for byte identical</b>.
+      <br><br>
+      On 1 September the older LATIN-XXV-2 was scored against today's corpus by
+      mistake, through today's vocabulary rather than the one it was trained on. It
+      reported a perplexity of <b>3,740</b> — against its true 28.3. Nothing crashed;
+      the number was simply meaningless. Vocabularies are archived by content
+      (<code>latin-bpe-4000.f64b7246a477af75.json</code>), never overwritten, and
+      every model records the fingerprint of the one it read.
     </div>
   </section>
 
@@ -382,10 +443,19 @@ blocks.6.attn.value_proj.weight   ( 512, 512)   float32</pre>
     <div class="label">What it is not</div>
     <h2>Three things that are not in the folder</h2>
     <p class="prose">
-      <b>The corpus is not in there.</b> The model learned from 506.7 MB of Latin and
-      is 104.9 MB — a fifth of the size, and not a compressed copy. Of 1,297
-      twelve-word passages it generated, <b>none</b> appears anywhere in its training
-      text. It absorbed how Latin behaves, not the sentences it read.
+      <b>The corpus is not in there.</b> LATIN-LII learned from 865 MB of Latin and
+      is 198.6 MB — under a quarter of the size, and not a compressed copy. Of 3,473
+      twelve-word passages it generated, 2 appear in its training text. LATIN-VII,
+      which read every classical passage <em>fourteen times over</em>, produced 3,476
+      and matched on <b>none</b> at all.
+      <br><br>
+      The control matters more than either figure: genuinely unseen Latin, held out
+      of training entirely, overlaps the training text at 6.0% of twelve-word
+      windows, because scripture and liturgy and formula recur across centuries.
+      From four words upward <b>both models match the training text less often than
+      real Latin does</b>. They absorbed how Latin behaves, not the sentences they
+      read — and that is measured rather than assumed, because it is what allows a
+      model trained on non-redistributable text to be described honestly.
     </p>
     <p class="prose">
       <b>There is no knowledge in there.</b> It writes grammatical Latin about
@@ -407,7 +477,7 @@ blocks.6.attn.value_proj.weight   ( 512, 512)   float32</pre>
     <h2>Two things it can do today</h2>
     <div class="panel">
       <h3>Write Latin</h3>
-      <pre>python src/sample.py --name latin-xxv-2 --n 5 --period CLASSICAL</pre>
+      <pre>python src/sample.py --name latin-lii --n 5 --period CLASSICAL</pre>
       <p class="prose" style="max-width:38em">
         Give it a starting point and it continues. Conditioned on
         <code>&lt;CLASSICAL&gt;</code> it writes like a Roman historian; on
@@ -416,8 +486,8 @@ blocks.6.attn.value_proj.weight   ( 512, 512)   float32</pre>
     </div>
     <div class="panel">
       <h3>Judge Latin</h3>
-      <pre>python src/score.py --name latin-xxv-2 FILE
-python src/score.py --name latin-xxv-2 --period-fit FILE</pre>
+      <pre>python src/score.py --name latin-lii FILE
+python src/score.py --name latin-lii --period-fit FILE</pre>
       <p class="prose" style="max-width:38em">
         Run backwards, the model reports how surprising a piece of text is. That
         number sorts real Latin from damaged Latin from text that is not Latin at
@@ -440,26 +510,48 @@ python src/score.py --name latin-xxv-2 --period-fit FILE</pre>
       a file of numbers somebody hands you. Between them they record:
     </p>
     <ul class="prose" style="max-width:36em">
-      <li>the exact corpus build it saw — 10,177 documents, 78,554,197 words, every
-        source licensed and named;</li>
+      <li>the exact corpus build it saw — for LATIN-LII, 11,706 documents and
+        134,566,581 words, every source licensed and named;</li>
       <li>the fingerprint of the vocabulary it was trained through;</li>
       <li>the recipe that produced it, stated in <em>passes over the corpus</em>
         rather than step counts, so re-running it on a larger corpus still means the
         same thing;</li>
-      <li>its score — 30.1, against 149.5 for a deliberately simple method given the
-        same text.</li>
+      <li>its score, against a deliberately simple method measured on the same text
+        through the same vocabulary.</li>
     </ul>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Model</th><th class="n">Its score</th><th class="n">Simple method</th><th class="n">Better by</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="f">latin-lii</td><td class="n">21.3</td><td class="n">185.9</td><td class="n">8.73×</td></tr>
+          <tr><td class="f">latin-vii</td><td class="n">70.1</td><td class="n">185.7</td><td class="n">2.65×</td></tr>
+        </tbody>
+      </table>
+    </div>
     <p class="prose">
-      That last comparison is only meaningful because both numbers were measured on
-      the same text through the same vocabulary. LATIN-XXV-2 is the first model in
-      this project able to demonstrate that, which is why it is the only one whose
-      score is quoted without a warning beside it.
+      Those comparisons are only meaningful because each pair was measured on the
+      same text through the same vocabulary — and because the simple method was
+      computed on <em>each model's own corpus</em> rather than borrowed from the
+      other. LATIN-LII's corpus is genuinely harder than LATIN-VII's: its baseline
+      is 185.9 against 185.7, and the classical slice is the hardest of all at 201.2,
+      being the least formulaic Latin in the collection.
     </p>
+    <div class="note">
+      One number in this project is now known to be wrong in the other direction.
+      LATIN-LII was trained in two phases, the second narrowing onto classical Latin,
+      and that phase made it <em>worse</em> at classical — 27.3 before, 30.2 after.
+      The same phase improves the smaller LATIN-XXV-2 (34.8 → 28.3). The narrowing
+      phase has a capacity ceiling and 52 million parameters is past it: with only
+      10.7 million classical tokens to re-read, the model memorises rather than
+      learns. The published LATIN-LII is the first phase alone.
+    </div>
   </section>
 
   <footer>
     <div>Claudius · an openly licensed Latin corpus, and a language model trained only on Latin.</div>
-    <div>Figures read from the files described, 22 August 2026.</div>
+    <div>Figures read from the files described, 1 September 2026.</div>
   </footer>
 
 </div>
