@@ -15,12 +15,17 @@ python demos/surprisal.py demos/samples/damaged.txt --plain
 
 `DEFAULT_MODEL = "latin-lii-latinitas"`, and that is deliberate.
 
-`checkpoints/latin-lii.safetensors` is **not** the 21.3-perplexity model this
-project reports. It is the abandoned classical-narrowing run — 30.2 on
-classical, 32.5 on corpus-b — kept because deleting a measurement is worse than
-labelling one. The model everything here quotes was trained under
-`--name latin-lii-latinitas` and still carries that name on disk.
-`configs/latin-lii.yaml` records why the second phase was dropped.
+The project's convention is that `<run>-latinitas` is phase one and the bare
+`<run>` is the classical-narrowing phase two — which is why `latin-xxv`,
+`latin-xxv-2` and `latin-2` all have a bare checkpoint.
+
+LATIN-LII has no phase two. It was run, it made the model worse (30.2 on
+classical, 32.5 on corpus-b, against 27.3 and 21.3 before it), and
+`configs/latin-lii.yaml` records why it was dropped. Those weights are kept —
+deleting a measurement is worse than labelling one — but under
+`latin-lii-romanitas`, so there is no bare `latin-lii` checkpoint to load by
+mistake. The model everything here quotes is the surviving single phase,
+`latin-lii-latinitas`.
 
 Anything can be loaded instead with `--name`, including `latin-vii`, which is
 the Track A model and the only one whose weights are free of NonCommercial

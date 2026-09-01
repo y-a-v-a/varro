@@ -21,13 +21,16 @@ from score import (  # noqa: E402
 )
 
 # WHICH CHECKPOINT IS "LATIN-LII"
-#   `latin-lii.safetensors` is NOT the 21.3-perplexity model the project
-#   reports. It is the abandoned classical-narrowing run: 30.2 on classical,
-#   32.5 on corpus-b, kept because deleting a measurement is worse than
-#   labelling it. configs/latin-lii.yaml records why that phase was dropped.
+#   The project's convention is that `<run>-latinitas` is phase one and the
+#   bare `<run>` is the classical-narrowing phase two -- which is why
+#   latin-xxv, latin-xxv-2 and latin-2 all have a bare checkpoint. LATIN-LII
+#   has no phase two: it was measured, it made the model worse (30.2 on
+#   classical, 32.5 on corpus-b), and configs/latin-lii.yaml records why it was
+#   dropped. Its weights are kept under latin-lii-romanitas, so the bare name
+#   no longer exists rather than pointing at a discarded run.
 #
-#   The model to demo is the surviving single phase, which was trained under
-#   --name latin-lii-latinitas and still carries that name on disk.
+#   The model to demo is therefore the surviving single phase, which was
+#   trained under --name latin-lii-latinitas and carries that name on disk.
 DEFAULT_MODEL = "latin-lii-latinitas"
 
 # How many candidate readings share one forward pass. Sized for a 16GB machine:

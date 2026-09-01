@@ -382,7 +382,17 @@ def cmd_memorisation(args) -> Dict[str, Any]:
         curve[w] = {"text": here, "control": there}
         print(f"{w:>7} {here:>10.1%} {there:>18.1%}")
 
-    return {"memorization": result, "window": args.window, "curve": curve}
+    # WHY THE MODEL IS RECORDED HERE AND NOT INFERRED
+    #   This command scores a FILE, so nothing in it knows which checkpoint
+    #   wrote that file. reports/memorization-latin-lii-unattributed.json was
+    #   permanently unattributable for exactly this reason: two 52M
+    #   checkpoints existed when it was written, one of them the abandoned
+    #   narrowing run, and no artifact records which one was sampled.
+    if not args.sampled_from:
+        print("\nWARNING: no --sampled-from, so this report will not say "
+              "which model wrote the text it scored.", file=sys.stderr)
+    return {"memorization": result, "window": args.window, "curve": curve,
+            "sampled_from": args.sampled_from}
 
 
 def main() -> int:
@@ -402,6 +412,10 @@ def main() -> int:
                          "side rather than overwriting each other")
     ap.add_argument("--corpus", default="corpus",
                     help="corpus basename to evaluate against")
+    ap.add_argument("--sampled-from", metavar="MODEL",
+                    help="which checkpoint produced the text being scored. "
+                         "Recorded in the report; without it the result cannot "
+                         "later be attributed to a model")
     args = ap.parse_args()
 
     suffix = f"-{args.name}" if args.name else ""

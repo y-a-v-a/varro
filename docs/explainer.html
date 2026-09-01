@@ -330,11 +330,13 @@
     </div>
     <div class="note">
       <b>Why the files say <code>latin-lii-latinitas</code> and the model is called
-      LATIN-LII.</b> The recipe once had a second phase that narrowed onto classical
-      Latin; it was measured, it made the model worse, and it was dropped. Its output
-      still sits on disk as <code>latin-lii.safetensors</code>, so the surviving single
-      phase keeps the name it was trained under. Every number on this page belongs to
-      <code>latin-lii-latinitas</code>.
+      LATIN-LII.</b> Two-phase recipes here name phase one <code>&lt;run&gt;-latinitas</code>
+      and phase two just <code>&lt;run&gt;</code>. LATIN-LII has no phase two: the
+      classical-narrowing phase was run, it made the model <em>worse</em>, and it was
+      dropped from the recipe. Those weights are kept — deleting a measurement is worse
+      than labelling one — but under <code>latin-lii-romanitas</code>, so there is no
+      bare <code>latin-lii</code> checkpoint to load by mistake. Every number on this
+      page belongs to <code>latin-lii-latinitas</code>.
     </div>
     <div class="note">
       The optimiser file is <b>twice the size of the model itself</b>, which surprises
