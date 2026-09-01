@@ -136,9 +136,23 @@ class Authority:
             if period:
                 return None, period, origin, confidence
 
-        # Below author matching, above the source prior: a Patrologia Latina
-        # volume number dates a text without naming its author, which is the
-        # only signal most Wikisource pages carry.
+        # Below the curated authorities, above everything inferred: a date the
+        # source itself states for this work. Tesserae dates all 748 of its
+        # files individually, which is both more precise than an author-level
+        # floruit and available for authors no authority lists — Corippus,
+        # Dracontius, or an 1835 Latin life of George Washington.
+        #
+        # It ranks under the authorities because those are human-checked and
+        # this is taken on trust, and it is recorded under its own origin so
+        # its share of the corpus stays visible in the report, exactly as
+        # `pl-volume` and `source-prior` are.
+        stated = record.get("approximate_date")
+        if isinstance(stated, int):
+            return stated, self.period_for(stated), "source-metadata", "stated"
+
+        # Below that, above the source prior: a Patrologia Latina volume
+        # number dates a text without naming its author, which is the only
+        # signal most Wikisource pages carry.
         year = self.year_for_pl_volume(record.get("pl_volume"))
         if year is not None:
             return year, self.period_for(year), "pl-volume", "inferred"

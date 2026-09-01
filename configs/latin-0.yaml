@@ -1,0 +1,30 @@
+# Latin-0 — the smallest interesting result: can a transformer trained on
+# classical Latin alone write convincing Latin? Kept as a recipe because it is
+# the bottom rung of the ladder and the cheapest thing to re-run when anything
+# upstream changes.
+#
+# Deliberately overtrained. ~9.6M classical tokens supports 2-4M parameters at
+# the comfortable epoch count; this is 3.53M at 8.6 epochs, which feasibility.md
+# calls an explicitly overtrained pipeline proof rather than a well-sized model.
+# Its value is the memorisation measurement, not the perplexity.
+
+name: latin-0
+description: 3.53M parameters, classical only, from random weights.
+
+defaults:
+  vocab: 4000
+  dim: 192
+  layers: 6
+  heads: 6
+  context: 512
+  batch: 32
+  eval_every: 250
+  checkpoint_every: 500
+  period_tags: true
+
+phases:
+  - name: latin-0
+    corpus: classical
+    epochs: 8.6
+    lr: 3.0e-4
+    warmup: 200

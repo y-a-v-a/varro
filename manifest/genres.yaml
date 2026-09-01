@@ -66,9 +66,21 @@ genres:
   - LITURGY
   # non-literary
   - DOCUMENTARY   # inscriptions, papyri, charters
+  # modern
+  - SCHOLARSHIP   # philology about the texts: the CSEL editors' prefaces and
+                  # prolegomena, arguing from manuscripts about a text they
+                  # print. Latin, but written 1867-1934 and about Latin rather
+                  # than of it, so it is neither COMMENTARY (which is ancient
+                  # and scriptural here) nor any of the ancient prose genres.
 
 # Applied before author defaults. Ordered: first match wins.
 title_patterns:
+  # First, because these titles name the work they introduce and would other-
+  # wise be read as it: `Praefatio editoris in Epistulae Imperatorum` is not
+  # epistolography, and a preface to a commentary is not a commentary. The
+  # marker is set by csel_volume_records; `Praefatio in` alone would catch
+  # Jerome's own prefaces to the biblical books.
+  - {match: "^Praefatio editoris in ", genre: SCHOLARSHIP, form: PROSE}
   - {match: "^Epistul|^Epistol|^Letters|ad Atticum|ad Familiares|ad Quintum|ad Brutum|Epistula",
      genre: EPISTOLOGRAPHY, form: PROSE}
   - {match: "Panegyric", genre: ORATORY, form: PROSE}

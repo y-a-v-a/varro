@@ -288,39 +288,40 @@
     <div class="eyebrow">Open Latin Corpus</div>
     <h1>Turning critical editions into a training corpus</h1>
     <p class="lede prose">
-      Five stages take scholarly markup from three digital libraries and produce a
-      licence-clean, orthographically unified corpus of Latin — with every editorial
-      decision counted, and provenance attached to every document.
+      Seven stages take scholarly markup, a Wikisource dump and half a million
+      inscriptions, and produce a licence-clean, orthographically unified corpus of
+      Latin — with every editorial decision counted, and provenance attached to every
+      document. Then a model is trained on it, on Latin and nothing else.
     </p>
     <div class="chips">
       <span class="chip on">Path A · everything publishable</span>
-      <span class="chip">3 of 9 sources</span>
-      <span class="chip">17.25M words</span>
-      <span class="chip">33.7M tokens</span>
-      <span class="chip on">Latin-0 · Latin-2 trained</span>
+      <span class="chip">5 of 9 sources</span>
+      <span class="chip">78.97M words</span>
+      <span class="chip">153.0M tokens</span>
+      <span class="chip on">LATIN-XXV trained · 27.49M params</span>
     </div>
   </header>
 
   <section class="glance">
     <div class="stat">
-      <div class="n">908</div>
+      <div class="n">10,194</div>
       <div class="k">Documents</div>
       <div class="sub">one record per work</div>
     </div>
     <div class="stat">
-      <div class="n">17.25M</div>
+      <div class="n">78.97M</div>
       <div class="k">Words</div>
       <div class="sub">after deduplication</div>
     </div>
     <div class="stat">
-      <div class="n">4.64M</div>
+      <div class="n">4.54M</div>
       <div class="k">Classical</div>
       <div class="sub">to AD 200</div>
     </div>
     <div class="stat">
-      <div class="n">44.1</div>
+      <div class="n">29.8</div>
       <div class="k">Perplexity</div>
-      <div class="sub">Latin-2, vs a floor of 158.8</div>
+      <div class="sub">LATIN-XXV, vs a floor of 149.8</div>
     </div>
   </section>
 
@@ -334,8 +335,11 @@
       non-commercial only.
     </p>
     <p class="prose">
-      That decision caps the model at roughly 25M parameters. It buys something worth more: a corpus
-      that can actually be published, which does not currently exist.
+      That decision capped the model at roughly 25M parameters. As the corpus grew past 78 million
+      words the licence stopped being the binding constraint and the data became one — the corpus now
+      comfortably supports the 27.49M-parameter model that was eventually trained. What the decision
+      buys is worth more than the parameters it cost: a corpus that can actually be published, which
+      does not currently exist.
     </p>
   </section>
 
@@ -357,8 +361,8 @@
           </p>
           <div class="figs">
             <div class="fig"><b>17</b><span>sources declared</span></div>
-            <div class="fig"><b>9</b><span>green</span></div>
-            <div class="fig"><b>1.4 GB</b><span>raw</span></div>
+            <div class="fig"><b>10</b><span>green</span></div>
+            <div class="fig"><b>6.4 GB</b><span>raw</span></div>
           </div>
           <div class="found">
             Amber sources are refused even when named explicitly. An <code>amber</code> entry marked
@@ -380,9 +384,9 @@
             to the corrected reading over the manuscript error.
           </p>
           <div class="figs">
-            <div class="fig"><b>968</b><span>records</span></div>
-            <div class="fig"><b>190,327</b><span>notes dropped</span></div>
-            <div class="fig"><b>0</b><span>Greek characters left</span></div>
+            <div class="fig"><b>12,988</b><span>records</span></div>
+            <div class="fig"><b>53,612</b><span>Greek runs stripped</span></div>
+            <div class="fig"><b>75,211</b><span>English words dropped</span></div>
           </div>
           <div class="found">
             Language filtering needed <b>three independent layers</b>. Perseus ships English
@@ -407,15 +411,18 @@
             disagree, and every record carries how it was dated and how confidently.
           </p>
           <div class="figs">
-            <div class="fig"><b>147</b><span>authorities curated</span></div>
-            <div class="fig"><b>94.8%</b><span>explicitly resolved</span></div>
-            <div class="fig"><b>73.9%</b><span>high confidence</span></div>
+            <div class="fig"><b>57.0%</b><span>dated</span></div>
+            <div class="fig"><b>16.0M</b><span>medieval words</span></div>
+            <div class="fig"><b>217</b><span>Patrologia volumes mapped</span></div>
           </div>
           <div class="found">
-            Dating per <em class="term">work</em> rather than per source moved <b>822,468 words</b> of
-            Perseus out of "classical" — Jerome, Ammianus, Boethius, the <em class="term">Historia
-            Augusta</em>. It cuts both ways: Gaius and Festus arrive via a late-antique library but are
-            second century.
+            86 million words arrived from Wikisource with no author field at all, and 82.8% of the
+            corpus fell undated. Migne's <em class="term">Patrologia Latina</em> rescued most of it:
+            its 217 volumes are ordered <b>chronologically by author death</b>, so a volume number
+            dates a text without naming its author. The map is anchored on principal authors and
+            interpolated, never linear — Migne gives Augustine sixteen volumes and the tenth century
+            about six, so a straight line dates Jerome a century early. Undated fell from 82.8% to
+            <b>43.0%</b>.
           </div>
         </div>
       </article>
@@ -435,9 +442,9 @@
             <code>u</code> is consonantal.
           </p>
           <div class="figs">
-            <div class="fig"><b>40,672</b><span>editorial marks</span></div>
-            <div class="fig"><b>3,813</b><span>words rejoined</span></div>
-            <div class="fig"><b>233</b><span>homoglyphs</span></div>
+            <div class="fig"><b>588,131</b><span>editorial marks</span></div>
+            <div class="fig"><b>91,505</b><span>ligatures</span></div>
+            <div class="fig"><b>10,373</b><span>foreign words dropped</span></div>
           </div>
           <div class="found">
             Stripping combining marks in one pass caught accents, macrons, papyrological underdots and
@@ -460,12 +467,14 @@
             spans, compared after folding orthography away.
           </p>
           <div class="figs">
-            <div class="fig"><b>60</b><span>duplicates marked</span></div>
-            <div class="fig"><b>886,542</b><span>words</span></div>
-            <div class="fig"><b>0</b><span>false positives</span></div>
+            <div class="fig"><b>2,794</b><span>duplicates marked</span></div>
+            <div class="fig"><b>29.8M</b><span>words (27.4%)</span></div>
+            <div class="fig"><b>923</b><span>clusters</span></div>
           </div>
           <div class="found">
-            Two relationships hide in one cluster and need <b>opposite</b> rules. For twins, the
+            Deduplication removes more than a quarter of everything fetched, because Latin
+            Wikisource re-hosts a great deal of what Perseus and the patristic library already
+            supply. Two relationships hide in one cluster and need <b>opposite</b> rules. For twins, the
             better-quality source wins. For <em class="term">containment</em> — one text inside a
             fuller one — the larger must win, or the pipeline keeps a 43,000-word selection of Jerome's
             letters and discards the complete 290,000-word corpus. Every mark is then verified by
@@ -487,16 +496,22 @@
             scored on. Then a byte-level BPE vocabulary is trained and measured.
           </p>
           <div class="figs">
-            <div class="fig"><b>32.4M</b><span>tokens, full corpus</span></div>
+            <div class="fig"><b>153.0M</b><span>tokens, full corpus</span></div>
             <div class="fig"><b>9.6M</b><span>classical</span></div>
-            <div class="fig"><b>1.973</b><span>tokens per word</span></div>
+            <div class="fig"><b>2.038</b><span>tokens per word</span></div>
           </div>
           <div class="found">
-            Every parameter figure in the project rested on an assumed 1.8 tokens per word. It was a
-            good guess. The vocabulary was then chosen at <b>4,000</b> — not for compression but
-            because a 32,000-token vocabulary would cost 8.2M parameters, <b>larger than the model
-            it serves</b>, and because a small vocabulary is forced to learn Latin's stems rather
-            than memorise its inflections.
+            The vocabulary is <b>4,000</b>, and the reason has changed. The original argument was
+            parameter budget — at the sizes first planned, a 32,000-token vocabulary cost more than
+            the model it served. At 27.49M parameters that argument is gone. What decides it now is
+            morphology, measured: of twelve forms of the verb <em class="term">amo</em>, a 4k
+            vocabulary stores <b>none</b> whole and splits <em class="term">amabamus</em> into
+            <code>am · ab · amus</code>, while a 64k vocabulary stores <b>ten</b> — it has simply
+            memorised the inflections this project exists to watch a model learn.
+            <br><br>
+            Fertility barely moved as the corpus grew 4.6×: 2.054 tokens per word then, 2.038 now.
+            Latin tokenises at a stable rate across fifteen centuries and wildly different registers,
+            which means the words-to-tokens constant can be trusted for planning.
           </div>
         </div>
       </article>
@@ -529,7 +544,7 @@ uendundisque</pre>
   <hr>
 
   <section>
-    <div class="eyebrow" style="margin-bottom:1.1rem">Latin-0 — what came out</div>
+    <div class="eyebrow" style="margin-bottom:1.1rem">Latin-0 — the first rung, for scale</div>
 
     <div class="panel">
       <div class="verdict">
@@ -556,6 +571,12 @@ uendundisque</pre>
         training began</em> — a simple word-pair statistical model scores 158.8 on the same text, so
         anything that cannot beat it has learned nothing. Latin-0 passed it six minutes in.
       </p>
+      <p class="prose" style="color:var(--muted);font-size:.9rem">
+        That 158.8 is the floor of the corpus <em class="term">as it stood then</em>, at a quarter of
+        its present size and with a different vocabulary. On today's corpus the same method scores
+        149.8. The two are not interchangeable, and every figure on this page is tied to the corpus
+        it was measured on — which is the whole reason the reports carry fingerprints.
+      </p>
     </div>
   </section>
 
@@ -577,37 +598,61 @@ uendundisque</pre>
           <thead>
             <tr>
               <th>Run of words</th>
-              <th class="num">Latin-0 wrote it</th>
+              <th class="num">LATIN-XXV wrote it</th>
               <th class="num">A Roman wrote it</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td>3 in a row</td><td class="num">19.4%</td><td class="num">18.7%</td></tr>
-            <tr><td>4 in a row</td><td class="num">1.7%</td><td class="num">6.7%</td></tr>
-            <tr><td>5 in a row</td><td class="num">0.0%</td><td class="num">4.4%</td></tr>
-            <tr><td>6 in a row</td><td class="num">0.0%</td><td class="num">1.2%</td></tr>
+            <tr><td>3 in a row</td><td class="num">20.0%</td><td class="num">1.2%</td></tr>
+            <tr><td>4 in a row</td><td class="num">4.8%</td><td class="num">0.8%</td></tr>
+            <tr><td>5 in a row</td><td class="num">1.1%</td><td class="num">0.4%</td></tr>
+            <tr><td>6 in a row</td><td class="num">0.7%</td><td class="num">0.0%</td></tr>
+            <tr><td>8 in a row</td><td class="num">0.0%</td><td class="num">0.0%</td></tr>
             <tr><td>12 in a row</td><td class="num">0.0%</td><td class="num">0.0%</td></tr>
           </tbody>
         </table>
       </div>
       <div class="found">
-        At three words the model matches real Latin almost exactly — both reuse the corpus's common
-        little phrases, because that is simply what the language is made of. From four words up,
-        <b>the model repeats the corpus less than a real Roman author does</b>. It is not giving the
-        text back. If anything it has not yet learned the longer set phrases that genuine Latin is
-        full of — a limitation as much as a result.
+        <b>Nothing survives at eight words.</b> That is the result the project turns on: the model is
+        composing rather than reciting.
+        <br><br>
+        The short windows deserve a less comfortable reading. At three to six words this model
+        overlaps its training text <em class="term">more</em> than the control does — the reverse of
+        what the earlier, smaller model showed. That is a bias toward the average, reaching for the
+        commonest phrasing more often than any individual author would, rather than recall. But the
+        control here scores unusually low on only 6,710 words, so the comparison is shaky and is
+        reported rather than explained away. The absolute figure is the dependable one.
       </div>
     </div>
   </section>
 
   <section>
-    <div class="eyebrow" style="margin-bottom:1.1rem">Latin-2 — learn all of it, then specialise</div>
+    <div class="eyebrow" style="margin-bottom:1.1rem">LATIN-XXV — learn all of it, then specialise</div>
     <div class="panel">
       <p class="prose">
-        The second model follows the strategy the plan proposed: read
-        <em class="term">every</em> period of Latin first, then narrow onto Rome. Fifteen hundred
-        years of the language, then eight centuries of it.
+        The flagship follows the strategy the plan proposed: read <em class="term">every</em> period
+        of Latin first, then narrow onto Rome. Fifteen hundred years of the language, then eight
+        centuries of it. 27.49 million parameters, from random weights, on Latin alone.
       </p>
+
+      <div class="verdict">
+        <div class="big">
+          <div class="v">29.8</div>
+          <div class="l">Held-out perplexity</div>
+          <div class="n">5.03× better than the 149.8 floor</div>
+        </div>
+        <div class="big">
+          <div class="v">0%</div>
+          <div class="l">Memorised</div>
+          <div class="n">of 1,339 twelve-word windows</div>
+        </div>
+        <div class="big">
+          <div class="v">25.9h</div>
+          <div class="l">To train</div>
+          <div class="n">both phases, on a laptop</div>
+        </div>
+      </div>
+
       <div class="tablewrap">
         <table>
           <thead>
@@ -617,36 +662,71 @@ uendundisque</pre>
           <tbody>
             <tr><td>Latin-0</td><td>classical only</td><td class="num">3.53M</td>
                 <td class="num">74.3</td><td class="num">2.14×</td></tr>
-            <tr><td>Latin-2, phase 1</td><td>all Latin</td><td class="num">15.90M</td>
-                <td class="num">48.2</td><td class="num">4.05×</td></tr>
-            <tr><td><b>Latin-2, phase 2</b></td><td>all Latin → classical</td>
-                <td class="num">15.90M</td><td class="num"><b>44.1</b></td>
-                <td class="num"><b>3.60×</b></td></tr>
+            <tr><td>Latin-2</td><td>all Latin → classical</td><td class="num">15.90M</td>
+                <td class="num">44.1</td><td class="num">3.60×</td></tr>
+            <tr><td>LATIN-XXV, phase 1</td><td>all Latin</td><td class="num">27.49M</td>
+                <td class="num">25.2</td><td class="num">6.93×</td></tr>
+            <tr><td><b>LATIN-XXV, phase 2</b></td><td>all Latin → classical</td>
+                <td class="num">27.49M</td><td class="num"><b>29.8</b></td>
+                <td class="num"><b>5.03×</b></td></tr>
           </tbody>
         </table>
       </div>
-      <p class="prose">
-        Latin-0 and the finished Latin-2 are judged on the same held-out works against the same
-        floor, so they can be compared directly: perplexity falls by 41%.
-      </p>
+
       <div class="found">
-        <b>Two things changed at once</b> — the model got four times larger <em class="term">and</em>
-        gained the two-phase schedule. So this shows the combination works; it does not say which
-        half did the work. The experiment that would separate them has not been run, and saying so
-        costs nothing.
+        <b>Only the last column compares across those rows.</b> Each model was measured on a
+        different corpus, through a different vocabulary, against a different floor — so the raw
+        perplexities are scores over different text and mean nothing side by side. The project
+        learned this the hard way: an early result was quoted against a floor computed on another
+        corpus and flattered a model by 23%. Reports now carry a fingerprint of both the corpus and
+        the tokenizer they were measured through, and the comparison tool <em class="term">refuses
+        to print a ratio</em> it cannot verify.
+      </div>
+
+      <p class="prose">
+        One thing the second phase shows on its own: it reached its final quality in a few hundred
+        steps, where the first phase needed seventy-four thousand from random weights. Shifting
+        register inside a language you already know is far cheaper than learning the language.
+      </p>
+
+      <div class="found">
+        <b>And a prediction that failed, in the useful direction.</b> Memorisation was expected to
+        grow with model size against a fixed corpus — Latin-0 showed no gap between its training and
+        held-out scores, and the 15.90M-parameter model showed 1.34×. LATIN-XXV is 73% larger again,
+        so it should have been worse. It measures <b>1.27×</b>. More unique text per parameter means
+        less pressure to memorise, and 4.6× more corpus bought exactly that.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow" style="margin-bottom:.9rem">What it writes now</div>
+    <div class="panel">
+      <div class="spec" style="padding:0">
+        <pre>CICERO UENERIO S.
+
+etsi in re publica minime sunt ea quae iam inculta et prouisa sunt,
+tamen non sunt ea quoquo modo dicta omnia, quia non modo a nostris
+rebus, sed etiam ab externis oratio nostra inlustratur ...</pre>
       </div>
       <p class="prose">
-        One thing the second phase does show alone: it reached its final quality in
-        <b>500 steps</b>, where Latin-0 needed 5,000 from a random start. Shifting register inside a
-        language you already know is far cheaper than learning the language.
+        <em class="term">CICERO UENERIO S.</em> is the correct form for opening a Ciceronian letter —
+        sender, recipient, and <em class="term">s(alutem)</em> for "greetings". Beneath it,
+        <em class="term">etsi … tamen</em> and <em class="term">non modo … sed etiam</em> are both
+        correlative pairs opened and correctly closed across long clauses, and elsewhere the model
+        puts a gerundive inside an indirect question. It also changes register cleanly, dropping into
+        Plautine stage dialogue with speaker names when the context calls for it.
+      </p>
+      <p class="prose">
+        The smaller model, given a similar opening, produced poetic vocabulary in word-salad order.
+        The syntax has arrived. The meaning has not, and headings are still invented outright.
       </p>
       <div class="found">
-        And a warning sign worth reporting rather than burying. Latin-0 ended with training and
-        held-out scores <em class="term">identical</em> — no memorisation at all. Both larger runs
-        show a gap of about 1.35×. That is memorisation beginning to appear as the model grows
-        against a fixed amount of text, exactly as the arithmetic predicted it would. The verbatim
-        check still comes back clean at zero, but it is now doing real work rather than confirming
-        the obvious.
+        Reading the output found a bug no metric had. The model generates
+        <code>Scr. in Formiano … Non. Mai.</code> — which is not Cicero but a <b>modern editor's
+        dateline</b>, printed above each letter in the edition and never stripped. There are
+        <b>927</b> of them in the classical corpus. A perplexity score would never have flagged it;
+        it took looking at the text.
       </div>
     </div>
   </section>
@@ -697,9 +777,10 @@ uendundisque</pre>
       </p>
 
       <div class="found">
-        <b>Latin-0 knows how Latin works. It does not know anything about Rome.</b> It writes
-        well-formed words in plausible constructions and says nothing true. That is not a
-        shortcoming of the training — it is the honest shape of what ten million words can teach.
+        <b>These models know how Latin works. They do not know anything about Rome.</b> They write
+        well-formed words in plausible constructions and say nothing true. That is not a
+        shortcoming of the training — it is the honest shape of what the surviving language can
+        teach, and no amount of engineering moves it.
       </div>
 
       <p class="prose">
@@ -707,13 +788,15 @@ uendundisque</pre>
         text, roughly this size <em class="term">is</em> the right size; a larger model would spend
         its extra capacity memorising rather than learning. The ceiling moves only by adding text —
         the fifteen centuries of Latin written after antiquity, most of which has never been
-        digitised. That constraint is archival, not computational.
+        digitised. That constraint is archival, not computational, which is exactly why teaching
+        this model to read scanned books back into the corpus is the most interesting thing to do
+        with it.
       </p>
     </div>
   </section>
 
   <section>
-    <div class="eyebrow" style="margin-bottom:.9rem">A specimen</div>
+    <div class="eyebrow" style="margin-bottom:.9rem">For contrast — where it started</div>
     <div class="panel">
       <div class="spec" style="padding:0">
         <pre>Quid est, ut opinor, et quae sit ille, ut in rebus, quae ad modum
@@ -722,7 +805,9 @@ aduentu resciscat; sed tamen etiam cum ab omnibus rebus, qui de rebus
 aduentu rumint, pro se a me expetendo ad eum qui uenerit</pre>
       </div>
       <p class="prose">
-        Read charitably and it is Latin: <em class="term">ut opinor</em> is a phrase Cicero uses,
+        That is the <em class="term">first</em> model, at 3.53M parameters on the classical corpus
+        alone — the same prompt, two rungs down the ladder. Read charitably and it is Latin:
+        <em class="term">ut opinor</em> is a phrase Cicero uses,
         <em class="term">qui uenerit</em> is a correctly formed subjunctive, and the endings agree
         with their neighbours far more often than not. Read closely and it falls apart —
         <em class="term">quae sit ille</em> mismatches its genders, <em class="term">rumint</em> is
@@ -732,39 +817,256 @@ aduentu rumint, pro se a me expetendo ad eum qui uenerit</pre>
         Which is exactly the expected result. The grammar has been learned; the meaning has not.
       </p>
       <p class="prose">
-        The larger model, given the same opening, drifts into recognisably poetic vocabulary —
+        The middle model drifts into recognisably poetic vocabulary —
         <em class="term">umeros</em>, <em class="term">nigra</em>, <em class="term">frigidus</em>,
-        <em class="term">dulci flauae pinna</em> are the furniture of Latin hexameter. It invents
-        fewer non-words than the small one. It still finishes no thought it starts.
+        <em class="term">dulci flauae pinna</em> are the furniture of Latin hexameter — and invents
+        fewer non-words. Neither finishes a thought it starts. Set beside the Ciceronian letter
+        above, the three together are the clearest picture of what eight times the corpus and eight
+        times the parameters actually bought: sentence structure that holds.
       </p>
     </div>
   </section>
 
   <hr>
 
+  <section>
+    <div class="eyebrow" style="margin-bottom:.9rem">What a model like this is for</div>
+    <div class="panel">
+      <p class="prose">
+        It will not answer questions about Rome, and no amount of training would fix that. What it
+        has is a precise sense of what Latin sequences are plausible — and that turns out to be the
+        one thing several real jobs need. Point it at a text and it returns a probability. The uses
+        follow from what you do with that number.
+      </p>
+
+      <h3 style="font-family:var(--sans);font-size:.86rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)">
+        First, does it actually know the difference?</h3>
+      <p class="prose">
+        An instrument is worth nothing until it is tested on inputs whose answer is already known.
+        Scored on six deliberately chosen texts, lower meaning "more like Latin":
+      </p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>What it was given</th><th class="num">Perplexity</th></tr></thead>
+          <tbody>
+            <tr><td>Its own generated Latin</td><td class="num">11.0</td></tr>
+            <tr><td>Real Latin it had never seen</td><td class="num">41.4</td></tr>
+            <tr><td>The same Latin, with OCR damage</td><td class="num">93.4</td></tr>
+            <tr><td>Real Latin words in shuffled order</td><td class="num">106.4</td></tr>
+            <tr><td><b>English</b></td><td class="num"><b>495.8</b></td></tr>
+            <tr><td>Keyboard gibberish</td><td class="num">3,406.5</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="found">
+        The ordering is exactly right, and the gaps are wide: English scores <b>twelve times</b> what
+        genuine Latin does. Contamination separates by an order of magnitude rather than a hair,
+        which is what makes the rest of this worth doing.
+      </div>
+
+      <h3 style="font-family:var(--sans);font-size:.86rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-top:.6rem">
+        Auditing the corpus that trained it</h3>
+      <p class="prose">
+        Every document scored, both tails read as findings. High perplexity finds text that is not
+        Latin; low perplexity finds text carrying no information at all. Run over all 9,893
+        documents, <b>0.21% of words</b> were flagged.
+      </p>
+      <p class="prose">
+        The single most surprising document in a 79-million-word Latin corpus turned out to be
+        <b>Lorem ipsum</b> — web-design placeholder text, itself scrambled pseudo-Latin, sitting on a
+        stub page titled <em class="term">De Oratore</em>. Below it: a macaronic German-Latin carol,
+        five copies of a 1580 treatise on French pronunciation, and Newton's
+        <em class="term">Principia</em>. At the other end, placeholder pages whose entire content is
+        <code>I - - - - - - II - - - -</code>, and a navigation index repeating one link title for
+        2,206 words.
+      </p>
+      <div class="found">
+        The detector needed a second signal to be safe. Flagging on low perplexity alone condemned
+        194 documents; requiring <em class="term">low vocabulary variety</em> as well cut that to 24.
+        <b>Eighty-seven per cent of the first list was legitimately formulaic Latin</b> — epigraphy,
+        liturgy, legal boilerplate — which is predictable precisely because it is real. Roman brick
+        stamps were mass-produced bearing identical text, so a chunk of them repeats a phrase
+        hundreds of times and is not a defect at all. The tool flags it; deciding which it is
+        remains a job for a reader.
+      </div>
+
+      <h3 style="font-family:var(--sans);font-size:.86rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-top:.6rem">
+        Three more the same number supports</h3>
+      <ul class="prose">
+        <li><b>Correcting OCR.</b> Fifteen centuries of Latin sit un-digitised in scanned books, and
+          reading them by machine is how this corpus grows. Given several candidate readings of a
+          smudged line, the model says which is likelier Latin — needing no knowledge of the world,
+          only a sense of the language. The corpus trains the model; the model improves the OCR; the
+          OCR grows the corpus.</li>
+        <li><b>Dating anonymous texts.</b> The model was trained with era labels, so the same passage
+          can be scored as classical, late antique, medieval or neo-Latin and the best fit reported.
+          43% of the corpus currently has no date at all.</li>
+        <li><b>Restoring damaged text.</b> Inscriptions and manuscripts come with holes in them.
+          Proposing what filled a gap is real scholarly work, and formulaic epigraphy — of which
+          this corpus holds half a million pieces — is where a small model is strongest.</li>
+      </ul>
+      <div class="found">
+        What it is <em class="term">not</em> is a grammar checker. It reports improbability, not
+        error, and cannot tell the two apart: a genuine archaism and a scanning mistake are both
+        surprising. For agreement and case government, a morphological analyser does the real work.
+        This is a screen, not an authority.
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
   <section class="panel">
-    <div class="eyebrow">What the numbers changed</div>
+    <div class="eyebrow">Where this stands</div>
     <p class="prose">
-      The project was planned against an assumed 10 million words of classical Latin. Measured, it is
-      <b>4.64 million</b> — and that is the figure the model has to be sized against, not the estimate.
+      Five of nine freely-licensed sources are in. The corpus is built, deduplicated, dated and
+      normalised; the tokenizer is settled on evidence; the evaluation apparatus was written
+      <em class="term">before</em> any model existed; and the flagship model is trained, measured and
+      audited.
     </p>
-    <ul class="prose">
-      <li>Roughly 8.3M classical tokens supports a well-trained model of two to three million
-        parameters, not the five originally planned.</li>
-      <li>A middle rung at 10–15M parameters would need 24–36 passes over the same data, so it was
-        removed rather than shrunk into irrelevance.</li>
-      <li>The 25M-parameter target still holds — on the full corpus across all periods, which is what
-        the two-phase plan always intended.</li>
-    </ul>
-    <p class="prose" style="color:var(--muted); font-size:.9rem">
-      Nothing in that arithmetic is an estimate any more. The tokenizer settled the last one at 1.973
-      tokens per word, and the 25M-parameter target lands at 25.9M — as close as arithmetic gets.
-    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Done</th><th>Open</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Corpus: 10,194 documents, 78.97M words, licence-audited</td>
+            <td>Four remaining sources — the Latin Library, papyri, inscriptions, Gutenberg</td>
+          </tr>
+          <tr>
+            <td>LATIN-XXV trained: 27.49M parameters, 5.03× the floor, 0% memorised</td>
+            <td>Conversational fine-tuning, then serving it behind a chat interface</td>
+          </tr>
+          <tr>
+            <td>Corpus audit: both tails, 0.21% flagged</td>
+            <td>Three extraction defects the audit and the samples found, awaiting one rebuild</td>
+          </tr>
+          <tr>
+            <td>Provenance: every report fingerprinted by corpus and tokenizer</td>
+            <td>Verifying all 2,794 duplicate marks; only 59 were ever checked by hand</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="found">
+      <b>The honest description of the artefact is an interlocutor, not an assistant.</b> It writes
+      Latin back at you, in register, taking its turn. It will not know facts, and the section above
+      explains why that is a property of the surviving language rather than of the engineering. A
+      demonstration that implied otherwise would be a worse result, not a better one.
+    </div>
+  </section>
+
+  <hr>
+
+  <section>
+    <div class="eyebrow" style="margin-bottom:.9rem">Glossary</div>
+    <div class="panel">
+      <p class="prose" style="color:var(--muted);font-size:.9rem">
+        The measurements on this page in plain terms.
+      </p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Term</th><th>What it means here</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><b>Perplexity</b> <span style="color:var(--muted)">(ppl)</span></td>
+              <td>How surprised the model is by text it is shown, as an average over every word.
+                  Read it as "how many equally-likely options was it choosing between at each
+                  step" — 30 means roughly a thirty-way guess, 300 means it is lost.
+                  <b>Lower is better.</b> It measures prediction, never understanding.</td>
+            </tr>
+            <tr>
+              <td><b>Floor</b> <span style="color:var(--muted)">(baseline)</span></td>
+              <td>The score of a deliberately stupid method — here, one that only knows which word
+                  tends to follow which. Anything that cannot beat it has learned nothing. Stating
+                  the floor <em class="term">before</em> training is what stops a mediocre result
+                  being described as a good one afterwards.</td>
+            </tr>
+            <tr>
+              <td><b>Token</b></td>
+              <td>The unit the model actually reads. Not quite a word: common words are one token,
+                  rarer ones split into pieces, so <em class="term">amabamus</em> becomes
+                  <code>am · ab · amus</code>. Latin runs about 2.04 tokens per word.</td>
+            </tr>
+            <tr>
+              <td><b>Tokenizer</b> / <b>vocabulary</b></td>
+              <td>The fixed list of pieces text is cut into, learned from the corpus. A small
+                  vocabulary (4,000 here) forces the model to recognise stems and endings; a large
+                  one lets it store whole inflected forms and learn nothing from them.</td>
+            </tr>
+            <tr>
+              <td><b>Parameters</b></td>
+              <td>The adjustable numbers inside the model — its capacity to store what it learns.
+                  LATIN-XXV has 27.49 million. Frontier models have hundreds of billions.</td>
+            </tr>
+            <tr>
+              <td><b>Epoch</b></td>
+              <td>One complete pass through the training text. Four passes is about the point where
+                  re-reading the same material stops teaching much, which is why the size of the
+                  corpus, not the speed of the computer, decides how large a model can usefully be.</td>
+            </tr>
+            <tr>
+              <td><b>Held-out</b> / <b>validation</b></td>
+              <td>Text deliberately withheld from training, kept to score the model on. Here it is
+                  held out by <em class="term">whole author</em> — holding out one work by Augustine
+                  while training on thirty others would test recognition, not generalisation.</td>
+            </tr>
+            <tr>
+              <td><b>Overfitting</b> / <b>train-val gap</b></td>
+              <td>The model doing better on text it studied than on text it has not seen. The ratio
+                  between the two is the warning light: 1.00× is no gap at all, LATIN-XXV shows
+                  1.27×. A widening gap means it is starting to memorise rather than generalise.</td>
+            </tr>
+            <tr>
+              <td><b>Memorisation check</b></td>
+              <td>Cutting generated text into runs of words and searching the entire training corpus
+                  for each one, literally. It cannot report a false positive. Zero at twelve words
+                  means the model composed the passage rather than reproducing one.</td>
+            </tr>
+            <tr>
+              <td><b>Pretraining</b></td>
+              <td>The first and longest stage: learning the language by predicting the next token,
+                  over and over, with no instructions and no supervision. Everything on this page is
+                  pretraining.</td>
+            </tr>
+            <tr>
+              <td><b>Fine-tuning</b> <span style="color:var(--muted)">(SFT)</span></td>
+              <td>A short second training pass that changes behaviour rather than knowledge —
+                  teaching a model to take conversational turns, for instance. It cannot add facts
+                  the pretraining never contained.</td>
+            </tr>
+            <tr>
+              <td><b>From scratch</b> / <b>random initialisation</b></td>
+              <td>Starting from meaningless numbers rather than adapting somebody else's trained
+                  model. It is what makes "trained on Latin alone" a literal claim: there is no
+                  English anywhere underneath.</td>
+            </tr>
+            <tr>
+              <td><b>Context window</b></td>
+              <td>How much text the model can consider at once — 512 tokens here, a few hundred
+                  words. It has no memory beyond that; each passage is read afresh.</td>
+            </tr>
+            <tr>
+              <td><b>Checkpoint</b></td>
+              <td>A saved copy of the model mid-training, so a run of many hours can be resumed
+                  rather than restarted.</td>
+            </tr>
+            <tr>
+              <td><b>Deduplication</b></td>
+              <td>Finding the same work arriving from several libraries. It matters because
+                  repetition is a dial the training deliberately controls; accidental duplicates
+                  corrupt it. Here it removed 27.4% of everything fetched.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </section>
 
   <footer>
     <div>Claudius · an openly licensed Latin corpus, and a language model trained only on Latin.</div>
-    <div>Measured 16 August 2026 · 3 of 9 sources, through corpus, tokenizer and two trained models.</div>
+    <div>Measured 19 August 2026 · 5 of 9 sources, through corpus, tokenizer, three trained models
+      and an audit of every document.</div>
+    <div>Every figure here is read from a generated report rather than transcribed by hand.</div>
   </footer>
 
 </div>

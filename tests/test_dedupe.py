@@ -59,9 +59,12 @@ def test_containment_bounds():
 
 
 def test_priority_orders_known_sources_before_unknown():
+    """Priority is (licence tier, curation rank) since amber sources landed."""
     assert priority(_rec("perseus-canonical-latinLit")) < priority(_rec("digiliblt"))
     assert priority(_rec("digiliblt")) < priority(_rec("opengreekandlatin-csel"))
-    assert priority(_rec("something-else")) == 3
+    # Not in the manifest at all: unknown tier, and last within it.
+    assert priority(_rec("something-else")) == (2, 3)
+    assert priority(_rec("something-else")) > priority(_rec("opengreekandlatin-csel"))
 
 
 def test_choose_keeper_equivalence_uses_source_priority():
@@ -76,3 +79,123 @@ def test_choose_keeper_containment_larger_wins_despite_priority():
                _rec("opengreekandlatin-csel", 290_000)]
     # The Perseus record is a fraction of the CSEL one: the fuller text wins.
     assert choose_keeper([0, 1], records)[0] == 1
+
+
+# --- keeper selection must respect licence tier ------------------------------
+#
+# A cluster is resolved once and every track is built from the same marks. If a
+# green record were marked as a duplicate of an amber keeper, a Track A build
+# would drop the duplicate for being a duplicate AND the keeper for being
+# non-redistributable — and the text would leave the published corpus with
+# nothing reporting it.
+
+from dedupe import TIER_RANK, choose_keeper, priority  # noqa: E402
+
+
+def rec(rid, source, words):
+    return {"id": rid, "source": source, "n_words": words}
+
+
+def tiers(monkeypatch, mapping):
+    import dedupe
+    monkeypatch.setattr(dedupe, "_TIERS", dict(mapping))
+
+
+def test_green_wins_over_amber_even_when_amber_is_longer(monkeypatch):
+    """The case that would silently shrink Track A."""
+    tiers(monkeypatch, {"perseus-canonical-latinLit": "green", "lasla": "amber"})
+    records = [rec("p", "perseus-canonical-latinLit", 1000),
+               rec("l", "lasla", 1050)]
+    order = choose_keeper([0, 1], records)
+    assert records[order[0]]["id"] == "p"
+
+
+def test_amber_keeps_its_own_cluster_when_no_green_witness(monkeypatch):
+    tiers(monkeypatch, {"lasla": "amber", "intratext": "amber"})
+    records = [rec("a", "lasla", 500), rec("b", "intratext", 900)]
+    order = choose_keeper([0, 1], records)
+    assert records[order[0]]["id"] == "b"      # longest among equals
+
+
+def test_tier_outranks_curation_quality(monkeypatch):
+    """Source priority ranks text fidelity; it must not outrank licence."""
+    tiers(monkeypatch, {"perseus-canonical-latinLit": "green", "lasla": "amber"})
+    assert priority(rec("l", "lasla", 1))[0] > \
+        priority(rec("p", "perseus-canonical-latinLit", 1))[0]
+
+
+def test_curation_quality_still_decides_within_a_tier(monkeypatch):
+    tiers(monkeypatch, {"perseus-canonical-latinLit": "green",
+                        "opengreekandlatin-csel": "green"})
+    records = [rec("c", "opengreekandlatin-csel", 1000),
+               rec("p", "perseus-canonical-latinLit", 1000)]
+    order = choose_keeper([0, 1], records)
+    assert records[order[0]]["id"] == "p"
+
+
+def test_containment_still_beats_tier(monkeypatch):
+    """A materially shorter green record must not win over a fuller one.
+
+    Losing 290k words to keep 43k is the bug SUBSUMES_BELOW exists to prevent,
+    and licence ranking must not reintroduce it.
+    """
+    tiers(monkeypatch, {"perseus-canonical-latinLit": "green", "lasla": "amber"})
+    records = [rec("small-green", "perseus-canonical-latinLit", 43_000),
+               rec("big-amber", "lasla", 290_000)]
+    order = choose_keeper([0, 1], records)
+    assert records[order[0]]["id"] == "big-amber"
+
+
+def test_unknown_tier_ranks_below_amber():
+    assert TIER_RANK["green"] < TIER_RANK["amber"] < TIER_RANK["unknown"]
+
+
+def test_track_a_marks_ignore_records_outside_track_a(monkeypatch):
+    """Adding a research-only source must not change the published corpus.
+
+    Union-find is transitive, so an amber record similar to two green records
+    that are not similar to each other would merge their clusters and change
+    which green witness survives. Restricting the pairs, not merely the keeper
+    choice, is what makes Track A independent of Track B's contents.
+    """
+    import dedupe
+    tiers(monkeypatch, {"perseus-canonical-latinLit": "green",
+                        "vicifons": "green", "lasla": "amber"})
+    # Two green records that would never cluster together on their own.
+    records = [rec("g1", "perseus-canonical-latinLit", 1000),
+               rec("g2", "vicifons", 1000),
+               rec("bridge", "lasla", 3000)]
+    # The bridge is similar to both; the greens are not similar to each other.
+    assert dedupe.choose_keeper([0, 2], records)[0] == 2   # amber is far longer
+    assert dedupe.choose_keeper([0, 1], records)[0] == 0   # green priority holds
+
+
+def test_a_record_is_never_dropped_without_direct_evidence(monkeypatch, tmp_path):
+    """Union-find is transitive; textual similarity is not.
+
+    Patristic prose shares scripture, liturgy and citation, so A~B and B~C
+    chains into one blob. Before this guard, Jerome's Epistulae absorbed 401
+    records and 12,831,872 words — Remigius on the Psalms, Haymo's homilies,
+    Augustine on John — none of which was ever compared with it.
+    """
+    import dedupe
+    tiers(monkeypatch, {"perseus-canonical-latinLit": "green"})
+    src = "perseus-canonical-latinLit"
+    # A is similar to B; B is similar to C; A and C were never compared.
+    recs_ = [rec("A", src, 1000), rec("B", src, 900), rec("C", src, 800)]
+    best_pair = {(0, 1): (0.9, 0.9), (1, 2): (0.9, 0.9)}
+
+    remaining, keepers = [0, 1, 2], {}
+    while len(remaining) > 1:
+        ordered = dedupe.choose_keeper(remaining, recs_)
+        keeper, rest = ordered[0], ordered[1:]
+        attached = [i for i in rest if (min(i, keeper), max(i, keeper)) in best_pair]
+        for loser in attached:
+            keepers[loser] = keeper
+        remaining = [i for i in rest if i not in set(attached)]
+
+    # B is dropped for A, which was measured. C is KEPT: it was only ever
+    # similar to B, and B is no longer in the corpus, so nothing surviving is
+    # known to contain C. Discarding it would be a guess.
+    assert keepers[1] == 0
+    assert 2 not in keepers

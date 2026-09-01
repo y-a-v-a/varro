@@ -36,7 +36,7 @@ import random
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 INTERIM = ROOT / "data" / "interim"
@@ -50,6 +50,84 @@ SEED = 20260815
 # Licence tiers each track may contain. Mirrors fetch.py's TRACKS; duplicated
 # deliberately so a build cannot succeed just because a fetch happened to.
 TRACKS = {"A": {"green"}, "B": {"green", "amber"}}
+
+
+# Text provenance: how a source's text came to be text. Not a licence question
+# and not a quality one — it is about whether a later model would be learning
+# from an earlier model's output.
+#
+# The corpus already contains OCR-derived text: Open Greek and Latin's CSEL is
+# machine-corrected OCR, about 6M words of it, and has been since the third
+# source landed. Labelling it is what makes "what does this model look like
+# without OCR-derived text?" a question that can be answered rather than
+# argued about.
+#
+# `model-corrected` is the one that needs a policy rather than a label. Training
+# a model on text an earlier model corrected is a feedback loop, and repeated
+# without guardrails it narrows the corpus toward whatever the model already
+# believed — the symptom being that everything looks cleaner while growing less
+# various. --exclude-provenance keeps it out entirely; --max-share admits it in
+# a stated proportion. Neither is a default: the default is to report the mix
+# and leave the decision to a person.
+PROVENANCE_CLASSES = ("transcribed", "ocr", "model-corrected", "unknown")
+
+# What a record with no `text_provenance` counts as. Conservative on purpose:
+# text whose origin was never recorded is not evidence that a human typed it.
+UNKNOWN_PROVENANCE = "unknown"
+
+
+def apportion(records: List[Dict[str, Any]], caps: Dict[str, float],
+              seed: int) -> Tuple[List[Dict[str, Any]], Counter]:
+    """Hold each provenance class to at most its share of the corpus, by words.
+
+    Drops whole records, smallest first, so the cap is met by shedding the
+    least text; the shuffle first makes the choice independent of file order,
+    and the seed makes it repeatable. Returns what was dropped, so a build
+    reports the shrinkage rather than quietly applying it.
+    """
+    if not caps:
+        return records, Counter()
+    dropped: Counter = Counter()
+    keep_ids = {r["id"] for r in records}
+
+    # Caps interact, so one pass is not enough: capping `ocr` counts
+    # model-corrected text in its denominator, and if that text is then
+    # dropped by its own cap, ocr is over again. Each pass only removes, so
+    # repeating until nothing moves terminates, and the fixed point satisfies
+    # every cap at once.
+    for _ in range(len(caps) + 1):
+        moved = False
+        for cls, share in caps.items():
+            if share >= 1.0:
+                continue
+            kept_now = [r for r in records if r["id"] in keep_ids]
+            # Same default as everywhere else. A record written before the
+            # field existed has no provenance, and reading that as None here
+            # while reading it as "unknown" in the filter and the report meant
+            # a cap on `unknown` silently matched nothing.
+            in_class = [r for r in kept_now
+                        if r.get("text_provenance", UNKNOWN_PROVENANCE) == cls]
+            held = sum(r["n_words"] for r in in_class)
+            other = sum(r["n_words"] for r in kept_now) - held
+            # The budget is relative to the text NOT in this class, because
+            # dropping shrinks the denominator too. Capping 500 words of 1000
+            # at 20% by dropping to 200 leaves 200/700 = 29%. Solving
+            # held/(other + held) <= share gives held <= share*other/(1-share).
+            budget = share * other / (1.0 - share)
+            if held <= budget:
+                continue
+            rng = random.Random(seed)
+            rng.shuffle(in_class)
+            for rec in sorted(in_class, key=lambda r: r["n_words"]):
+                if held <= budget:
+                    break
+                keep_ids.discard(rec["id"])
+                held -= rec["n_words"]
+                dropped[cls] += rec["n_words"]
+                moved = True
+        if not moved:
+            break
+    return [r for r in records if r["id"] in keep_ids], dropped
 
 
 def source_tiers() -> Dict[str, str]:
@@ -146,6 +224,12 @@ def main() -> int:
     ap.add_argument("--group-by", choices=("author", "work"), default="author",
                     help="held-out unit: whole authors (default, no leakage) or "
                          "whole works (cheaper signal, same authors in train)")
+    ap.add_argument("--exclude-provenance", action="append", default=[],
+                    choices=PROVENANCE_CLASSES, metavar="CLASS",
+                    help="drop a text-provenance class entirely (repeatable)")
+    ap.add_argument("--max-share", action="append", default=[], metavar="CLASS=F",
+                    help="cap a class at a share of the corpus, e.g. "
+                         "model-corrected=0.15 (repeatable)")
     ap.add_argument("--min-words", type=int, default=0,
                     help="drop records shorter than this")
     args = ap.parse_args()
@@ -157,9 +241,14 @@ def main() -> int:
     tiers = source_tiers()
     allowed = TRACKS[args.track]
 
+    # dedupe resolves each track separately, so read the verdict for this one.
+    # Track A's marks never depend on records outside Track A — adding a
+    # research-only source must not change the published corpus.
+    dup_field = "is_duplicate" if args.track == "A" else "is_duplicate_b"
+
     kept, reasons = [], Counter()
     for rec in records:
-        if rec.get("is_duplicate"):
+        if rec.get(dup_field, rec.get("is_duplicate")):
             reasons["duplicate"] += rec["n_words"]
             continue
         tier = tiers.get(rec.get("source"), "unknown")
@@ -171,6 +260,9 @@ def main() -> int:
             continue
         if rec["n_words"] < args.min_words:
             reasons["too-short"] += rec["n_words"]
+            continue
+        if rec.get("text_provenance", UNKNOWN_PROVENANCE) in args.exclude_provenance:
+            reasons[f"provenance-excluded ({rec.get('text_provenance')})"] += rec["n_words"]
             continue
         if not rec.get("normalization"):
             # Counted AND excluded. Previously this was counted and then kept,
@@ -184,6 +276,19 @@ def main() -> int:
     if not kept:
         sys.exit("nothing left after filtering")
 
+    caps = {}
+    for spec in args.max_share:
+        if "=" not in spec:
+            sys.exit(f"--max-share wants CLASS=FRACTION, got {spec!r}")
+        cls, _, value = spec.partition("=")
+        if cls not in PROVENANCE_CLASSES:
+            sys.exit(f"--max-share: unknown class {cls!r}; "
+                     f"choose from {', '.join(PROVENANCE_CLASSES)}")
+        caps[cls] = float(value)
+    kept, apportioned = apportion(kept, caps, SEED)
+    if not kept:
+        sys.exit("nothing left after apportioning")
+
     val_ids = choose_validation(kept, args.val_fraction, args.group_by)
     train = [r for r in kept if r["id"] not in val_ids]
     val = [r for r in kept if r["id"] in val_ids]
@@ -194,6 +299,20 @@ def main() -> int:
     print(f"track            {args.track} — "
           f"{'redistributable' if args.track == 'A' else 'RESEARCH ONLY, not redistributable'}")
     print(f"corpus           {len(kept):,} records, {tw + vw:,} words")
+
+    # Always reported, with or without a policy. A mix nobody looks at is how
+    # machine-corrected text would grow into the corpus unnoticed.
+    provenance = Counter()
+    for rec in kept:
+        provenance[rec.get("text_provenance", UNKNOWN_PROVENANCE)] += rec["n_words"]
+    print("  text provenance")
+    for cls in PROVENANCE_CLASSES:
+        if provenance[cls]:
+            share = provenance[cls] / (tw + vw)
+            capped = f"   (capped at {caps[cls]:.1%})" if cls in caps else ""
+            print(f"    {cls:<16} {provenance[cls]:>12,}  {share:>6.2%}{capped}")
+    for cls, words in sorted(apportioned.items()):
+        print(f"    dropped to fit   {words:>12,} words of {cls}")
     print(f"  train          {len(train):,} records, {tw:,} words")
     print(f"  validation     {len(val):,} records, {vw:,} words "
           f"({100 * vw / (tw + vw):.1f}%), held out by {args.group_by}")
@@ -251,6 +370,9 @@ def main() -> int:
         "train_records": len(train), "train_words": tw,
         "validation_records": len(val), "validation_words": vw,
         "period_filter": args.period,
+        "text_provenance": dict(provenance),
+        "provenance_excluded": sorted(args.exclude_provenance),
+        "provenance_caps": caps,
         "periods": dict(periods),
         "licenses": dict(Counter(r.get("license") for r in kept)),
         "sources": dict(Counter(r.get("source") for r in kept)),

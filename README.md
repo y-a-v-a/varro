@@ -4,8 +4,11 @@ Two deliverables, in order:
 
 1. **Open Latin Corpus** — a reproducible, properly licensed corpus of Latin. No such thing
    currently exists, which makes it a contribution independent of anything trained on it.
-2. **LATIN-XXV** — a ~25M parameter GPT trained from random initialization on that corpus.
+2. **LATIN-XXV** — a 27.49M parameter GPT trained from random initialization on that corpus.
    One language. Zero modern languages. No inherited multilingual representations.
+   **Trained 2026-08-19**: held-out perplexity 29.8 against a 149.8 bigram floor
+   (5.03×), and 0 of 1,339 twelve-word windows appear anywhere in its training
+   text. See [`CURRENT_STATE.md`](CURRENT_STATE.md) for the full result.
 
 Planning documents:
 
@@ -16,6 +19,8 @@ Planning documents:
 | [`sources.md`](sources.md) | Human-readable survey of every Latin text source, licence-checked |
 | [`manifest/sources.yaml`](manifest/sources.yaml) | Machine-readable version of the above — drives the pipeline |
 | [`manifest/authorities.yaml`](manifest/authorities.yaml) | Author/work dating authority — assigns period per work |
+| [`docs/explainer.html`](docs/explainer.html) | What the trained model actually is, as files on disk |
+| [`docs/capabilities.html`](docs/capabilities.html) | What the model can and cannot do, measured |
 
 ## Quickstart
 
@@ -54,6 +59,12 @@ which licence, in what proportion. `python src/provenance.py --check` regenerate
 Track A build carries non-redistributable material, or if the notice has drifted. Run it after any
 manifest change and before publishing anything.
 
+Each corpus needs its own notice, so run it twice. `--corpus corpus-b` writes
+[`ATTRIBUTION-corpus-b.md`](ATTRIBUTION-corpus-b.md) for Track B, which credits the two
+NonCommercial sources LATIN-LII trains on. NonCommercial restricts what the result may be used
+*for*; it does not excuse crediting anyone, and the BY in LASLA's CC BY-NC-SA is the same BY as
+anywhere else.
+
 ## Layout
 
 ```
@@ -71,6 +82,7 @@ src/
   dedupe.py           # content-based near-dup detection          [done]
   build.py            # -> data/processed/corpus.{train,validation} [done]
   tokenizer.py        # Latin BPE sweep + fertility measurement    [done]
+  score.py            # the model as an instrument: audit, date, rank [done]
   provenance.py       # ATTRIBUTION.md + track audit gate          [done]
   evaluate.py         # baselines, memorisation, versioned reports [done]
   train.py            # MLX GPT from random init                  [done]
@@ -110,17 +122,35 @@ can change without rebuilding the corpus.
 
 ## Adding a source
 
-1. Add an entry to `manifest/sources.yaml`. Licence and tier are mandatory; `amber` additionally
-   requires an `exclude_reason`.
+1. Add an entry to `manifest/sources.yaml`. Licence, tier and **format** are mandatory; `amber`
+   additionally requires an `exclude_reason`.
 2. `python src/fetch.py --validate` — the validator enforces the Path A guard, so an `amber` source
    marked `include: true` is a hard error rather than a quiet contamination.
 3. `python src/fetch.py --only <id>`.
-4. Commit the updated `fetch.lock.json`.
+4. `python src/pipeline.py` — **only the new source is extracted.** Extract is partitioned per
+   source, so its parts are invalidated independently; everything downstream then rebuilds once,
+   because the corpus did change.
+5. Commit the updated `fetch.lock.json`.
+
+**If the format already has an extractor, that is the whole job — no code.** Dispatch is keyed on
+the `format` field, not the source id, because sources are added far more often than formats are.
+Perseus and CSEL already share one reader; the two epigraphic sources still to land are both EpiDoc,
+and Latin Library and Gutenberg are both plain text, so the four remaining sources need two
+extractors between them.
+
+Format labels are as precise as the parsing requires — `tei-capitains` is not `tei-xml`, because
+Corpus Corporum ships TEI with a different structure. A new format means adding one function to
+`FORMAT_EXTRACTORS` at the foot of `extract.py`.
+
+One guard worth knowing about: `extractable_sources()` refuses the `eval` tier. The UD treebanks are
+CoNLL-U exactly like DigilibLT, so dispatching on format alone would extract held-out evaluation
+data straight into the training corpus.
 
 ## Corpus as measured
 
-Five of nine green sources extracted. **10,192 records, 78,975,089 words** after
-dedup; see [`CURRENT_STATE.md`](CURRENT_STATE.md) for the full breakdown and
+Eight sources extracted (seven green, one amber); every green source now has a
+reader. **Track A: 10,678 records, 93,849,539 words, 180.9M tokens.** Track B adds LASLA: 10,452 records,
+90,835,090 words, 175.3M tokens; see [`CURRENT_STATE.md`](CURRENT_STATE.md) for the full breakdown and
 [`reports/`](reports/) for the generated figures.
 
 | Source | records | words (pre-dedup) | vs. estimate |
@@ -187,6 +217,45 @@ floruit c.205), who falls just past the AD 200 cutoff; the entry says so.
 So the corpus available for Latin-0 / Latin-1 is **4.9M classical words**, of
 which 4.66M are high-confidence dated. The remaining 13.3M is Latin-2 Phase 1
 (*Latinitas*) material.
+
+## Text provenance
+
+Every source declares **how its text came to be text**, and every record carries it:
+
+| class | meaning |
+|---|---|
+| `transcribed` | keyed or proofread by people |
+| `ocr` | machine-read, possibly machine-corrected by a third party |
+| `model-corrected` | corrected by a model from *this* project |
+| `unknown` | not established |
+
+This is not a licence question and not a quality one. It exists because training a
+model on text an earlier model corrected is a feedback loop, and repeated without
+guardrails it narrows the corpus toward whatever the model already believed — the
+symptom being that everything looks cleaner while growing less various.
+
+**The corpus already contains OCR-derived text.** Open Greek and Latin's CSEL is
+machine-corrected OCR — about 6M words, there since the third source landed — so
+labelling makes *"what does this model look like without OCR-derived text?"* a
+question that can be answered rather than argued about. The Latin Library carries
+`unknown` because `sources.md` records its provenance as inconsistent, and a source
+nobody has established should say so rather than claim to be transcribed.
+
+```bash
+python src/build.py --report                          # the mix, always printed
+python src/build.py --exclude-provenance model-corrected
+python src/build.py --max-share model-corrected=0.15  # admit it in a proportion
+```
+
+`text_provenance` is **required** in the manifest with no default: a source that does
+not say how its text was produced fails the validator, because assuming it was
+human-transcribed is exactly the assumption that would let model-corrected text in
+unnoticed. A record with no provenance counts as `unknown`, never as transcribed.
+
+Capping is deterministic and reported: whole records are dropped smallest-first, so
+the cap is met by shedding the least text, and the build says how much it shed. The
+caps are solved together rather than in sequence — one class's budget counts the
+others in its denominator, so applying them one at a time never converges.
 
 ## Deduplication
 
@@ -283,6 +352,28 @@ letters folded away. 249 non-ASCII characters remain in 17.25M
 words, deliberately left visible rather than guessed at (Roman-numeral
 apostrophus `ↄ Ↄ`, and three stray OCR artifacts).
 
+**On the 79M-word corpus the inventory is 86 letters and 246 distinct
+characters** (measured 2026-08-18). The larger figure is mostly not
+contamination. Non-Latin letters total **38 distinct, 765 occurrences in
+75,043,073 training words** — one per ~98,000:
+
+| | occurrences | what it is |
+|---|---:|---|
+| `ↄ Ↄ` | 198 | Roman numeral apostrophus — Cicero's `HS ccciↄↄↄ`. Kept deliberately |
+| `ð Þ þ` | 267 | Ammianus describing a letter's *shape*; a Gothic *Skeireins* in the Patrologia |
+| `ᶃ` | 172 | one OCR artifact, in Kepler's *Somnium* |
+| `µ` | 31 | mojibake — Greek double-encoded in Perseus' *Adversus Marcionem* |
+| `ꞩ` | 4 | Punic transliteration in EDCS inscriptions |
+| Thai, N'Ko, Hebrew | 31 | Wikisource interwiki link residue |
+
+That last row leads to the one genuine purity leak found so far: Vicifons
+interwiki language links survive extraction, and they bring English with them
+(`en:Jingle Bells`). **287 records of 9,894 carry an `xx:Title` pattern, 620
+occurrences, 125 of them `en:`.** Eight per million words, so it changes no
+measurement — but "no English" is a categorical claim, and a small numerator
+does not defend it. **Fixed in `extract.py` (`MW_INTERWIKI`); the corpus on
+disk predates the fix and needs a rebuild to pick it up.**
+
 Plautus' *Amphitruo*, which opened this project as
 `Mercvrivs / Vt vos in vostris voltis mercimoniis`, now reads:
 
@@ -356,6 +447,28 @@ Byte-level BPE is used throughout: it cannot emit `<unk>`, which matters because
 249 stray non-ASCII characters survived normalization deliberately. Round-trip is
 verified on held-out works, exact modulo a documented leading space.
 
+## Training recipes
+
+A run is a recipe in `configs/`, not a line of shell history:
+
+```bash
+python src/train.py --config latin-xxv --phase latin-xxv-latinitas
+python src/train.py --config latin-xxv --phase latin-xxv        # phase 2
+python src/train.py --config latin-0 --dim 256 --heads 8        # CLI still wins
+```
+
+**A recipe states epochs, never steps**, and that is the whole point of it. A
+step count is meaningless the moment the corpus changes: 74,700 steps was four
+passes over 153.0M tokens, and on a corpus half again as large the same number
+is 2.7 passes with nothing to say the model is now undertrained. `train.py`
+derives steps from `epochs × train_tokens ÷ (batch × context)`, so the same
+recipe re-run after new sources land trains the same *model*, not the same
+arithmetic. Every run's report records which recipe and how many epochs it
+asked for.
+
+`configs/latin-xxv.yaml` reproduces the flagship exactly — 74,700 steps, 4.0
+epochs, 22.3 tokens per parameter — and there is a test asserting it still does.
+
 ## Evaluation
 
 Built **before** any model exists, deliberately. An evaluation written afterwards
@@ -381,8 +494,17 @@ perplexities over different text and means nothing.
 
 | corpus | bigram floor |
 |---|---:|
-| full (33.7M tokens) | 195.2 |
-| classical (9.5M tokens) | 158.8 |
+| full (153.0M tokens) | **174.5** |
+| classical (9.6M tokens) | **149.8** |
+
+*(Restated 2026-08-18 on the rebuilt corpus. The previous figures — 195.2 and
+158.8 — were measured on the 17M-word corpus and must not be quoted against
+anything trained since. The classical corpus changed by three words between
+those two measurements and its floor still moved 9 points, because the 4k
+vocabulary had been retrained: same Latin, different merges, different token
+stream. Reports now carry both a corpus and a tokenizer fingerprint, and
+`train.py` and `compare.py` refuse to quote a floor across either kind of
+drift.)*
 
 Classical Latin is the easier of the two for a bigram, which is why using the
 full-corpus figure to judge a classical-corpus model overstated its margin.
@@ -799,8 +921,14 @@ revisiting this.
 - [x] **Pipeline driver** — one idempotent command, chained fingerprints
 - [x] **5 of 9 sources** — 78.98M words after dedup; PL-volume dating for the Patrologia
 - [ ] Remaining: latin-library, papyri-idp, edh, gutenberg-latin
-- [ ] Retrain tokenizer — vocabulary and fertility were measured on the old 17M corpus
-- [ ] LATIN-XXV (~25M) on the doubled corpus
+- [x] **Retrain tokenizer** — 4k rebuilt on the 79M corpus: 2.038 tok/word, 153.0M tokens, 0/12 forms memorised
+- [x] **Restate the floors** — 174.5 full / 149.8 classical; the 17M-corpus figures are retired
+- [x] **Report fingerprinting** — corpus *and* tokenizer stamped; stale floors refused rather than quoted
+- [x] **LATIN-XXV trained** — 27.49M params, two-phase; ppl 29.8 vs 149.8 floor (**5.03×**), **0% memorisation**
+- [ ] Strip 927 Perseus editorial datelines (`Scr. ...`) from Cicero's letters — the model learned to generate them
+- [ ] Best-checkpoint tracking in `train.py` — it saves the latest, not the best
+- [ ] Re-run the chat SFT on LATIN-XXV, then serve it
+- [x] Strip Wikisource interwiki links — 620 occurrences, 125 English; **needs a rebuild to take effect**
 - [ ] Real dialogue SFT on the better base, then serve
 - [ ] UD treebank syntactic probing (fetch via `--track eval`; exclude overlapping passages from training)
 - [ ] Latin-0 (~2–5M params — see `feasibility.md` §2, revised against measured data)

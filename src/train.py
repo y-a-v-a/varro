@@ -32,6 +32,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import math
 import sys
@@ -135,8 +136,134 @@ def load_checkpoint(name: str, model, optimizer) -> Tuple[int, List[Dict]]:
     return saved["step"], saved.get("history", [])
 
 
+def is_report_step(step: int, steps: int, eval_every: int) -> bool:
+    """Whether step (0-based) closes a reporting block.
+
+    The last block is closed by reaching the end, not by the interval, so it is
+    short whenever `steps` is not a multiple of `eval_every`. Anything
+    averaging over a block must divide by what it actually accumulated.
+    """
+    return (step + 1) % eval_every == 0 or step == steps - 1
+
+
 def parameter_count(model: nn.Module) -> int:
     return sum(v.size for _, v in tree_flatten(model.parameters()))
+
+
+# The subset of a corpus summary that identifies *which build* it is. Two
+# builds that agree on all of these are the same held-out split over the same
+# text, which is the only condition under which their perplexities compare.
+FINGERPRINT_KEYS = ("track", "records", "words", "train_words",
+                    "validation_words", "group_by", "seed", "period_filter")
+
+
+def corpus_fingerprint(corpus: str) -> Dict[str, Any]:
+    path = PROCESSED / f"{corpus}.summary.json"
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8") as fh:
+        summary = json.load(fh)
+    return {k: summary.get(k) for k in FINGERPRINT_KEYS}
+
+
+def tokenizer_fingerprint(vocab: int) -> Dict[str, Any]:
+    """Which tokenizer these numbers were measured through.
+
+    Not redundant with the corpus fingerprint. The classical corpus moved by
+    three words between the 2026-08-17 and 2026-08-18 builds and its bigram
+    floor still went 158.8 -> 149.8, purely because the 4k vocabulary had been
+    retrained on a corpus 4.6x larger: same Latin, different merges, different
+    token stream. Perplexity compares only when both match.
+    """
+    path = TOKENIZERS / f"latin-bpe-{vocab}.json"
+    if not path.exists():
+        return {"vocab": vocab, "sha256": None}
+    return {"vocab": vocab,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest()[:16]}
+
+
+def read_floor(corpus: str, vocab: int) -> Tuple[Any, str]:
+    """The bigram floor for `corpus`, and why it may not be quotable.
+
+    Returns (perplexity, ""), (perplexity, reason) if the baseline describes a
+    different build or tokenizer, or (None, "") if no baseline exists.
+    """
+    path = REPORTS / f"baselines-{corpus}.json"
+    if not path.exists():
+        return None, ""
+    with path.open(encoding="utf-8") as fh:
+        report = json.load(fh)
+    floor = report.get("baselines", {}).get("overall_perplexity")
+    recorded = report.get("corpus") or {}
+    current = corpus_fingerprint(corpus)
+    if not recorded or not current:
+        return floor, ""
+    # An older report may name the wrong corpus entirely: `corpus_name` was
+    # only added when that bug was fixed, so its absence is itself suspicious.
+    if report.get("corpus_name") not in (None, corpus):
+        return floor, f"stamped corpus_name={report['corpus_name']!r}"
+    drift = [f"{k}: {recorded.get(k)!r} -> {current.get(k)!r}"
+             for k in FINGERPRINT_KEYS if recorded.get(k) != current.get(k)]
+    recorded_tok = report.get("tokenizer")
+    current_tok = tokenizer_fingerprint(vocab)
+    if recorded_tok and recorded_tok != current_tok:
+        drift.append(f"tokenizer: {recorded_tok} -> {current_tok}")
+    return floor, "; ".join(drift)
+
+
+# ---------------------------------------------------------------------------
+# Recipes
+# ---------------------------------------------------------------------------
+
+CONFIGS = ROOT / "configs"
+
+
+def load_recipe(path: str, phase: Optional[str]) -> Tuple[Dict[str, Any], str]:
+    """Defaults for one phase of a recipe, plus the phase name.
+
+    A recipe states epochs, never steps. A step count is meaningless the moment
+    the corpus changes: 74,700 steps was four passes over 153M tokens, and on a
+    corpus half again as large the same number is 2.7 passes with nothing to
+    say the model is now undertrained. Epochs mean the same thing at any corpus
+    size, which is what makes a recipe survive corpus growth — and growing the
+    corpus is the point of the pipeline.
+    """
+    import yaml
+    candidate = Path(path)
+    if not candidate.exists():
+        candidate = CONFIGS / path
+        if not candidate.suffix:
+            candidate = candidate.with_suffix(".yaml")
+    if not candidate.exists():
+        # Not relative_to(ROOT): a path outside the repo raises there, and a
+        # missing-file message that crashes is worse than the missing file.
+        sys.exit(f"no recipe at `{path}`; looked in configs/ too. "
+                 f"Available: {', '.join(sorted(c.stem for c in CONFIGS.glob('*.yaml'))) or 'none'}")
+    with candidate.open(encoding="utf-8") as fh:
+        recipe = yaml.safe_load(fh)
+
+    phases = recipe.get("phases") or []
+    if not phases:
+        sys.exit(f"{candidate.name} declares no phases")
+    if phase is None:
+        chosen = phases[0]
+    else:
+        matches = [p for p in phases if p.get("name") == phase]
+        if not matches:
+            sys.exit(f"{candidate.name} has no phase `{phase}` — "
+                     f"choose from {', '.join(p['name'] for p in phases)}")
+        chosen = matches[0]
+
+    settings = {**(recipe.get("defaults") or {}), **chosen}
+    settings["name"] = chosen["name"]
+    return settings, chosen["name"]
+
+
+def steps_for_epochs(epochs: float, train_tokens: int, batch: int,
+                     context: int) -> int:
+    """How many optimizer steps cover `epochs` passes over this corpus."""
+    per_step = batch * context
+    return max(1, round(epochs * train_tokens / per_step))
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +381,7 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=20260815)
     ap.add_argument("--period-tags", action=argparse.BooleanOptionalAction, default=True,
                     help="prefix each document with its period token (default on)")
-    ap.add_argument("--init-from", metavar="RUN",
+    ap.add_argument("--init-from", metavar="RUN", dest="init_from",
                     help="start from another run's weights — the second phase of a "
                          "two-phase schedule continues from the first")
     ap.add_argument("--checkpoint-every", type=int, default=500,
@@ -262,13 +389,42 @@ def main() -> int:
     ap.add_argument("--resume", action="store_true",
                     help="continue this run from its last checkpoint")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--config", metavar="RECIPE",
+                    help="a recipe in configs/ (name or path); CLI flags still win")
+    ap.add_argument("--phase", help="which phase of the recipe (default: the first)")
+    ap.add_argument("--epochs", type=float,
+                    help="passes over the corpus; steps are derived from it. "
+                         "Prefer this to --steps — a step count means something "
+                         "different every time the corpus changes")
     args = ap.parse_args()
+
+    # A recipe supplies defaults; anything given explicitly on the command line
+    # overrides it, so a recipe can be tried with one value changed without
+    # being edited.
+    if args.config:
+        settings, _ = load_recipe(args.config, args.phase)
+        given = {a.lstrip("-").replace("-", "_") for a in sys.argv[1:]
+                 if a.startswith("--")}
+        for key, value in settings.items():
+            if key in given or not hasattr(args, key):
+                continue
+            setattr(args, key, value)
+        if "steps" not in given and settings.get("epochs") is not None:
+            args.epochs = settings["epochs"]
+    elif args.phase:
+        sys.exit("--phase only means something with --config")
 
     from tokenizers import Tokenizer
     tok_path = TOKENIZERS / f"latin-bpe-{args.vocab}.json"
     if not tok_path.exists():
         sys.exit(f"missing {tok_path.relative_to(ROOT)} — run src/tokenizer.py")
     tok = Tokenizer.from_file(str(tok_path))
+
+    # Caught here rather than as an MLX traceback six frames down. Easy to hit
+    # from a recipe: override --dim without --heads and the two stop dividing.
+    if args.dim % args.heads:
+        sys.exit(f"dim {args.dim} is not divisible by heads {args.heads} — "
+                 f"each head needs an equal slice of the width")
 
     mx.random.seed(args.seed)
     model = GPT(args.vocab, args.dim, args.layers, args.heads, args.context)
@@ -288,6 +444,11 @@ def main() -> int:
               f"(optimizer state is fresh, by design: a phase change wants a new "
               f"schedule, not the tail of the old one)")
 
+    # Epochs are the durable unit; steps are derived from the corpus in hand.
+    if args.epochs is not None:
+        args.steps = steps_for_epochs(args.epochs, train_tokens.size,
+                                      args.batch, args.context)
+
     tokens_per_step = args.batch * args.context
     total_tokens = args.steps * tokens_per_step
     epochs = total_tokens / train_tokens.size
@@ -296,8 +457,9 @@ def main() -> int:
           f"(dim {args.dim}, {args.layers} layers, {args.heads} heads, ctx {args.context})")
     print(f"corpus       {args.corpus}  {train_tokens.size:,} train tokens, "
           f"{val_tokens.size:,} validation", flush=True)
+    derived = "  <- derived from --epochs" if args.epochs is not None else ""
     print(f"schedule     {args.steps:,} steps x {tokens_per_step:,} tokens "
-          f"= {total_tokens/1e6:.1f}M  ({epochs:.1f} epochs)")
+          f"= {total_tokens/1e6:.1f}M  ({epochs:.1f} epochs){derived}")
     print(f"tokens/param {total_tokens/n_params:.1f}   "
           f"(Chinchilla-optimal is ~20)", flush=True)
     if epochs > 16:
@@ -326,6 +488,7 @@ def main() -> int:
         print(f"resumed {args.name} at step {start_step:,}")
     started = time.time()
     running = 0.0
+    since_report = 0
 
     for step in range(start_step, args.steps):
         optimizer.learning_rate = lr_at(step)
@@ -334,10 +497,18 @@ def main() -> int:
         optimizer.update(model, grads)
         mx.eval(model.parameters(), optimizer.state)
         running += loss.item()
+        since_report += 1
 
-        if (step + 1) % args.eval_every == 0 or step == args.steps - 1:
-            train_loss = running / min(args.eval_every, step - start_step + 1)
-            running = 0.0
+        if is_report_step(step, args.steps, args.eval_every):
+            # Divide by what was actually accumulated. The final report is
+            # triggered by `step == args.steps - 1` rather than by the
+            # interval, so when steps is not a multiple of eval_every the
+            # last block is short. Dividing by eval_every regardless scaled
+            # the final train loss by (short block / eval_every) — on the
+            # 74,700-step LATIN-XXV run that turned a real 3.12 into 1.25
+            # and reported a 7.25x train/val gap where the truth was 1.12x.
+            train_loss = running / max(1, since_report)
+            running, since_report = 0.0, 0
             val_loss = evaluate_split(model, val_tokens, args.batch, args.context)
             elapsed = time.time() - started
             rate = (step + 1) * tokens_per_step / elapsed
@@ -365,15 +536,24 @@ def main() -> int:
     # splits as this run. Quoting a floor computed on a different corpus
     # compares perplexities over different held-out text, which is meaningless
     # — and it flattered Latin-0 by 23% before this was caught.
-    floor_path = REPORTS / f"baselines-{args.corpus}.json"
-    floor = None
-    if floor_path.exists():
-        with floor_path.open(encoding="utf-8") as fh:
-            floor = json.load(fh)["baselines"]["overall_perplexity"]
+    #
+    # Matching by filename is not enough: the corpus changes under a fixed
+    # name every time a source lands, so `baselines-corpus.json` can describe
+    # a corpus three rebuilds old. The baseline carries a fingerprint of the
+    # corpus it was measured on; if it disagrees with the corpus just trained
+    # on, the floor is stale and quoting it would repeat the original mistake
+    # in a form that is harder to see.
+    floor, floor_stale = read_floor(args.corpus, args.vocab)
     ppl = final.get("val_perplexity", float("nan"))
-    if floor:
+    if floor and not floor_stale:
         print(f"final held-out perplexity {ppl:.1f} against the {args.corpus} "
               f"bigram floor of {floor:.1f}  ({floor/ppl:.2f}x better)")
+    elif floor_stale:
+        print(f"final held-out perplexity {ppl:.1f}")
+        print(f"  NOT quoting the floor: reports/baselines-{args.corpus}.json was "
+              f"measured on a different build of `{args.corpus}`\n"
+              f"  ({floor_stale}) — re-run evaluate.py --baselines "
+              f"--corpus {args.corpus}")
     else:
         print(f"final held-out perplexity {ppl:.1f} "
               f"(no baseline for `{args.corpus}` — run evaluate.py --baselines "
@@ -385,6 +565,13 @@ def main() -> int:
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "run": args.name,
         "config": vars(args),
+        "corpus_name": args.corpus,
+        "corpus": corpus_fingerprint(args.corpus),
+        "tokenizer": tokenizer_fingerprint(args.vocab),
+        # Which recipe, and how many passes it asked for. `steps` alone does
+        # not survive corpus growth; `epochs` is what a later run reproduces.
+        "recipe": args.config,
+        "epochs_requested": args.epochs,
         "parameters": n_params,
         "train_tokens": int(train_tokens.size),
         "validation_tokens": int(val_tokens.size),

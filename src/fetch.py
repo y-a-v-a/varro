@@ -25,8 +25,10 @@ Usage:
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
+import time
 import sys
 import urllib.error
 import urllib.request
@@ -57,7 +59,22 @@ TRACKS = {
     "B": {"green", "amber"},       # research only: adds non-commercial sources
     "eval": {"eval"},              # held-out evaluation data; never in either corpus
 }
-VALID_METHODS = {"git", "http", "zenodo", "manual"}
+VALID_METHODS = {"git", "http", "zenodo", "manual", "corpus-corporum"}
+
+# How a source's text came to be text. Not a licence question and not a quality
+# one: it is about whether a later model would be learning from an earlier
+# model's output.
+#
+#   transcribed      keyed or proofread by people
+#   ocr              machine-read, possibly machine-corrected by a third party
+#   model-corrected  corrected by a model from THIS project — the feedback risk
+#   unknown          not established; treated as suspect, like tier: unknown
+#
+# `unknown` is not a placeholder to be filled in later with a guess. The Latin
+# Library carries it because sources.md says its provenance is inconsistent and
+# it has known OCR errors, and a source whose provenance nobody has established
+# should say so rather than claim to be transcribed.
+VALID_TEXT_PROVENANCE = {"transcribed", "ocr", "model-corrected", "unknown"}
 VALID_PERIODS = {
     "CLASSICAL", "LATE", "MEDIEVAL", "NEOLATIN", "MIXED", "DOCUMENTARY",
 }
@@ -102,6 +119,17 @@ def validate(manifest: Dict[str, Any]) -> List[str]:
             errors.append(f"{where}: method must be one of {sorted(VALID_METHODS)}")
         if "period" in src and src["period"] not in VALID_PERIODS:
             errors.append(f"{where}: period must be one of {sorted(VALID_PERIODS)}")
+        # Required, and deliberately with no default. A source that does not
+        # say how its text was produced should fail the validator rather than
+        # be silently assumed to be human-transcribed — that assumption is
+        # exactly the one that would let model-corrected text in unnoticed.
+        provenance = src.get("text_provenance")
+        if provenance is None:
+            errors.append(f"{where}: text_provenance is required "
+                          f"(one of {sorted(VALID_TEXT_PROVENANCE)})")
+        elif provenance not in VALID_TEXT_PROVENANCE:
+            errors.append(f"{where}: text_provenance must be one of "
+                          f"{sorted(VALID_TEXT_PROVENANCE)}, not {provenance!r}")
 
         # An amber source with include:true is now correct — it means "wanted,
         # in Track B". What must never happen is amber reaching a Track A build,
@@ -273,6 +301,154 @@ def fetch_zenodo(src: Dict[str, Any], dest: Path) -> Dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Corpus Corporum — one work per request, slowly
+# ---------------------------------------------------------------------------
+#
+# There is no bulk export. The site serves one zipped TEI file per work from
+#   download.php?type=file-pos-xml&idno=<id>
+# and the ids come from a metadata table published by the Centre for
+# Computational Studies in Plzeň (CC BY-SA 4.0), which also supplies dates and
+# word counts.
+#
+# This is a small university server, so the request rate is a courtesy, not a
+# throttle to tune down: 20 seconds between works, single-threaded, and no
+# retry storm. The whole selection takes about fourteen hours and is meant to.
+#
+# It is RESUMABLE by construction — a work whose file already exists is
+# skipped without a request — because a fourteen-hour job will be interrupted.
+
+CC_DELAY_SECONDS = 20.0
+CC_MAX_RETRIES = 3
+CC_BACKOFF_SECONDS = 60.0
+
+# The endpoint answers a missing work with `File not found. Sorry` and HTTP
+# 200. Nothing in the status line says anything is wrong, so without a check
+# a long run ends with thousands of 21-byte files that every reader
+# downstream reports as empty, and the fetch reports success.
+#
+# But the check cannot simply be "is it a zip". Some works come back as raw
+# TEI instead — measured at 2 in the first 100 — and rejecting those loses
+# good text just as quietly as keeping the 404s would have added bad text.
+# So the response is sniffed and stored under the extension it actually is.
+ZIP_MAGIC = b"PK\x03\x04"
+XML_OPENINGS = (b"<?xml", b"<TEI", b"<!DOCTYPE")
+
+
+def _served_kind(blob: bytes) -> Optional[str]:
+    """"zip", "xml", or None if the server did not serve the work."""
+    if blob[:4] == ZIP_MAGIC:
+        return "zip"
+    head = blob.lstrip()[:200].lstrip(b"\xef\xbb\xbf").lstrip()
+    if head.startswith(XML_OPENINGS):
+        return "xml"
+    return None
+
+
+def _cc_selection(src: Dict[str, Any], meta_path: Path) -> List[Dict[str, str]]:
+    """The works to fetch: everything except what the corpus already holds.
+
+    Excluding by series rather than trusting dedupe to clean up afterwards.
+    Patrologia Latina alone is 5,248 works and 118M words against the ~66M we
+    already carry through Vicifons, so fetching it would triple the run time
+    to re-acquire text we have.
+    """
+    import csv as _csv
+    exclude = [re.compile(p, re.I) for p in (src.get("exclude_series") or [])]
+    rows = []
+    with meta_path.open(encoding="utf-8") as fh:
+        for row in _csv.DictReader(fh):
+            series = row.get("series_title") or ""
+            if any(p.search(series) for p in exclude):
+                continue
+            # `type=file-pos-xml` serves only works that have been lemmatised,
+            # and the metadata says which those are. 129 of 7,819 have not
+            # been; asking for them earns a soft 404 apiece, so they are
+            # skipped rather than discovered one 20-second wait at a time.
+            if (row.get("prelemmatized") or "").strip().lower() != "true":
+                continue
+            if row.get("work_id"):
+                rows.append(row)
+    return rows
+
+
+def fetch_corpus_corporum(src: Dict[str, Any], dest: Path) -> Dict[str, Any]:
+    dest.mkdir(parents=True, exist_ok=True)
+    meta_dir = dest / "_metadata"
+    meta_dir.mkdir(exist_ok=True)
+    meta_path = meta_dir / "cc_metadata.csv"
+    if not meta_path.exists():
+        print(f"    fetching the work list from {src['id_source']}")
+        _download(src["id_source"], meta_path)
+
+    works = _cc_selection(src, meta_path)
+    delay = float(src.get("delay_seconds") or CC_DELAY_SECONDS)
+    template = src["url_template"]
+    print(f"    {len(works):,} works selected; {delay:.0f}s between requests "
+          f"— about {len(works) * delay / 3600:.1f} h if none are cached")
+
+    got = skipped = failed = unavailable = raw_xml = 0
+    for i, row in enumerate(works, 1):
+        idno = row["work_id"]
+        works_dir = dest / "works"
+        existing = [works_dir / f"{idno}{ext}" for ext in (".zip", ".xml")]
+        if any(p.exists() and p.stat().st_size for p in existing):
+            skipped += 1
+            continue
+        # Provisional; renamed below once the response has been sniffed.
+        target = works_dir / f"{idno}.download"
+        if got:                       # only wait between actual requests
+            time.sleep(delay)
+        url = template.format(idno=idno)
+        for attempt in range(1, CC_MAX_RETRIES + 1):
+            try:
+                _download(url, target)
+                kind = _served_kind(target.read_bytes())
+                if kind is None:
+                    # A soft 404, not a transient fault: retrying it three
+                    # times with a backoff would waste three minutes to be
+                    # told the same thing.
+                    body = target.read_text(errors="replace")[:60].strip()
+                    target.unlink(missing_ok=True)
+                    unavailable += 1
+                    print(f"    [{idno}] not served: {body!r}", flush=True)
+                    break
+                target.replace(works_dir / f"{idno}.{kind}")
+                got += 1
+                if kind == "xml":
+                    raw_xml += 1
+                break
+            except (urllib.error.URLError, urllib.error.HTTPError, OSError) as exc:
+                target.unlink(missing_ok=True)
+                if attempt == CC_MAX_RETRIES:
+                    failed += 1
+                    print(f"    [{idno}] giving up after {attempt}: {exc}")
+                    break
+                # Back off hard rather than hammering a server that is
+                # already unhappy.
+                wait = CC_BACKOFF_SECONDS * attempt
+                print(f"    [{idno}] attempt {attempt} failed ({exc}); "
+                      f"waiting {wait:.0f}s", flush=True)
+                time.sleep(wait)
+        if i % 25 == 0 or i == len(works):
+            print(f"    {i:,}/{len(works):,}  fetched {got:,}  cached {skipped:,}"
+                  f"  unavailable {unavailable:,}  failed {failed:,}", flush=True)
+
+    if failed:
+        print(f"    {failed:,} work(s) could not be fetched — re-run to retry "
+              f"only those")
+    return {
+        "resolved_pin": None,
+        "works_selected": len(works),
+        "works_fetched": got,
+        "works_cached": skipped,
+        "works_failed": failed,
+        "works_unavailable": unavailable,
+        "works_served_unzipped": raw_xml,
+        **_tree_stats(dest),
+    }
+
+
 def fetch_manual(src: Dict[str, Any], dest: Path) -> Dict[str, Any]:
     present = dest.exists() and any(dest.iterdir())
     status = "present" if present else "MISSING"
@@ -290,6 +466,7 @@ DISPATCH = {
     "http": fetch_http,
     "zenodo": fetch_zenodo,
     "manual": fetch_manual,
+    "corpus-corporum": fetch_corpus_corporum,
 }
 
 

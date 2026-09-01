@@ -1,13 +1,31 @@
 {
-  "generated": "2026-08-17T13:08:13+00:00",
+  "generated": "2026-08-27T02:22:43+00:00",
   "note": "Resolved versions of fetched sources. Commit this file \u2014 it is what makes the corpus reproducible and the licence trail auditable.",
   "sources": {
+    "corpus-corporum": {
+      "bytes": 627614930,
+      "fetched": "2026-08-27T02:22:43+00:00",
+      "license": "NonCommercial",
+      "method": "corpus-corporum",
+      "n_files": 2318,
+      "name": "Corpus Corporum (University of Zurich)",
+      "resolved_pin": null,
+      "tier": "amber",
+      "url": "https://www.mlat.uzh.ch/",
+      "works_cached": 147,
+      "works_failed": 0,
+      "works_fetched": 2170,
+      "works_selected": 2317,
+      "works_served_unzipped": 3,
+      "works_unavailable": 0
+    },
     "digiliblt": {
       "bytes": 339778448,
-      "fetched": "2026-08-14T15:22:34+00:00",
+      "fetched": "2026-08-24T22:01:15+00:00",
       "license": "CC-BY-SA-4.0",
       "method": "git",
       "n_files": 11,
+      "name": "DigilibLT \u2014 Digital Library of Late-Antique Latin Texts",
       "resolved_pin": "6a847a9f274d1ca033b03f3e5a44151e7d512208",
       "tier": "green",
       "url": "https://github.com/CIRCSE/digilibLT"
@@ -15,7 +33,7 @@
     "edcs-sdam": {
       "bytes": 465523658,
       "doi": "10.5281/zenodo.7072337",
-      "fetched": "2026-08-17T13:02:38+00:00",
+      "fetched": "2026-08-24T22:01:20+00:00",
       "files": [
         {
           "bytes": 465523658,
@@ -33,7 +51,7 @@
     },
     "edh": {
       "bytes": 725649986,
-      "fetched": "2026-08-17T13:04:15+00:00",
+      "fetched": "2026-08-24T22:01:20+00:00",
       "license": "CC-BY-SA-4.0",
       "method": "git",
       "n_files": 139137,
@@ -42,9 +60,33 @@
       "tier": "green",
       "url": "https://github.com/epigraphic-database-heidelberg/data"
     },
+    "gutenberg-latin": {
+      "bytes": 0,
+      "fetched": "2026-08-24T22:01:15+00:00",
+      "license": "public-domain",
+      "manual": true,
+      "method": "manual",
+      "n_files": 0,
+      "name": "Project Gutenberg \u2014 Latin",
+      "present": false,
+      "resolved_pin": null,
+      "tier": "green",
+      "url": "https://www.gutenberg.org/browse/languages/la"
+    },
+    "lasla": {
+      "bytes": 728072378,
+      "fetched": "2026-08-24T21:59:21+00:00",
+      "license": "CC-BY-NC-SA-4.0",
+      "method": "git",
+      "n_files": 376,
+      "name": "LASLA / Opera Latina",
+      "resolved_pin": "c2e2bb6500b5ef9c6f5f31df6774423e9bb9fddc",
+      "tier": "amber",
+      "url": "https://github.com/CIRCSE/LASLA"
+    },
     "latin-library": {
       "bytes": 95978302,
-      "fetched": "2026-08-17T13:04:22+00:00",
+      "fetched": "2026-08-24T22:01:15+00:00",
       "license": "public-domain",
       "method": "git",
       "n_files": 2145,
@@ -55,17 +97,18 @@
     },
     "opengreekandlatin-csel": {
       "bytes": 416494171,
-      "fetched": "2026-08-14T15:23:17+00:00",
+      "fetched": "2026-08-24T22:01:16+00:00",
       "license": "CC-BY-SA-4.0",
       "method": "git",
       "n_files": 1111,
+      "name": "Corpus Scriptorum Ecclesiasticorum Latinorum (Open Greek and Latin)",
       "resolved_pin": "2813e3a52b4206df0324299e5110e5bd0d95cee4",
       "tier": "green",
       "url": "https://github.com/OpenGreekAndLatin/csel-dev"
     },
     "papyri-idp": {
       "bytes": 1899434330,
-      "fetched": "2026-08-17T13:08:13+00:00",
+      "fetched": "2026-08-24T22:01:35+00:00",
       "license": "CC-BY-3.0",
       "method": "git",
       "n_files": 389521,
@@ -76,17 +119,29 @@
     },
     "perseus-canonical-latinLit": {
       "bytes": 174711532,
-      "fetched": "2026-08-12T21:20:39+00:00",
+      "fetched": "2026-08-24T22:01:14+00:00",
       "license": "CC-BY-SA-4.0",
       "method": "git",
       "n_files": 1361,
+      "name": "Perseus Digital Library \u2014 canonical Latin literature",
       "resolved_pin": "4620cf8ab32865b127dce42a61e80c58b4c06de9",
       "tier": "green",
       "url": "https://github.com/PerseusDL/canonical-latinLit"
     },
+    "tesserae": {
+      "bytes": 53858959,
+      "fetched": "2026-08-26T08:36:39+00:00",
+      "license": "UB-Public-License-1.0",
+      "method": "git",
+      "n_files": 755,
+      "name": "Tesserae Latin corpus",
+      "resolved_pin": "61a14f04966bf8c52185dbe8dd1bdc39f8adc38c",
+      "tier": "green",
+      "url": "https://github.com/cltk/lat_text_tesserae"
+    },
     "vicifons": {
       "bytes": 203531435,
-      "fetched": "2026-08-17T13:03:19+00:00",
+      "fetched": "2026-08-24T22:01:35+00:00",
       "files": [
         {
           "bytes": 203531435,

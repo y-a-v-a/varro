@@ -145,3 +145,79 @@ def test_genres_validate_vocabulary(tmp_path):
                     encoding="utf-8")
     with pytest.raises(SystemExit):
         Genres(path)
+
+
+# --- CSEL editors ----------------------------------------------------------
+#
+# The Vienna prefaces are 445k words of Latin written between 1867 and 1934.
+# resolve() overwrites period unconditionally, so without author entries the
+# csel source prior files Wilhelm von Hartel under LATE, next to Cyprian.
+
+from enrich import AUTHORITIES as AUTHORITIES_PATH  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def real_authority():
+    return Authority(AUTHORITIES_PATH)
+
+
+@pytest.mark.parametrize("editor,year", [
+    ("Carolus Halm", 1867),
+    ("Samuel Brandt", 1890),
+    ("Alexander Souter", 1908),
+    ("Guilelmus Weinberger", 1934),
+])
+def test_csel_editors_are_dated_neolatin(real_authority, editor, year):
+    date, period, origin, confidence = real_authority.resolve(
+        {"author": editor, "work": f"Praefatio — {editor}",
+         "source": "opengreekandlatin-csel"})
+    assert (date, period, origin) == (year, "NEOLATIN", "author")
+    assert confidence == "high"
+
+
+@pytest.mark.parametrize("variant", [
+    "SAMVEL BRANDT",        # CSEL48 sets the name in capitals
+    "S Brandt",             # CSEL48-grc-ss abbreviates it
+    "Guilelmus Hartelius",  # the Latin form beside Guilelmus Hartel
+    "Iosephus Zicha",       # an OCR reading of Zycha
+    "Pius Knöll",           # umlaut kept in some volumes, dropped in others
+])
+def test_editor_spelling_variants_all_resolve(real_authority, variant):
+    _, period, origin, _ = real_authority.resolve(
+        {"author": variant, "work": "Prolegomena", "source": "opengreekandlatin-csel"})
+    assert (period, origin) == ("NEOLATIN", "author")
+
+
+def test_csel_texts_still_take_the_late_prior(real_authority):
+    """The editors are dated apart; the volumes they edited are not."""
+    _, period, origin, _ = real_authority.resolve(
+        {"author": "Nemo Ignotus", "work": "Ignotum",
+         "source": "opengreekandlatin-csel"})
+    assert (period, origin) == ("LATE", "source-prior")
+
+
+@pytest.fixture(scope="module")
+def real_genres():
+    from enrich import GENRES as GENRES_PATH
+    return Genres(GENRES_PATH)
+
+
+def test_an_editors_preface_is_scholarship_not_the_work_it_introduces(real_genres):
+    """The title names the work, so every other pattern would claim it.
+
+    A preface to Augustine's letters read as EPISTOLOGRAPHY, and one to a
+    commentary as COMMENTARY — 40 of the 85 volume records were filed as the
+    thing they discuss.
+    """
+    assert real_genres.resolve({"work": "Praefatio editoris in Epistulae "
+                                   "Imperatorum Pontificum", "author": None}) \
+        == ("PROSE", "SCHOLARSHIP", "pattern")
+    assert real_genres.resolve({"work": "Praefatio editoris in Commentaria in "
+                                   "Isaiam", "author": None}) \
+        == ("PROSE", "SCHOLARSHIP", "pattern")
+
+
+def test_jeromes_own_prefaces_are_left_alone(real_genres):
+    """`Praefatio in` alone would have caught 17 late-antique prefaces."""
+    assert real_genres.resolve({"work": "Praefatio in Evangelia", "author": None}) \
+        != ("PROSE", "SCHOLARSHIP", "pattern")

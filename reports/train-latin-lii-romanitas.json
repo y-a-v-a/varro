@@ -1,0 +1,234 @@
+{
+  "config": {
+    "batch": 8,
+    "checkpoint_every": 1000,
+    "config": "configs/latin-lii.yaml",
+    "context": 512,
+    "corpus": "classical",
+    "dim": 640,
+    "dry_run": false,
+    "epochs": 2.0,
+    "eval_every": 250,
+    "heads": 10,
+    "init_from": "latin-lii-latinitas",
+    "layers": 10,
+    "lr": 0.0001,
+    "name": "latin-lii-romanitas",
+    "period_tags": true,
+    "phase": "latin-lii",
+    "resume": false,
+    "seed": 20260815,
+    "steps": 5211,
+    "vocab": 4000,
+    "warmup": 100,
+    "weight_decay": 0.1
+  },
+  "corpus": {
+    "group_by": "author",
+    "period_filter": [
+      "CLASSICAL"
+    ],
+    "records": 261,
+    "seed": 20260815,
+    "track": "A",
+    "train_words": 4805330,
+    "validation_words": 250583,
+    "words": 5055913
+  },
+  "corpus_name": "classical",
+  "epochs": 2.000041042328978,
+  "epochs_requested": 2.0,
+  "final": {
+    "elapsed_s": 5468.723333120346,
+    "lr": 1.000000884232577e-05,
+    "step": 5211,
+    "train_loss": 2.923410586271241,
+    "val_loss": 3.4071967780590056,
+    "val_perplexity": 30.180522864557783
+  },
+  "generated": "2026-08-31T16:42:17+00:00",
+  "history": [
+    {
+      "elapsed_s": 262.9170379638672,
+      "lr": 9.981139737647027e-05,
+      "step": 250,
+      "train_loss": 3.4799815683364868,
+      "val_loss": 3.5828159272670748,
+      "val_perplexity": 35.9747004911556
+    },
+    {
+      "elapsed_s": 524.4044091701508,
+      "lr": 9.865339961834252e-05,
+      "step": 500,
+      "train_loss": 3.3829179573059083,
+      "val_loss": 3.5098703503608704,
+      "val_perplexity": 33.44393150920151
+    },
+    {
+      "elapsed_s": 786.4233469963074,
+      "lr": 9.646660328144208e-05,
+      "step": 750,
+      "train_loss": 3.3252018489837645,
+      "val_loss": 3.484899413585663,
+      "val_perplexity": 32.61914590191471
+    },
+    {
+      "elapsed_s": 1047.2794909477234,
+      "lr": 9.330253669759259e-05,
+      "step": 1000,
+      "train_loss": 3.2488541097640993,
+      "val_loss": 3.4793743014335634,
+      "val_perplexity": 32.43941842693842
+    },
+    {
+      "elapsed_s": 1309.5097498893738,
+      "lr": 8.923577843233943e-05,
+      "step": 1250,
+      "train_loss": 3.223084984779358,
+      "val_loss": 3.472494089603424,
+      "val_perplexity": 32.21699439615086
+    },
+    {
+      "elapsed_s": 1571.1335260868073,
+      "lr": 8.436216739937663e-05,
+      "step": 1500,
+      "train_loss": 3.189259234428406,
+      "val_loss": 3.4690369248390196,
+      "val_perplexity": 32.105807245202
+    },
+    {
+      "elapsed_s": 1832.6637601852417,
+      "lr": 7.879656186560169e-05,
+      "step": 1750,
+      "train_loss": 3.1514954051971436,
+      "val_loss": 3.467213201522827,
+      "val_perplexity": 32.047308494924906
+    },
+    {
+      "elapsed_s": 2097.225229024887,
+      "lr": 7.267014007084072e-05,
+      "step": 2000,
+      "train_loss": 3.133916781425476,
+      "val_loss": 3.4543447852134705,
+      "val_perplexity": 31.6375524974833
+    },
+    {
+      "elapsed_s": 2361.58061003685,
+      "lr": 6.612727156607434e-05,
+      "step": 2250,
+      "train_loss": 3.1125879011154174,
+      "val_loss": 3.4524527072906492,
+      "val_perplexity": 31.577748377739397
+    },
+    {
+      "elapsed_s": 2622.987697839737,
+      "lr": 5.932215935899876e-05,
+      "step": 2500,
+      "train_loss": 3.084297523498535,
+      "val_loss": 3.438934975862503,
+      "val_perplexity": 31.153760986123164
+    },
+    {
+      "elapsed_s": 2885.0315551757812,
+      "lr": 5.241518738330342e-05,
+      "step": 2750,
+      "train_loss": 3.0659345359802246,
+      "val_loss": 3.439717549085617,
+      "val_perplexity": 31.178150627365547
+    },
+    {
+      "elapsed_s": 3146.0586581230164,
+      "lr": 4.556913336273283e-05,
+      "step": 3000,
+      "train_loss": 3.0301223583221435,
+      "val_loss": 3.437743365764618,
+      "val_perplexity": 31.11665995931418
+    },
+    {
+      "elapsed_s": 3409.2368681430817,
+      "lr": 3.8945341657381505e-05,
+      "step": 3250,
+      "train_loss": 3.0012159156799316,
+      "val_loss": 3.427595466375351,
+      "val_perplexity": 30.80248801347635
+    },
+    {
+      "elapsed_s": 3670.3677899837494,
+      "lr": 3.269991429988295e-05,
+      "step": 3500,
+      "train_loss": 2.992791429519653,
+      "val_loss": 3.4295073986053466,
+      "val_perplexity": 30.861436617984662
+    },
+    {
+      "elapsed_s": 3932.2411000728607,
+      "lr": 2.6980047550750896e-05,
+      "step": 3750,
+      "train_loss": 2.977343086242676,
+      "val_loss": 3.422215050458908,
+      "val_perplexity": 30.637202866854157
+    },
+    {
+      "elapsed_s": 4194.358052015305,
+      "lr": 2.1920539438724518e-05,
+      "step": 4000,
+      "train_loss": 2.966986083984375,
+      "val_loss": 3.4130353927612305,
+      "val_perplexity": 30.35725072998671
+    },
+    {
+      "elapsed_s": 4457.322058916092,
+      "lr": 1.7640630176174454e-05,
+      "step": 4250,
+      "train_loss": 2.96632666015625,
+      "val_loss": 3.4144339740276335,
+      "val_perplexity": 30.399737515843103
+    },
+    {
+      "elapsed_s": 4719.546450853348,
+      "lr": 1.4241188182495534e-05,
+      "step": 4500,
+      "train_loss": 2.9279442253112795,
+      "val_loss": 3.4131384193897247,
+      "val_perplexity": 30.36037849629862
+    },
+    {
+      "elapsed_s": 4983.603483915329,
+      "lr": 1.180232811748283e-05,
+      "step": 4750,
+      "train_loss": 2.921365469932556,
+      "val_loss": 3.4101324796676638,
+      "val_perplexity": 30.269254054503627
+    },
+    {
+      "elapsed_s": 5245.429314136505,
+      "lr": 1.0381529136793688e-05,
+      "step": 5000,
+      "train_loss": 2.908121413230896,
+      "val_loss": 3.4107216775417326,
+      "val_perplexity": 30.287093889722584
+    },
+    {
+      "elapsed_s": 5468.723333120346,
+      "lr": 1.000000884232577e-05,
+      "step": 5211,
+      "train_loss": 2.923410586271241,
+      "val_loss": 3.4071967780590056,
+      "val_perplexity": 30.180522864557783
+    }
+  ],
+  "parameters": 52066560,
+  "recipe": "configs/latin-lii.yaml",
+  "renamed_from": {
+    "run": "latin-lii",
+    "why": "Trained as `--name latin-lii` under the project convention where the bare name is the second, classical-narrowing phase. That phase was measured, made the model worse (30.2 on classical and 32.5 on corpus-b against 27.3 and 21.3 before it), and was removed from configs/latin-lii.yaml. Renamed so that the bare name no longer points at a discarded run while the project quotes the surviving phase, latin-lii-latinitas."
+  },
+  "run": "latin-lii-romanitas",
+  "schema_version": 1,
+  "tokenizer": {
+    "sha256": "f64b7246a477af75",
+    "vocab": 4000
+  },
+  "train_tokens": 10671909,
+  "validation_tokens": 560930
+}

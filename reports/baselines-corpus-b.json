@@ -1,0 +1,159 @@
+{
+  "baselines": {
+    "by": {
+      "form": {
+        "PROSE": {
+          "documents": 172,
+          "perplexity": 195.86876562114574,
+          "tokens": 5030136
+        },
+        "UNKNOWN": {
+          "documents": 368,
+          "perplexity": 180.76647880694566,
+          "tokens": 9189673
+        },
+        "VERSE": {
+          "documents": 7,
+          "perplexity": 175.92019649238281,
+          "tokens": 92681
+        }
+      },
+      "genre": {
+        "BIOGRAPHY": {
+          "documents": 28,
+          "perplexity": 204.56490050361205,
+          "tokens": 313068
+        },
+        "COMMENTARY": {
+          "documents": 11,
+          "perplexity": 182.1375905928402,
+          "tokens": 547987
+        },
+        "ELEGY": {
+          "documents": 1,
+          "perplexity": 162.52876982048704,
+          "tokens": 30495
+        },
+        "EPISTOLOGRAPHY": {
+          "documents": 49,
+          "perplexity": 180.94705589748165,
+          "tokens": 406421
+        },
+        "GEOGRAPHY": {
+          "documents": 1,
+          "perplexity": 233.79484682679,
+          "tokens": 70107
+        },
+        "GRAMMAR": {
+          "documents": 7,
+          "perplexity": 287.0839483887066,
+          "tokens": 296550
+        },
+        "HAGIOGRAPHY": {
+          "documents": 1,
+          "perplexity": 162.46385239488575,
+          "tokens": 6266
+        },
+        "HISTORY": {
+          "documents": 21,
+          "perplexity": 185.12605781505346,
+          "tokens": 1517777
+        },
+        "HOMILETIC": {
+          "documents": 11,
+          "perplexity": 172.02308061582997,
+          "tokens": 860076
+        },
+        "LAW": {
+          "documents": 1,
+          "perplexity": 173.04666891666974,
+          "tokens": 79642
+        },
+        "LYRIC": {
+          "documents": 4,
+          "perplexity": 178.930113433394,
+          "tokens": 39418
+        },
+        "MEDICINE": {
+          "documents": 2,
+          "perplexity": 294.7066742933632,
+          "tokens": 271977
+        },
+        "RHETORIC": {
+          "documents": 2,
+          "perplexity": 223.70281500786862,
+          "tokens": 50283
+        },
+        "SATIRE": {
+          "documents": 2,
+          "perplexity": 189.93946050100283,
+          "tokens": 22768
+        },
+        "SCHOLARSHIP": {
+          "documents": 16,
+          "perplexity": 234.69703440269765,
+          "tokens": 289073
+        },
+        "THEOLOGY": {
+          "documents": 22,
+          "perplexity": 178.8762081234122,
+          "tokens": 320909
+        },
+        "UNKNOWN": {
+          "documents": 368,
+          "perplexity": 180.76647880694566,
+          "tokens": 9189673
+        }
+      },
+      "period": {
+        "CLASSICAL": {
+          "documents": 22,
+          "perplexity": 201.23030535710748,
+          "tokens": 579451
+        },
+        "LATE": {
+          "documents": 81,
+          "perplexity": 189.73743779529448,
+          "tokens": 2905377
+        },
+        "MEDIEVAL": {
+          "documents": 125,
+          "perplexity": 179.51088670643978,
+          "tokens": 4591282
+        },
+        "NEOLATIN": {
+          "documents": 149,
+          "perplexity": 179.06780978209974,
+          "tokens": 2466490
+        },
+        "UNKNOWN": {
+          "documents": 170,
+          "perplexity": 193.34073406620723,
+          "tokens": 3769890
+        }
+      }
+    },
+    "lambda_bigram": 0.7,
+    "model": "interpolated-bigram",
+    "overall_perplexity": 185.90393390802967,
+    "train_tokens": 263542144,
+    "vocab": 4000
+  },
+  "corpus": {
+    "group_by": "author",
+    "period_filter": null,
+    "records": 11706,
+    "seed": 20260815,
+    "track": "B",
+    "train_words": 127843324,
+    "validation_words": 6723257,
+    "words": 134566581
+  },
+  "corpus_name": "corpus-b",
+  "generated": "2026-08-31T20:20:00+00:00",
+  "schema_version": 1,
+  "tokenizer": {
+    "sha256": "f64b7246a477af75",
+    "vocab": 4000
+  }
+}

@@ -61,7 +61,8 @@ sources:
     license: CC-BY-SA-4.0
     tier: green
     include: true
-    format: tei-xml
+    format: tei-capitains
+    text_provenance: transcribed    # curated digital editions, human-keyed
     period: CLASSICAL
     lang_filter: lat       # repo also ships English translations — filter on @xml:lang
     est_words: 6000000
@@ -79,6 +80,7 @@ sources:
     tier: green
     include: true
     format: txt
+    text_provenance: unknown    # sources.md: inconsistent provenance, known OCR/typing errors
     period: MIXED
     lang_filter: lat
     est_words: 15000000
@@ -97,6 +99,7 @@ sources:
     tier: green
     include: true
     format: txt
+    text_provenance: transcribed    # Distributed Proofreaders; sources.md notes it is proofread, not OCR
     period: MIXED
     lang_filter: lat
     est_words: 500000
@@ -121,6 +124,7 @@ sources:
     tier: green
     include: true
     format: conllu
+    text_provenance: transcribed    # digital library of edited texts
     period: LATE
     lang_filter: lat
     est_words: 4000000
@@ -150,7 +154,8 @@ sources:
     license: CC-BY-SA-4.0
     tier: green
     include: true
-    format: tei-xml
+    format: tei-capitains
+    text_provenance: ocr    # the manifest's own note: machine-corrected OCR of CSEL volumes
     period: LATE
     lang_filter: lat
     est_words: 5000000
@@ -174,6 +179,7 @@ sources:
     tier: green
     include: true
     format: epidoc-xml
+    text_provenance: transcribed    # epigraphic database, human-entered readings
     period: DOCUMENTARY
     lang_filter: lat
     est_words: 2000000
@@ -191,7 +197,8 @@ sources:
     license: CC-BY-4.0
     tier: green
     include: true
-    format: json
+    format: edcs-json
+    text_provenance: transcribed    # epigraphic database, human-entered readings
     period: DOCUMENTARY
     lang_filter: lat
     est_words: 3000000
@@ -209,6 +216,7 @@ sources:
     tier: green
     include: true
     format: epidoc-xml
+    text_provenance: transcribed    # editorial transcriptions of documentary papyri
     period: DOCUMENTARY
     lang_filter: lat
     est_words: 500000
@@ -230,6 +238,7 @@ sources:
     tier: green
     include: true
     format: mediawiki-xml
+    text_provenance: transcribed    # Wikisource: human-typed and proofread
     period: MIXED
     lang_filter: lat
     est_words: 3000000
@@ -247,6 +256,7 @@ sources:
     tier: green
     include: false
     format: txt
+    text_provenance: unknown    # not established
     period: MIXED
     lang_filter: lat
     est_words: 9900000
@@ -270,6 +280,7 @@ sources:
     tier: eval
     include: true
     format: conllu
+    text_provenance: transcribed    # gold-standard treebank
     period: CLASSICAL
     lang_filter: lat
     est_words: 30000
@@ -288,6 +299,7 @@ sources:
     tier: eval
     include: true
     format: conllu
+    text_provenance: transcribed    # gold-standard treebank
     period: CLASSICAL
     lang_filter: lat
     est_words: 200000
@@ -304,32 +316,124 @@ sources:
   - id: corpus-corporum
     name: Corpus Corporum (University of Zurich)
     url: https://www.mlat.uzh.ch/
-    method: manual
+    method: corpus-corporum
     pin: null
+    # One zipped TEI file per work. 20s between requests because this is a
+    # small university server and there is no bulk export to ask it for.
+    url_template: https://mlat.uzh.ch/php_modules/download.php?type=file-pos-xml&idno={idno}
+    id_source: https://raw.githubusercontent.com/CCS-ZCU/corpus-corporum/master/data/cc_metadata.csv
+    delay_seconds: 20
+    # Excluded on the ASSUMPTION that the corpus already holds this text, and
+    # that re-acquiring it would triple the run for nothing. digilibLT is a
+    # source in its own right, so that one is certain. Patrologia Latina is
+    # not: it is 5,248 works and 118M words here against the ~66M we carry via
+    # Vicifons, and that gap of ~52M words is unexplained. It could be a fuller
+    # edition, a different way of counting, or text we simply do not hold.
+    #
+    # NOT MEASURED. A containment check would settle it and has never been run.
+    # It stays unrun deliberately: the only action it could justify is
+    # including these works, which changes the corpus and so requires
+    # retraining both models. Until someone wants that, the assumption is
+    # cheaper than the answer -- but it is an assumption, and this comment says
+    # so rather than implying the exclusion was verified.
+    #
+    # Everything else is fetched: 2,446 works, ~113M words, ~14 hours.
+    exclude_series:
+      - 'Patrologia\s+Latina'
+      - 'digilibLT'
     license: NonCommercial
     tier: amber
     include: true
     format: tei-xml
+    text_provenance: unknown    # heterogeneous origin, not established per text
     period: MIXED
     est_words: 226000000
     restriction: >
-      Non-commercial use only, and rights vary per constituent corpus
-      ("heterogeneous origin"). By far the largest Latin collection in existence
-      and the single reason Track B is worth running at all — it is ~80% of that
-      track's volume. CAVEAT: the platform's headline NC term is not the whole
-      story; individual constituent corpora may carry stricter terms, and that
-      needs a per-corpus check before Track B results are written up. Mostly
-      medieval and neo-Latin, so it shifts Track B's period balance heavily.
+      Non-commercial use only. Quoted from the site's own About page: "The data
+      we transcribed ourselves ... is published under Creative Commons
+      Share-Alike and may thus be reused freely (but non-commercially) as long
+      as the source is indicated. Most of the texts present here, however, stem
+      from various online sources. As far as we could determine they are either
+      in the public domain or their use was granted us by their owners." Also:
+      "Texts may be downloaded as TEI xml for non-commercial use."
+      robots.txt is `User-agent: * / Allow: /` — nothing forbids access.
+
+      SELECT BY CORPUS NUMBER, DO NOT INGEST WHOLE. The browser lists all 30
+      corpora with word counts, totalling 226,311,326. Three are sources we
+      already hold and must be excluded by number, not left to dedupe:
+      Perseus is corpus 5, OpenGreekAndLatin is 2 and 19, digilibLT is 16.
+      Corpus 99 (Graeca miscellanea, 10.8M) is GREEK. Corpus 2 (Patrologia
+      Latina, 85.5M) overlaps the ~66M of PL we already carry via Vicifons.
+      Excluding those leaves ~115.9M words of largely-new medieval and
+      neo-Latin — Acta Sanctorum alone is 52.7M.
+
+    notes: >
+      READER EXISTS AND IS TESTED (`tei-xml`). It was written against real
+      files: the Patrologia Latina feed at
+      github.com/OpenGreekAndLatin/patrologia_latina-dev, whose filenames carry
+      a literal `[CC]` prefix because they ARE the Corpus Corporum copies.
+      Those files also declare CC BY-SA 4.0 in their own teiHeader, so at least
+      that constituent is greener than the platform's blanket NC term.
+
+      Two defects measured there, both repaired in the reader, because a
+      reader that ignores them looks like it works:
+        - 5 of 21 files in one volume are not well-formed XML. All the same
+          fault: unterminated character references (`&#171 ;`, `&gt5`,
+          `&#0160`). Without repair they arrive as a parse_errors counter.
+        - 4.06% of all words are split across a printed line
+          (`Victo-\nrina`). At PL's scale that is ~3.5M broken tokens.
+      Together: one volume went from 50,980 words to 218,818.
+
+      ACQUISITION IS NOW MECHANISABLE, which it was not when this entry was
+      first written. Two things closed the gap, both found via
+      github.com/CCS-ZCU/corpus-corporum (Vojtěch Kaše, CCS Plzeň, CC BY-SA 4.0):
+        - the per-work endpoint
+            https://mlat.uzh.ch/php_modules/download.php?type=file-pos-xml&idno=<id>
+          which returns a zipped TEI file. Verified: idno 10045 gives
+          144_Petrus-Damianus_Epistolae.POS.xml.zip, 1.18 MB, HTTP 200.
+        - data/cc_metadata.csv in that repo: 7,819 works with work_id, title,
+          author, year / not_before / not_after (70.4% dated), word_count,
+          series title, edition, editor, publisher and VIAF ids. That is both
+          the id list to iterate and a dating layer better than anything we
+          could infer.
+
+      It is still `method: manual`, deliberately. 7,819 requests against a
+      small university server is an imposition whatever robots.txt permits,
+      and the courteous move remains an email to turicense@gmail.com — now
+      asking to confirm a rate-limited pull rather than asking them to build
+      an export. If they decline or do not answer, the fallback is the
+      endpoint above with a real delay between requests.
+
+      THE EXPORT CARRIES A POS LAYER THAT SHADOWS THE TEXT. Each word appears
+      twice: once tokenised in the mlat.uzh.ch/2.0 namespace
+      (`<cc:s><cc:w>LIBER</cc:w><cc:w>PRIMUS</cc:w></cc:s>`) and then again as
+      running text (`LIBER PRIMUS.`). Measured on Petrus Damianus, Epistolae:
+      a naive walk gives 226,051 words against a true 113,622 — every word in
+      the corpus doubled. The reader strips the annotation and keeps the plain
+      text, which is the readable form; the tokenised copy loses punctuation
+      and capitalisation.
+
+      Its headers are also much richer than the GitHub feed's:
+      `<author>Petrus Damianus<date>1007-1072</date></author>` and
+      `<seriesStmt><title>Patrologia Latina, vol. 144</title>`. The reader uses
+      the lifespan midpoint as a `source-metadata` date and reads the PL volume
+      from the series statement. It still ignores the header's own <date>,
+      which is the printing — 1853, meaning Migne, not Petrus Damianus.
 
   - id: lasla
     name: LASLA / Opera Latina
-    url: https://www.lasla.uliege.be/
-    method: manual
+    url: https://github.com/CIRCSE/LASLA
+    method: git
     pin: null
     license: CC-BY-NC-SA-4.0
     tier: amber
     include: true
-    format: txt
+    format: lasla-conllup
+    # The CIRCSE mirror publishes the corpus as CoNLL-U Plus, one file per
+    # book, under the same CC BY-NC-SA 4.0 the LASLA site states — checked
+    # against the repository's own README rather than inferred. That makes it
+    # fetchable, which is why this entry no longer says `method: manual`.
+    text_provenance: transcribed    # manually verified lemmatisation implies keyed text
     period: CLASSICAL
     est_words: 1630825
     restriction: >
@@ -346,13 +450,35 @@ sources:
     pin: null
     license: CC-BY-NC-SA-3.0
     tier: amber
-    include: true
+    include: false
     format: html
+    text_provenance: unknown    # not established
     period: MIXED
     est_words: 10000000
     restriction: >
-      CC BY-NC-SA 3.0. Substantially derived from other collections, so expect
-      dedupe to remove much of the nominal 10M against sources already present.
+      BLOCKED BY ACCESS TERMS, NOT BY LICENCE — the two are separate questions
+      and this source is the case that shows why.
+
+      The licence is fine for our purposes: CC BY-NC-SA 3.0 is amber, Track B
+      never redistributes, and Track B's framing already rests on the research
+      exception. Nothing in the licence stops us mining it.
+
+      The site's access terms do. robots.txt disallows /Dwnld/ and denies
+      roughly 25 named mirroring agents outright — Wget, HTTrack, WebZIP and
+      the rest — and the copyright page asks that readers "link to the
+      contents in The IntraText Digital Library itself" rather than republish
+      them. Whatever a user-agent string not on that list would technically be
+      permitted to do, the publisher's intent is not ambiguous, and this
+      project honours licences and terms as offered rather than as argued.
+
+      include:false accordingly. This is not a permanent no: it is 716
+      IntraTexts / 876 works held by EuloTech SRL, and the way in is to ask
+      them for a dataset, exactly as with the LTA/BBAW question. Do not write
+      an HTML scraper for it in the meantime.
+
+      Also note, before spending effort on the ask: substantially derived from
+      other collections. Tesserae was measured at 95% already-present, and
+      that is the closest comparison we have.
 
   - id: tesserae
     name: Tesserae Latin corpus
@@ -360,17 +486,33 @@ sources:
     method: git
     pin: null
     license: UB-Public-License-1.0
-    tier: unknown
-    include: false
-    format: txt
+    tier: green
+    include: true
+    format: tess
+    text_provenance: unknown    # aggregated from other collections
     period: MIXED
     est_words: 8000000
-    restriction: >
-      UB Public License 1.0 — a custom university licence nobody here has read,
-      so the tier is `unknown` rather than `amber`: the terms are not merely
-      restrictive, they are unassessed. Low priority to resolve, because the
-      corpus is largely DERIVED from Perseus / Latin Library / DigilibLT / OGL
-      and would mostly be eaten by dedupe anyway.
+    notes: >
+      The licence has now been read, which is what moved this from `unknown`
+      to green. UB Public License 1.0 (https://cse.buffalo.edu/sneps/ubpl.pdf)
+      is a Mozilla Public License 1.1 derivative: §2.1 grants a "world-wide,
+      royalty-free, non-exclusive license ... to use, reproduce, modify,
+      display, perform, sublicense and distribute", and the words
+      "non-commercial", "research only" and "academic use only" do not appear
+      anywhere in it. §3.1 is file-level copyleft — redistribute the source
+      form under the same licence and ship a copy of the licence with it.
+      So: redistributable, commercially usable, ShareAlike-like per file.
+      Obligation is closer to CC BY-SA than to anything in the amber tier.
+
+      Dates: metadata/metadata.json gives an integer year and a prose/verse
+      mode for every one of the 748 files. That is per-work evidence, better
+      than the author-level floruits in authorities.yaml, and it is why
+      Authority.resolve has a `source-metadata` rank.
+
+      Expect heavy overlap — the corpus is largely DERIVED from Perseus and
+      the Latin Library. It is included anyway because 69% of its files are
+      classical, and classical is the one part of this corpus that cannot be
+      grown by finding more sources.
 
   - id: musisque-deoque
     name: Musisque Deoque — Latin poetry with critical apparatus
@@ -381,6 +523,7 @@ sources:
     tier: unknown
     include: false
     format: tei-xml
+    text_provenance: unknown    # not established
     period: CLASSICAL
     est_words: 4000000
     restriction: >

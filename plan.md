@@ -320,3 +320,88 @@ architecture, training process and resulting model.**
 Once LATIN-XXV works, its results determine whether the next step is a broader historical-Latin
 corpus at the same scale, deeper OCR work to push the clean-licence corpus toward its ~150M word
 ceiling, or a custom MLX/PyTorch training pipeline with explicit historical-period weighting.
+
+---
+
+## What the model is for, decided on evidence
+
+Added 2026-08-23, after LATIN-XXV was trained twice and put to work. This section
+replaces speculation about applications with a rule derived from measurement.
+
+### The rule
+
+Scored on six texts chosen because their answers were known:
+
+| input | perplexity |
+|---|---:|
+| real held-out Latin | 41.4 |
+| **the same words, shuffled** | **106.4** |
+| OCR-damaged Latin | 93.4 |
+| English | 495.8 |
+| keyboard gibberish | 3,406.5 |
+
+The second row is the whole argument. Identical vocabulary, identical word
+frequencies, scrambled order — and the model is **2.6× more surprised**. A
+frequency table would score those two texts identically. That gap is precisely
+what the model adds over counting words, and nothing else it does is unique.
+
+So: **the model earns its keep where word order carries the information, and
+loses wherever a frequency table already has the answer.**
+
+Era estimation is the proof of the second half. Scored under each period marker
+against 144 author-held-out dated records, it managed 50.7% where always
+guessing LATE gets 46.5% and a **unigram word-frequency classifier gets 81.9%**.
+It lost by 31 points to counting words, because what separates medieval from
+classical Latin is largely *which* words appear, not their order. Late antique
+Latin — chronologically between the two — came out near random.
+
+### Where it fits
+
+1. **OCR correction.** The strongest fit and the one that compounds. Choosing
+   between `de thesauro` and `de the sauro`, or `rn` against `m`, is impossible
+   from frequencies (both readings are real words) and straightforward from
+   context. Needs no knowledge of the world. And it feeds the corpus that trains
+   the next model: fifteen centuries of Latin sit un-digitised in scans, and
+   `sources.md` §3 already names OCR as the route to the ~150M-word ceiling.
+
+2. **Filling gaps in inscriptions.** Same shape — which word fits *here*, given
+   the syntax either side. Formulaic epigraphy is where a small model is
+   strongest, and the corpus holds half a million inscriptions. **Not literary
+   lacunae:** it would produce fluent plausible Latin that is not the lost text,
+   and presenting that as reconstruction would mislead.
+
+3. **Corpus quality control.** Already proven. `score.py --audit` found a Lorem
+   ipsum stub filed as *De Oratore*, a macaronic German-Latin carol, five copies
+   of a treatise on French pronunciation, and 2,206 words of one navigation link
+   repeated. Word frequencies would have missed the Lorem ipsum entirely — it
+   *is* Latin-ish vocabulary, just in impossible order.
+
+4. **A conversational partner for learners.** The target this plan already
+   names, and a genuine fit for a small model, because taking a turn in register
+   needs no facts. Register-matching emerged unprompted in the chat proof.
+
+### What its size buys
+
+105 MB, runs on a laptop, no API and no per-call cost, deterministic — and
+**provably trained only on openly licensed Latin**, with the corpus reproducible
+from pinned sources (demonstrated 2026-08-21: a rebuild three days later
+reproduced the corpus to the word and the vocabulary byte for byte). For a
+scholarly instrument that is not a footnote. No general-purpose model can state
+what it read.
+
+### What it is not for
+
+It **scores, it does not explain** — it can report that a passage is improbable,
+never why. It is small even for sequence work, and the corpus supports only
+~30M parameters at four epochs, so there is little headroom without more text.
+A frontier model would beat it at most of these tasks today, except on the two
+things it uniquely has: auditable provenance, and never having seen English.
+
+### And the results may outlast the tool
+
+The most interesting output so far is not an application. It is the
+size-versus-schedule ablation, the memorisation curves, and the corpus-cleaning
+experiment in which perplexity got *worse* while every behavioural measure got
+better. Bounded-corpus learning is under-studied because almost all work in the
+field happens where data is effectively infinite. Latin is closed. That is a
+rare thing to be able to study.

@@ -53,6 +53,9 @@ runs/
 *.gguf
 tokenizer/*.model
 
+# Session exports (skill output, machine-local)
+claude-session-*.html
+
 # macOS
 .DS_Store
 ._*

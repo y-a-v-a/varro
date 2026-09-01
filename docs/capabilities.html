@@ -1,0 +1,657 @@
+<title>LATIN-XXV-2, Measured</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    /* Page — complete light palette. Later blocks redefine tokens only. */
+    --paper:      #f4f5f3;
+    --surface:    #ffffff;
+    --sunken:     #eaece9;
+    --ink:        #16191c;
+    --ink-soft:   #414a52;
+    --muted:      #737d85;
+    --rule:       #d9ddda;
+    --rule-soft:  #e6e9e6;
+
+    /* Data — validated categorical slots 1 and 2, plus a neutral for controls.
+       All checks pass on #ffffff: CVD ΔE 24.7, normal-vision ΔE 33.6. */
+    --gen1:       #2a78d6;
+    --gen2:       #eb6834;
+    --neutral:    #8c959c;
+    --grid:       #e6e9e6;
+    --seq-100:    #cde2fb;
+    --seq-300:    #6da7ec;
+    --seq-450:    #2a78d6;
+    --seq-600:    #184f95;
+    --good:       #4a6b3d;
+    --good-soft:  #e6eee2;
+
+    --body: "Spectral", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0f1215;
+      --surface:    #171b1f;
+      --sunken:     #0a0d0f;
+      --ink:        #e6e9ea;
+      --ink-soft:   #b3bcc2;
+      --muted:      #869097;
+      --rule:       #282e33;
+      --rule-soft:  #1f2428;
+      --gen1:       #3987e5;
+      --gen2:       #d95926;
+      --neutral:    #7d868d;
+      --grid:       #252b30;
+      --seq-100:    #104281;
+      --seq-300:    #1c5cab;
+      --seq-450:    #3987e5;
+      --seq-600:    #86b6ef;
+      --good:       #94c081;
+      --good-soft:  #182118;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0f1215;
+    --surface:    #171b1f;
+    --sunken:     #0a0d0f;
+    --ink:        #e6e9ea;
+    --ink-soft:   #b3bcc2;
+    --muted:      #869097;
+    --rule:       #282e33;
+    --rule-soft:  #1f2428;
+    --gen1:       #3987e5;
+    --gen2:       #d95926;
+    --neutral:    #7d868d;
+    --grid:       #252b30;
+    --seq-100:    #104281;
+    --seq-300:    #1c5cab;
+    --seq-450:    #3987e5;
+    --seq-600:    #86b6ef;
+    --good:       #94c081;
+    --good-soft:  #182118;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17.5px;
+    line-height: 1.62;
+    margin: 0;
+    padding: clamp(1.75rem, 5vw, 4rem) clamp(1.1rem, 5vw, 2rem) 5rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 60rem; margin: 0 auto; display: flex; flex-direction: column; gap: 3rem; }
+  .prose { max-width: 33em; display: flex; flex-direction: column; gap: .85rem; }
+  p { margin: 0; }
+
+  h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 600; }
+  h1 { font-size: clamp(2rem, 5.5vw, 2.9rem); line-height: 1.1; letter-spacing: -.02em; }
+  h2 { font-size: 1.3rem; letter-spacing: -.01em; }
+  h3 { font-size: .98rem; }
+
+  .label {
+    font-family: var(--mono); font-size: .68rem; font-weight: 500;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+  }
+  .lede { font-size: 1.14rem; color: var(--ink-soft); max-width: 34em; }
+  code { font-family: var(--mono); font-size: .87em; background: var(--sunken);
+         padding: .1em .32em; border-radius: 2px; }
+
+  section { display: flex; flex-direction: column; gap: 1rem; }
+
+  figure {
+    margin: 0; background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 3px; padding: 1.2rem 1.35rem 1rem;
+    display: flex; flex-direction: column; gap: .75rem;
+  }
+  figcaption { display: flex; flex-direction: column; gap: .2rem; }
+  figcaption .t { font-weight: 600; font-size: 1rem; }
+  figcaption .s { font-size: .87rem; color: var(--muted); max-width: 42em; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: .3rem 1.1rem; }
+  .lg { display: flex; align-items: center; gap: .4rem;
+        font-family: var(--mono); font-size: .72rem; color: var(--ink-soft); }
+  .sw { width: 14px; height: 3px; border-radius: 1px; flex: none; }
+  .sw.dot { width: 9px; height: 9px; border-radius: 50%; }
+
+  .chart { width: 100%; overflow-x: auto; }
+  svg { display: block; max-width: 100%; height: auto; }
+  svg text { font-family: var(--mono); fill: var(--muted); }
+  .axis-line { stroke: var(--rule); stroke-width: 1; }
+  .grid-line { stroke: var(--grid); stroke-width: 1; }
+  .mark:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .tip {
+    position: fixed; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: var(--ink); color: var(--paper); font-family: var(--mono);
+    font-size: .72rem; padding: .35rem .55rem; border-radius: 3px;
+    z-index: 20; white-space: nowrap; line-height: 1.45;
+  }
+  .tip.on { opacity: 1; }
+
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .89rem; }
+  th, td { padding: .42rem .65rem; text-align: left; border-bottom: 1px solid var(--rule-soft); }
+  th { font-family: var(--mono); font-size: .64rem; font-weight: 500;
+       letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  td.f { font-family: var(--mono); font-size: .84rem; }
+  tr:last-child td { border-bottom: 0; }
+
+  details { border-top: 1px solid var(--rule-soft); padding-top: .6rem; }
+  summary { cursor: pointer; font-family: var(--mono); font-size: .72rem;
+            letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  details[open] summary { margin-bottom: .6rem; }
+
+  .note {
+    border-left: 2px solid var(--gen1); background: var(--sunken);
+    padding: .7rem .9rem; border-radius: 0 3px 3px 0;
+    font-size: .93rem; color: var(--ink-soft); max-width: 42em;
+  }
+  .note b { color: var(--ink); }
+  .note.win { border-left-color: var(--good); }
+
+  .verdicts { display: grid; gap: 1px; background: var(--rule);
+              border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+  @media (min-width: 46rem) { .verdicts { grid-template-columns: 1fr 1fr; } }
+  .v { background: var(--surface); padding: 1rem 1.15rem; display: flex; flex-direction: column; gap: .35rem; }
+  .v .h { font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
+          text-transform: uppercase; }
+  .v.yes .h { color: var(--good); }
+  .v.no .h { color: var(--gen2); }
+  .v p { font-size: .92rem; color: var(--ink-soft); }
+
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+  footer { color: var(--muted); font-size: .85rem; display: flex; flex-direction: column; gap: .3rem; }
+  a { color: var(--gen1); text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid var(--gen1); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) { .tip { transition: none; } }
+</style>
+
+<div class="page">
+
+  <header>
+    <div class="label">Claudius · what the model can and cannot do</div>
+    <h1>LATIN-XXV-2, measured</h1>
+    <p class="lede">
+      Every number here comes from a generated report, not a transcription. Where
+      the model loses to something simpler, that is on the page too — it is the
+      most useful thing we found out.
+    </p>
+  </header>
+
+  <section>
+    <div class="label">The short version</div>
+    <div class="verdicts">
+      <div class="v yes">
+        <div class="h">It can</div>
+        <p>Tell Latin from not-Latin by an order of magnitude. Write grammatical
+          Latin without reciting its training text. Find damaged and foreign
+          passages in a corpus of 78 million words.</p>
+      </div>
+      <div class="v no">
+        <div class="h">It cannot</div>
+        <p>Date a text — counting words beats it by 31 points. Know anything about
+          the world. Explain any judgement it makes; it reports that a passage is
+          improbable, never why.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <section>
+    <div class="label">Capability 1 · telling Latin from not-Latin</div>
+    <h2>The separation is wide, and one row explains the model</h2>
+    <figure>
+      <figcaption>
+        <div class="t">How surprised the model is, by input</div>
+        <div class="s">Perplexity, log scale — lower means "this looks like Latin to me".
+          Each input was chosen because its answer was already known.</div>
+      </figcaption>
+      <div class="chart"><svg id="c-sep" role="img"
+        aria-label="Perplexity by input type, log scale: model's own output 11.0, real held-out Latin 41.4, OCR-damaged Latin 93.4, the same Latin words shuffled 106.4, English 495.8, keyboard gibberish 3406.5."></svg></div>
+      <details>
+        <summary>Table view</summary>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Input</th><th class="n">Perplexity</th><th class="n">× real Latin</th></tr></thead>
+          <tbody id="t-sep"></tbody>
+        </table></div>
+      </details>
+    </figure>
+    <div class="note">
+      <b>Real Latin scores 41.4; the same words shuffled score 106.4.</b> Identical
+      vocabulary, identical word frequencies, different order — and the model is
+      2.6× more surprised. A frequency table would score those two texts exactly
+      the same. That gap is the whole of what this model adds over counting words,
+      and it predicts where it will be useful and where it will not.
+    </div>
+  </section>
+
+  <section>
+    <div class="label">Capability 2 · composing rather than reciting</div>
+    <h2>Cleaning the corpus halved what the model repeats</h2>
+    <figure>
+      <figcaption>
+        <div class="t">Generated passages found verbatim in the training text</div>
+        <div class="s">Share of word-runs of each length that appear somewhere in the
+          corpus the model trained on. The control is genuine Latin by an author
+          the model never saw — a run of real Latin shares short phrases with any
+          corpus, so zero is only meaningful beside it.</div>
+      </figcaption>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:var(--gen1)"></span>LATIN-XXV (first)</span>
+        <span class="lg"><span class="sw" style="background:var(--gen2)"></span>LATIN-XXV-2 (cleaned corpus)</span>
+        <span class="lg"><span class="sw" style="background:var(--neutral)"></span>real unseen Latin (control)</span>
+      </div>
+      <div class="chart"><svg id="c-memo" role="img"
+        aria-label="Verbatim overlap by run length. First generation: 20.0% at 3 words, 4.8% at 4, 1.1% at 5, 0.7% at 6, zero at 8 and 12. Second generation: 9.2% at 3 words, 1.1% at 4, zero from 5 onward. Control: 1.2%, 0.8%, 0.4%, then zero."></svg></div>
+      <details>
+        <summary>Table view · all four models</summary>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Run of words</th><th class="n">3</th><th class="n">4</th><th class="n">5</th><th class="n">6</th><th class="n">8</th><th class="n">12</th></tr></thead>
+          <tbody id="t-memo"></tbody>
+        </table></div>
+      </details>
+    </figure>
+    <div class="note win">
+      <b>Nothing survives at eight words, in any model this project has trained.</b>
+      The second generation reaches zero at five, where the first was still
+      reproducing text at six — and from five words up it now sits <em>below</em>
+      genuine unseen Latin, which the first generation never managed. The only
+      thing that changed between them was the corpus: 930 repeated editorial
+      datelines and a heap of degenerate navigation text were removed.
+    </div>
+  </section>
+
+  <section>
+    <div class="label">Capability 3 · dating a text</div>
+    <h2>Where it loses, and to what</h2>
+    <figure>
+      <figcaption>
+        <div class="t">Era estimation, 144 records held out by whole author</div>
+        <div class="s">Three eras — classical, late antique, medieval. Neolatin is
+          excluded: it has one training record, so the marker is untrained.</div>
+      </figcaption>
+      <div class="chart"><svg id="c-era" role="img"
+        aria-label="Era estimation accuracy: always guessing LATE 46.5 percent, model on long passages 53.5 percent, model on short passages 50.7 percent, unigram word frequencies 81.9 percent."></svg></div>
+    </figure>
+    <div class="note">
+      <b>A bag of words beats the model by 31 points.</b> What separates medieval
+      Latin from classical is largely <em>which</em> words appear, not the order
+      they come in — so a frequency table captures the whole signal and the model
+      adds nothing. This is the same finding as the shuffled-text row above, seen
+      from the other side.
+    </div>
+    <figure>
+      <figcaption>
+        <div class="t">Where each method's answers land</div>
+        <div class="s">Rows are the true era, columns the predicted one. The diagonal
+          is correct. Darker means more records.</div>
+      </figcaption>
+      <div id="c-conf" style="display:flex;flex-wrap:wrap;gap:1.6rem"></div>
+    </figure>
+    <div class="note">
+      Late antique Latin is where the model breaks down — 20 records called
+      classical, 20 late, 27 medieval, which is very close to guessing. That is
+      not unreasonable of it: late antique Latin genuinely sits between the two,
+      and the model has no sharper notion of it than "somewhere in the middle".
+      Classical and medieval it separates tolerably, at 76% and 67% recall.
+    </div>
+  </section>
+
+  <hr>
+
+  <section>
+    <div class="label">Training</div>
+    <h2>Two generations, the same recipe, 25 hours each</h2>
+    <figure>
+      <figcaption>
+        <div class="t">Held-out perplexity during the first phase</div>
+        <div class="s">Four passes over the whole corpus — 152 million tokens —
+          from random weights. Lower is better.</div>
+      </figcaption>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:var(--gen1)"></span>LATIN-XXV · 153.0M tokens</span>
+        <span class="lg"><span class="sw" style="background:var(--gen2)"></span>LATIN-XXV-2 · 152.2M tokens, cleaned</span>
+      </div>
+      <div class="chart"><svg id="c-train" role="img"
+        aria-label="Validation perplexity against training step for both generations. Both fall from about 62 at step 5,000 to about 26 at step 74,000, with the second generation consistently about 2 percent higher."></svg></div>
+    </figure>
+    <div class="note">
+      The second generation is consistently <b>about 2% worse on perplexity</b> and
+      better on every behavioural measure. The 930 editorial datelines it no longer
+      contains were formulaic and therefore easy to predict; removing them cost
+      perplexity and bought a model that recites less and no longer generates
+      editorial furniture. <b>Perplexity is a poor instrument for judging corpus
+      quality, because junk is predictable.</b>
+    </div>
+  </section>
+
+  <section>
+    <div class="label">The ladder</div>
+    <h2>Every model this project has trained</h2>
+    <div class="tablewrap"><table>
+      <thead><tr>
+        <th>Model</th><th class="n">Params</th><th>Corpus</th>
+        <th class="n">Perplexity</th><th class="n">vs floor</th>
+        <th class="n">Memorised</th><th>Comparable?</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="f">latin-0</td><td class="n">3.53M</td><td>classical</td>
+            <td class="n">74.3</td><td class="n">2.14×</td><td class="n">0.0%</td>
+            <td>unverifiable</td></tr>
+        <tr><td class="f">latin-2</td><td class="n">15.90M</td><td>all → classical</td>
+            <td class="n">44.1</td><td class="n">3.60×</td><td class="n">0.0%</td>
+            <td>unverifiable</td></tr>
+        <tr><td class="f">latin-xxv</td><td class="n">27.49M</td><td>all → classical</td>
+            <td class="n">29.8</td><td class="n">—</td><td class="n">0.0%</td>
+            <td>different corpus build</td></tr>
+        <tr><td class="f"><b>latin-xxv-2</b></td><td class="n">27.49M</td><td>all → classical</td>
+            <td class="n"><b>30.1</b></td><td class="n"><b>4.97×</b></td><td class="n">0.0%</td>
+            <td><b>verified</b></td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">
+      Only the last row's ratio is printed. The others were measured against floors
+      computed on different text through a different vocabulary, and the comparison
+      tool refuses to divide numbers that do not belong together — which is why
+      three rows show a dash rather than a flattering figure.
+    </div>
+  </section>
+
+  <footer>
+    <div>Claudius · an openly licensed Latin corpus, and a language model trained only on Latin.</div>
+    <div>All figures read from <code>reports/</code>, 23 August 2026.</div>
+  </footer>
+</div>
+
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+  const NS = "http://www.w3.org/2000/svg";
+  const tip = document.getElementById("tip");
+  const el = (n, a) => { const e = document.createElementNS(NS, n);
+    for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  function hover(node, html) {
+    const show = ev => {
+      tip.innerHTML = html;
+      tip.classList.add("on");
+      const r = tip.getBoundingClientRect();
+      const x = (ev.clientX ?? 0), y = (ev.clientY ?? 0);
+      tip.style.left = Math.min(window.innerWidth - r.width - 8, x + 12) + "px";
+      tip.style.top = Math.max(8, y - r.height - 10) + "px";
+    };
+    node.addEventListener("mousemove", show);
+    node.addEventListener("mouseenter", show);
+    node.addEventListener("focus", ev => {
+      const b = node.getBoundingClientRect();
+      show({ clientX: b.left + b.width / 2, clientY: b.top });
+    });
+    const hide = () => tip.classList.remove("on");
+    node.addEventListener("mouseleave", hide);
+    node.addEventListener("blur", hide);
+    node.setAttribute("tabindex", "0");
+    node.classList.add("mark");
+  }
+
+  // ---- 1. perplexity separation: dot plot on a log axis -------------------
+  const SEP = [
+    ["its own generated Latin", 11.0],
+    ["real held-out Latin", 41.4],
+    ["the same Latin, OCR-damaged", 93.4],
+    ["the same Latin words, shuffled", 106.4],
+    ["English prose", 495.8],
+    ["keyboard gibberish", 3406.5],
+  ];
+  (function sep() {
+    const W = 720, rowH = 34, padL = 232, padR = 62, padT = 10,
+          H = padT + SEP.length * rowH + 30;
+    const svg = document.getElementById("c-sep");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const lo = Math.log10(8), hi = Math.log10(5000);
+    const x = v => padL + (Math.log10(v) - lo) / (hi - lo) * (W - padL - padR);
+    [10, 100, 1000].forEach(t => {
+      svg.appendChild(el("line", { x1: x(t), x2: x(t), y1: padT, y2: padT + SEP.length * rowH,
+        class: "grid-line" }));
+      const lb = el("text", { x: x(t), y: padT + SEP.length * rowH + 16,
+        "text-anchor": "middle", "font-size": 10 });
+      lb.textContent = t; svg.appendChild(lb);
+    });
+    const ax = el("text", { x: W - padR, y: padT + SEP.length * rowH + 29,
+      "text-anchor": "end", "font-size": 9.5, "letter-spacing": ".08em" });
+    ax.textContent = "PERPLEXITY (LOG SCALE)"; svg.appendChild(ax);
+
+    SEP.forEach(([name, v], i) => {
+      const cy = padT + i * rowH + rowH / 2;
+      const real = v === 41.4;
+      svg.appendChild(el("line", { x1: padL, x2: x(v), y1: cy, y2: cy,
+        stroke: css("--rule"), "stroke-width": 1 }));
+      const g = el("g", {});
+      const dot = el("circle", { cx: x(v), cy: cy, r: real ? 7 : 5.5,
+        fill: real ? css("--gen2") : css("--seq-450"),
+        stroke: css("--surface"), "stroke-width": 2 });
+      g.appendChild(dot);
+      const nm = el("text", { x: padL - 12, y: cy + 4, "text-anchor": "end", "font-size": 11.5 });
+      nm.textContent = name;
+      nm.setAttribute("fill", real ? css("--ink") : css("--ink-soft"));
+      svg.appendChild(nm);
+      const val = el("text", { x: x(v) + 12, y: cy + 4, "font-size": 11, fill: css("--ink") });
+      val.textContent = v.toLocaleString();
+      svg.appendChild(g); svg.appendChild(val);
+      hover(g, `<b>${name}</b><br>perplexity ${v.toLocaleString()}<br>${(v / 41.4).toFixed(1)}× real Latin`);
+    });
+    const tb = document.getElementById("t-sep");
+    SEP.forEach(([n, v]) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${n}</td><td class="n">${v.toLocaleString()}</td>` +
+                     `<td class="n">${(v / 41.4).toFixed(1)}×</td>`;
+      tb.appendChild(tr);
+    });
+  })();
+
+  // ---- 2. memorisation curves --------------------------------------------
+  const WINDOWS = [3, 4, 5, 6, 8, 12];
+  const MEMO = {
+    "latin-xxv":   [20.00, 4.81, 1.11, 0.74, 0, 0],
+    "latin-xxv-2": [9.16, 1.15, 0, 0, 0, 0],
+    "control":     [1.16, 0.78, 0.39, 0, 0, 0],
+    "latin-0":     [16.33, 1.02, 0, 0, 0, 0],
+    "latin-2":     [23.62, 4.06, 0.37, 0, 0, 0],
+  };
+  (function memo() {
+    const W = 720, H = 300, padL = 46, padR = 96, padT = 14, padB = 40;
+    const svg = document.getElementById("c-memo");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const x = i => padL + i / (WINDOWS.length - 1) * (W - padL - padR);
+    const y = v => padT + (1 - v / 22) * (H - padT - padB);
+    [0, 5, 10, 15, 20].forEach(t => {
+      svg.appendChild(el("line", { x1: padL, x2: W - padR, y1: y(t), y2: y(t), class: "grid-line" }));
+      const lb = el("text", { x: padL - 8, y: y(t) + 4, "text-anchor": "end", "font-size": 10 });
+      lb.textContent = t + "%"; svg.appendChild(lb);
+    });
+    WINDOWS.forEach((w, i) => {
+      const lb = el("text", { x: x(i), y: H - padB + 18, "text-anchor": "middle", "font-size": 10.5 });
+      lb.textContent = w; svg.appendChild(lb);
+    });
+    const ax = el("text", { x: (padL + W - padR) / 2, y: H - 6, "text-anchor": "middle",
+      "font-size": 9.5, "letter-spacing": ".08em" });
+    ax.textContent = "RUN OF WORDS CHECKED"; svg.appendChild(ax);
+
+    [["control", css("--neutral"), "4 3"], ["latin-xxv", css("--gen1"), null],
+     ["latin-xxv-2", css("--gen2"), null]].forEach(([k, colour, dash]) => {
+      const pts = MEMO[k].map((v, i) => `${x(i)},${y(v)}`).join(" ");
+      const p = el("polyline", { points: pts, fill: "none", stroke: colour, "stroke-width": 2,
+        "stroke-linejoin": "round", "stroke-linecap": "round" });
+      if (dash) p.setAttribute("stroke-dasharray", dash);
+      svg.appendChild(p);
+      MEMO[k].forEach((v, i) => {
+        const c = el("circle", { cx: x(i), cy: y(v), r: 4.5, fill: colour,
+          stroke: css("--surface"), "stroke-width": 2 });
+        svg.appendChild(c);
+        hover(c, `<b>${k}</b><br>${WINDOWS[i]}-word runs<br>${v.toFixed(2)}% found in training`);
+      });
+      const last = MEMO[k].length - 1;
+      const lb = el("text", { x: x(last) + 12, y: y(MEMO[k][last]) + 4, "font-size": 10.5,
+        fill: css("--ink-soft") });
+      lb.textContent = k === "control" ? "control" : k;
+      svg.appendChild(lb);
+    });
+    const tb = document.getElementById("t-memo");
+    ["latin-0", "latin-2", "latin-xxv", "latin-xxv-2", "control"].forEach(k => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="f">${k}</td>` +
+        MEMO[k].map(v => `<td class="n">${v.toFixed(2)}%</td>`).join("");
+      tb.appendChild(tr);
+    });
+  })();
+
+  // ---- 3. era accuracy ----------------------------------------------------
+  const ERA = [
+    ["always guess LATE", 46.5, false],
+    ["model · short passages", 50.7, false],
+    ["model · long passages", 53.5, false],
+    ["word frequencies", 81.9, true],
+  ];
+  (function era() {
+    const W = 720, rowH = 40, padL = 190, padR = 58, padT = 8,
+          H = padT + ERA.length * rowH + 26;
+    const svg = document.getElementById("c-era");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const x = v => padL + v / 100 * (W - padL - padR);
+    [0, 25, 50, 75, 100].forEach(t => {
+      svg.appendChild(el("line", { x1: x(t), x2: x(t), y1: padT, y2: padT + ERA.length * rowH,
+        class: "grid-line" }));
+      const lb = el("text", { x: x(t), y: padT + ERA.length * rowH + 16,
+        "text-anchor": "middle", "font-size": 10 });
+      lb.textContent = t + "%"; svg.appendChild(lb);
+    });
+    ERA.forEach(([name, v, best], i) => {
+      const cy = padT + i * rowH + rowH / 2;
+      const h = 15;
+      const bar = el("rect", { x: padL, y: cy - h / 2, width: Math.max(3, x(v) - padL),
+        height: h, rx: 4, fill: best ? css("--gen2") : css("--seq-450") });
+      svg.appendChild(bar);
+      const nm = el("text", { x: padL - 12, y: cy + 4, "text-anchor": "end", "font-size": 11.5,
+        fill: best ? css("--ink") : css("--ink-soft") });
+      nm.textContent = name; svg.appendChild(nm);
+      const val = el("text", { x: x(v) + 10, y: cy + 4, "font-size": 11, fill: css("--ink") });
+      val.textContent = v.toFixed(1) + "%"; svg.appendChild(val);
+      hover(bar, `<b>${name}</b><br>${v.toFixed(1)}% of 144 records`);
+    });
+  })();
+
+  // ---- 4. confusion matrices ---------------------------------------------
+  const CONF = {
+    "word frequencies · 81.9%": [[17, 0, 0], [5, 52, 10], [0, 11, 49]],
+    "the model · 50.7%":        [[13, 3, 1], [20, 20, 27], [11, 9, 40]],
+  };
+  (function conf() {
+    const eras = ["CLASSICAL", "LATE", "MEDIEVAL"], wrap = document.getElementById("c-conf");
+    const ramp = [css("--seq-100"), css("--seq-300"), css("--seq-450"), css("--seq-600")];
+    Object.entries(CONF).forEach(([title, m]) => {
+      const box = document.createElement("div");
+      box.style.cssText = "display:flex;flex-direction:column;gap:.5rem;flex:1 1 17rem";
+      const h = document.createElement("div");
+      h.className = "lg"; h.textContent = title;
+      box.appendChild(h);
+      const cell = 52, padL = 78, padT = 44;
+      const svg = el("svg", { viewBox: `0 0 ${padL + cell * 3 + 6} ${padT + cell * 3 + 6}`,
+        role: "img", "aria-label": `Confusion matrix for ${title}` });
+      eras.forEach((e, j) => {
+        const t = el("text", { x: padL + j * cell + cell / 2, y: padT - 22,
+          "text-anchor": "middle", "font-size": 8.5, "letter-spacing": ".06em" });
+        t.textContent = e.slice(0, 5); svg.appendChild(t);
+      });
+      const pred = el("text", { x: padL + cell * 1.5, y: padT - 34, "text-anchor": "middle",
+        "font-size": 8, "letter-spacing": ".1em" });
+      pred.textContent = "PREDICTED"; svg.appendChild(pred);
+      m.forEach((row, i) => {
+        const total = row.reduce((a, b) => a + b, 0);
+        const t = el("text", { x: padL - 8, y: padT + i * cell + cell / 2 + 3.5,
+          "text-anchor": "end", "font-size": 9.5 });
+        t.textContent = eras[i]; svg.appendChild(t);
+        row.forEach((v, j) => {
+          const share = total ? v / total : 0;
+          const fill = v === 0 ? css("--sunken")
+            : ramp[Math.min(3, Math.floor(share * 4))];
+          const r = el("rect", { x: padL + j * cell + 1, y: padT + i * cell + 1,
+            width: cell - 3, height: cell - 3, rx: 2, fill: fill,
+            stroke: i === j ? css("--ink") : "none", "stroke-width": i === j ? 1.5 : 0 });
+          svg.appendChild(r);
+          const lab = el("text", { x: padL + j * cell + cell / 2 - 0.5,
+            y: padT + i * cell + cell / 2 + 4, "text-anchor": "middle", "font-size": 12,
+            fill: share > 0.5 ? css("--surface") : css("--ink") });
+          lab.textContent = v; svg.appendChild(lab);
+          hover(r, `<b>true ${eras[i]}</b><br>called ${eras[j]}<br>${v} of ${total} records`);
+        });
+      });
+      box.appendChild(svg);
+      wrap.appendChild(box);
+    });
+  })();
+
+  // ---- 5. training curves -------------------------------------------------
+  const STEPS = [5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 45000,
+                 50000, 55000, 60000, 65000, 70000, 74340];
+  const TRAIN = {
+    "latin-xxv":   [61.6, 43.6, 38.1, 34.8, 32.6, 31.3, 29.9, 29.0, 28.0, 27.2, 26.6, 26.1, 25.6, 25.3, 25.2],
+    "latin-xxv-2": [62.0, 44.8, 38.5, 35.4, 33.5, 31.9, 30.5, 29.5, 28.6, 27.8, 27.1, 26.6, 26.2, 26.0, 25.8],
+  };
+  (function train() {
+    const W = 720, H = 300, padL = 46, padR = 100, padT = 14, padB = 40;
+    const svg = document.getElementById("c-train");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const x = s => padL + s / 76000 * (W - padL - padR);
+    const y = v => padT + (1 - (v - 20) / 48) * (H - padT - padB);
+    [20, 30, 40, 50, 60].forEach(t => {
+      svg.appendChild(el("line", { x1: padL, x2: W - padR, y1: y(t), y2: y(t), class: "grid-line" }));
+      const lb = el("text", { x: padL - 8, y: y(t) + 4, "text-anchor": "end", "font-size": 10 });
+      lb.textContent = t; svg.appendChild(lb);
+    });
+    [0, 20000, 40000, 60000].forEach(s => {
+      const lb = el("text", { x: x(s), y: H - padB + 18, "text-anchor": "middle", "font-size": 10 });
+      lb.textContent = (s / 1000) + "k"; svg.appendChild(lb);
+    });
+    const ax = el("text", { x: (padL + W - padR) / 2, y: H - 6, "text-anchor": "middle",
+      "font-size": 9.5, "letter-spacing": ".08em" });
+    ax.textContent = "TRAINING STEP"; svg.appendChild(ax);
+    const yl = el("text", { x: padL - 8, y: padT - 2, "text-anchor": "end", "font-size": 9,
+      "letter-spacing": ".06em" });
+    yl.textContent = "PPL"; svg.appendChild(yl);
+
+    Object.entries(TRAIN).forEach(([k, series]) => {
+      const colour = k === "latin-xxv" ? css("--gen1") : css("--gen2");
+      const pts = series.map((v, i) => `${x(STEPS[i])},${y(v)}`).join(" ");
+      svg.appendChild(el("polyline", { points: pts, fill: "none", stroke: colour,
+        "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+      series.forEach((v, i) => {
+        const c = el("circle", { cx: x(STEPS[i]), cy: y(v), r: 4, fill: colour,
+          stroke: css("--surface"), "stroke-width": 1.5 });
+        svg.appendChild(c);
+        hover(c, `<b>${k}</b><br>step ${STEPS[i].toLocaleString()}<br>perplexity ${v.toFixed(1)}`);
+      });
+      const lb = el("text", { x: x(STEPS[STEPS.length - 1]) + 12,
+        y: y(series[series.length - 1]) + (k === "latin-xxv" ? 10 : -4),
+        "font-size": 10.5, fill: css("--ink-soft") });
+      lb.textContent = k; svg.appendChild(lb);
+    });
+  })();
+})();
+</script>

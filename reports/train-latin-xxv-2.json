@@ -1,0 +1,174 @@
+{
+  "config": {
+    "batch": 16,
+    "checkpoint_every": 1000,
+    "config": "latin-xxv",
+    "context": 512,
+    "corpus": "classical",
+    "dim": 512,
+    "dry_run": false,
+    "epochs": 3.0,
+    "eval_every": 250,
+    "heads": 8,
+    "init_from": "latin-xxv-2-latinitas",
+    "layers": 8,
+    "lr": 0.0001,
+    "name": "latin-xxv-2",
+    "period_tags": true,
+    "phase": "latin-xxv",
+    "resume": false,
+    "seed": 20260815,
+    "steps": 3494,
+    "vocab": 4000,
+    "warmup": 100,
+    "weight_decay": 0.1
+  },
+  "corpus": {
+    "group_by": "author",
+    "period_filter": [
+      "CLASSICAL"
+    ],
+    "records": 203,
+    "seed": 20260815,
+    "track": "A",
+    "train_words": 4311890,
+    "validation_words": 219225,
+    "words": 4531115
+  },
+  "corpus_name": "classical",
+  "epochs": 3.000317087914904,
+  "epochs_requested": 3.0,
+  "final": {
+    "elapsed_s": 4154.7232167720795,
+    "lr": 1.0000018846767489e-05,
+    "step": 3494,
+    "train_loss": 3.1740426851100607,
+    "val_loss": 3.403965395689011,
+    "val_perplexity": 30.083155455445134
+  },
+  "generated": "2026-08-22T14:47:27+00:00",
+  "history": [
+    {
+      "elapsed_s": 296.60502076148987,
+      "lr": 9.957268775906414e-05,
+      "step": 250,
+      "train_loss": 3.564510536193848,
+      "val_loss": 3.478622537851334,
+      "val_perplexity": 32.41504081778381
+    },
+    {
+      "elapsed_s": 593.3777029514313,
+      "lr": 9.696567576611415e-05,
+      "step": 500,
+      "train_loss": 3.480964957237244,
+      "val_loss": 3.4437619149684906,
+      "val_perplexity": 31.304501809032118
+    },
+    {
+      "elapsed_s": 891.2134609222412,
+      "lr": 9.212142322212458e-05,
+      "step": 750,
+      "train_loss": 3.4122662868499756,
+      "val_loss": 3.4447844326496124,
+      "val_perplexity": 31.33652758630196
+    },
+    {
+      "elapsed_s": 1190.08886384964,
+      "lr": 8.529819024261087e-05,
+      "step": 1000,
+      "train_loss": 3.371088366508484,
+      "val_loss": 3.43276424407959,
+      "val_perplexity": 30.962111400278683
+    },
+    {
+      "elapsed_s": 1487.40819978714,
+      "lr": 7.685973105253652e-05,
+      "step": 1250,
+      "train_loss": 3.3327366495132447,
+      "val_loss": 3.4218247890472413,
+      "val_perplexity": 30.625248681594144
+    },
+    {
+      "elapsed_s": 1784.169977903366,
+      "lr": 6.725590355927125e-05,
+      "step": 1500,
+      "train_loss": 3.306841237068176,
+      "val_loss": 3.424502909183502,
+      "val_perplexity": 30.707376702031546
+    },
+    {
+      "elapsed_s": 2080.7610518932343,
+      "lr": 5.6998705986188725e-05,
+      "step": 1750,
+      "train_loss": 3.2848229475021364,
+      "val_loss": 3.4190818548202513,
+      "val_perplexity": 30.54136074092272
+    },
+    {
+      "elapsed_s": 2377.578640937805,
+      "lr": 4.663495201384649e-05,
+      "step": 2000,
+      "train_loss": 3.2459648103713987,
+      "val_loss": 3.412904644012451,
+      "val_perplexity": 30.353281816908247
+    },
+    {
+      "elapsed_s": 2674.5759239196777,
+      "lr": 3.6717148759635165e-05,
+      "step": 2250,
+      "train_loss": 3.2232150468826295,
+      "val_loss": 3.410619741678238,
+      "val_perplexity": 30.284006706004234
+    },
+    {
+      "elapsed_s": 2971.162167787552,
+      "lr": 2.7774021873483434e-05,
+      "step": 2500,
+      "train_loss": 3.2053432846069336,
+      "val_loss": 3.408605235815048,
+      "val_perplexity": 30.223060805482135
+    },
+    {
+      "elapsed_s": 3267.7257018089294,
+      "lr": 2.0282341210986488e-05,
+      "step": 2750,
+      "train_loss": 3.184290212631226,
+      "val_loss": 3.406447285413742,
+      "val_perplexity": 30.157911259314986
+    },
+    {
+      "elapsed_s": 3565.806552886963,
+      "lr": 1.4641494090028573e-05,
+      "step": 3000,
+      "train_loss": 3.1882008152008057,
+      "val_loss": 3.402591550350189,
+      "val_perplexity": 30.04185422978997
+    },
+    {
+      "elapsed_s": 3863.5546407699585,
+      "lr": 1.1152202205266804e-05,
+      "step": 3250,
+      "train_loss": 3.164763080596924,
+      "val_loss": 3.405106419324875,
+      "val_perplexity": 30.117500637467135
+    },
+    {
+      "elapsed_s": 4154.7232167720795,
+      "lr": 1.0000018846767489e-05,
+      "step": 3494,
+      "train_loss": 3.1740426851100607,
+      "val_loss": 3.403965395689011,
+      "val_perplexity": 30.083155455445134
+    }
+  ],
+  "parameters": 27493376,
+  "recipe": "latin-xxv",
+  "run": "latin-xxv-2",
+  "schema_version": 1,
+  "tokenizer": {
+    "sha256": "8ba446f1041eeaa7",
+    "vocab": 4000
+  },
+  "train_tokens": 9539941,
+  "validation_tokens": 569398
+}

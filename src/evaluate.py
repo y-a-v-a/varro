@@ -34,6 +34,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import math
 import sys
@@ -205,12 +206,41 @@ def corpus_fingerprint(corpus: str = "corpus") -> Dict[str, Any]:
              "group_by", "seed", "period_filter")}
 
 
-def write_report(name: str, payload: Dict[str, Any]) -> Path:
+def tokenizer_fingerprint(vocab: int = DEFAULT_VOCAB) -> Dict[str, Any]:
+    """Which tokenizer produced these numbers.
+
+    The corpus fingerprint alone is not enough to decide whether two
+    perplexities compare. Measured 2026-08-18: the classical corpus changed by
+    three words between builds and its bigram floor still moved 158.8 -> 149.8,
+    because the 4k vocabulary had been retrained on a corpus 4.6x larger. Same
+    Latin, different merges, different token stream, different floor. A guard
+    that watched only the corpus would have called that pair comparable.
+    """
+    path = TOKENIZERS / f"latin-bpe-{vocab}.json"
+    if not path.exists():
+        return {"vocab": vocab, "sha256": None}
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+    return {"vocab": vocab, "sha256": digest}
+
+
+def write_report(name: str, payload: Dict[str, Any],
+                 corpus: str = "corpus",
+                 vocab: int = DEFAULT_VOCAB) -> Path:
+    """Write a versioned report, stamped with the corpus it was measured on.
+
+    The stamp must name *this* report's corpus, not the default one. It was
+    hardcoded to the full corpus until 2026-08-18, so every
+    `baselines-classical.json` claimed to have been measured on the full
+    corpus's 17.2M words — the exact confusion that produced the wrong floor
+    for Latin-0. A fingerprint that names the wrong corpus is worse than none.
+    """
     REPORTS.mkdir(parents=True, exist_ok=True)
     report = {
         "schema_version": SCHEMA_VERSION,
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "corpus": corpus_fingerprint(),
+        "corpus_name": corpus,
+        "corpus": corpus_fingerprint(corpus),
+        "tokenizer": tokenizer_fingerprint(vocab),
         **payload,
     }
     path = REPORTS / f"{name}.json"
@@ -352,7 +382,17 @@ def cmd_memorisation(args) -> Dict[str, Any]:
         curve[w] = {"text": here, "control": there}
         print(f"{w:>7} {here:>10.1%} {there:>18.1%}")
 
-    return {"memorization": result, "window": args.window, "curve": curve}
+    # WHY THE MODEL IS RECORDED HERE AND NOT INFERRED
+    #   This command scores a FILE, so nothing in it knows which checkpoint
+    #   wrote that file. reports/memorization-latin-lii-unattributed.json was
+    #   permanently unattributable for exactly this reason: two 52M
+    #   checkpoints existed when it was written, one of them the abandoned
+    #   narrowing run, and no artifact records which one was sampled.
+    if not args.sampled_from:
+        print("\nWARNING: no --sampled-from, so this report will not say "
+              "which model wrote the text it scored.", file=sys.stderr)
+    return {"memorization": result, "window": args.window, "curve": curve,
+            "sampled_from": args.sampled_from}
 
 
 def main() -> int:
@@ -372,6 +412,10 @@ def main() -> int:
                          "side rather than overwriting each other")
     ap.add_argument("--corpus", default="corpus",
                     help="corpus basename to evaluate against")
+    ap.add_argument("--sampled-from", metavar="MODEL",
+                    help="which checkpoint produced the text being scored. "
+                         "Recorded in the report; without it the result cannot "
+                         "later be attributed to a model")
     args = ap.parse_args()
 
     suffix = f"-{args.name}" if args.name else ""
@@ -385,7 +429,7 @@ def main() -> int:
         ap.print_help()
         return 0
 
-    path = write_report(name, payload)
+    path = write_report(name, payload, args.corpus, args.vocab)
     print(f"\nwrote {path.relative_to(ROOT)}")
     return 0
 

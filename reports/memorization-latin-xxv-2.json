@@ -1,0 +1,54 @@
+{
+  "corpus": {
+    "group_by": "author",
+    "period_filter": [
+      "CLASSICAL"
+    ],
+    "records": 203,
+    "seed": 20260815,
+    "track": "A",
+    "train_words": 4311890,
+    "validation_words": 219225,
+    "words": 4531115
+  },
+  "corpus_name": "classical",
+  "curve": {
+    "3": {
+      "control": 0.011627906976744186,
+      "text": 0.0916030534351145
+    },
+    "4": {
+      "control": 0.007751937984496124,
+      "text": 0.011494252873563218
+    },
+    "5": {
+      "control": 0.003875968992248062,
+      "text": 0.0
+    },
+    "6": {
+      "control": 0.0,
+      "text": 0.0
+    },
+    "8": {
+      "control": 0.0,
+      "text": 0.0
+    },
+    "12": {
+      "control": 0.0,
+      "text": 0.0
+    }
+  },
+  "generated": "2026-08-22T14:48:28+00:00",
+  "memorization": {
+    "fraction": 0.0,
+    "longest_verbatim_words": 0,
+    "memorised": 0,
+    "windows": 1297
+  },
+  "schema_version": 1,
+  "tokenizer": {
+    "sha256": "8ba446f1041eeaa7",
+    "vocab": 4000
+  },
+  "window": 12
+}
