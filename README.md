@@ -59,6 +59,12 @@ which licence, in what proportion. `python src/provenance.py --check` regenerate
 Track A build carries non-redistributable material, or if the notice has drifted. Run it after any
 manifest change and before publishing anything.
 
+Each corpus needs its own notice, so run it twice. `--corpus corpus-b` writes
+[`ATTRIBUTION-corpus-b.md`](ATTRIBUTION-corpus-b.md) for Track B, which credits the two
+NonCommercial sources LATIN-LII trains on. NonCommercial restricts what the result may be used
+*for*; it does not excuse crediting anyone, and the BY in LASLA's CC BY-NC-SA is the same BY as
+anywhere else.
+
 ## Layout
 
 ```

@@ -82,9 +82,18 @@ defaults:
 phases:
   # Latinitas — fifteen centuries of Latin, every document era-tagged so the
   # period is a thing the model can be asked for rather than a thing it has
-  # to infer. Note that 42% of the corpus is currently UNASSIGNED and carries
-  # no tag at all; improving that coverage is worth more to conditioned
-  # generation than the next ten million words are.
+  # to infer. 27.0% of the corpus is still UNASSIGNED and carries no tag at
+  # all -- down from 42% before the Corpus Corporum rebuild, which dated a
+  # large share of what had been undated. Improving the rest is still worth
+  # more to conditioned generation than the next ten million words are.
+  #
+  # Measured coverage of corpus-b.train, by words:
+  #   MEDIEVAL 31.9%   UNASSIGNED 27.0%   LATE 21.6%
+  #   NEOLATIN 15.3%   CLASSICAL   4.2%
+  #
+  # CLASSICAL being 4.2% is why the classical annealing phase had so little to
+  # narrow onto, and the UNASSIGNED share is the likeliest cause of the
+  # MEDIEVAL-into-LATE confusion demos/aetas.py measures.
   - name: latin-lii
     corpus: corpus-b
     epochs: 4.0          # the line past which repeated data stops paying
