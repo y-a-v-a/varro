@@ -514,8 +514,9 @@ research-only sources are on disk** — verified, twice.
 
 Corpus Corporum (215M words) and IntraText (10M) are still `method: manual` —
 no bulk endpoint, and Corpus Corporum needs a human at mlat.uzh.ch. It also
-contains the entire Patrologia Latina and Perseus, both already held here, so
-its headline is not 215M new words.
+contains the entire Patrologia Latina and Perseus, believed already held here,
+so its headline is not 215M new words. Believed, not measured — see
+`manifest/sources.yaml` on why the containment check stays unrun.
 
 ---
 
