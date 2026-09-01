@@ -6,6 +6,90 @@ stale, and what to do next.
 
 ---
 
+## Update 2026-09-01 — LATIN-LII trained: 21.3, 8.73x its floor
+
+74 hours, 52.07M parameters, four epochs over 263,558,393 tokens at 20.2
+tokens/param, zero errors. The largest model the project has trained, and
+the first with a floor computed on its own corpus rather than borrowed.
+
+| model | params | corpus | ppl | floor | x better |
+|---|---:|---|---:|---:|---:|
+| **LATIN-LII** | 52.07M | corpus-b | **21.3** | 185.90 | **8.73** |
+| LATIN-XXV-2 | 27.49M | corpus | 25.8 | 180.62 | 7.00 |
+| LATIN-2 | 15.90M | corpus | 44.1 | — | — |
+| LATIN-0 | 3.53M | classical | 74.3 | — | — |
+
+corpus-b's floor (185.90) is HIGHER than Track A's (180.62): the corpus got
+genuinely harder when the medieval and neo-Latin arrived, so 7.00x -> 8.73x
+is a real gain and not an easier test. Per-period floors say classical is
+the hardest slice for a bigram model at 201.2, medieval and neo-Latin the
+most formulaic at ~179.
+
+### The annealing phase has a capacity ceiling, and 52M is past it
+
+The recipe's second phase narrows onto classical. Measured on the same
+held-out sets through the same vocabulary:
+
+| checkpoint | on classical | on corpus-b |
+|---|---:|---:|
+| after latinitas | **27.3** | **21.3** |
+| after romanitas | 30.2 | 32.5 |
+
+It made the model worse at the thing it exists for. Re-run against
+LATIN-XXV-2 through its archived vocabulary, the same phase gives the
+OPPOSITE result — 34.8 -> 28.3 on classical — so the phase is not wrong in
+itself.
+
+The cause is arithmetic. `classical.train` is a SUBSET of `corpus.train`,
+so the phase introduces no new text; it only re-weights toward 4% of what
+the model has already read. At 27.5M there is still something to learn
+from that. At 52M there is not: 10.7M tokens against 52M parameters is 0.4
+tokens/param, fifty times short of what the weights can absorb, so the
+model memorises instead. The train/validation gap went 0.138 -> 0.484
+while held-out perplexity got worse.
+
+**LATIN-LII is now single-phase.** LATIN-VII at 7.28M is under the ceiling
+and could take a narrowing phase if one were ever wanted. I called the
+two-phase structure "unsound" before measuring LATIN-XXV-2; that was
+wrong, and the ceiling is the accurate statement.
+
+### It does not recite
+
+| window | LATIN-LII's output | real unseen Latin |
+|---:|---:|---:|
+| 3 words | 27.6% | 27.1% |
+| 6 | 3.0% | 12.0% |
+| 8 | 0.4% | 9.6% |
+| **12** | **0.0%** | **6.0%** |
+
+The control is 547 held-out works, 207,866 words the model never saw,
+scored against the same training corpus. Genuine Latin overlaps training
+text at 6% of 12-word windows because scripture, liturgy and formula
+recur. The model's own output overlaps at 0.0% — from four words upward
+it matches training text LESS than authentic unseen Latin does. Two
+memorised windows in 3,473; longest verbatim run 13 words.
+
+That settles what the 0.484 gap meant: fits the distribution better, not
+recites Cicero. And it is the evidence Track B's framing needs — weights
+that reproduce 0% of 12-word windows are not a redistribution of the
+NonCommercial corpus they were trained on.
+
+### Operational notes worth keeping
+
+- **batch 8, not 16.** 40 steps at batch 8 took 48 seconds; the same 40 at
+  batch 16 had not finished after seven minutes. The cliff LATIN-XXV
+  recorded at dim 512 arrives earlier at dim 640.
+- **Watch free memory, not process RSS.** MLX allocates unified memory,
+  which `ps` does not attribute to the process, so a thrashing run reads as
+  0.1 GB at 11% CPU — starved rather than greedy. Two probes were misread
+  that way, costing an hour and a 143-day ETA scare.
+- **A checkpoint is meaningless without its tokenizer.** Scoring
+  LATIN-XXV-2 through the current vocabulary gave perplexity 3,740. It was
+  trained through 8ba446f1 and the corpus now uses f64b7246. The archived
+  vocabularies are what make the comparison recoverable at all.
+
+---
+
 ## Update 2026-08-26 (later still) — three candidate corpora, worked in order
 
 Cheapest first: Tesserae, IntraText, Corpus Corporum. One landed, one is

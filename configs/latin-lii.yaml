@@ -28,15 +28,20 @@
 #   correctly, with no edit. Until then, either accept 14 tokens/param or
 #   raise phase one to 5.7 epochs for a one-off run and say so in the report.
 #
-# BATCH SIZE IS A GUESS AND MUST BE MEASURED
-#   LATIN-XXV measured batch 8, 16 and 24 within 8% of each other at dim 512 /
-#   8 layers, and chose 16. This model is ~1.6x the activation memory, and the
-#   failure mode on a 16GB machine is not degradation but collapse — 13x
-#   slower per token once the working set stops fitting. 8 is the conservative
-#   start. Measure before committing to a 60-hour run.
+# BATCH SIZE, NOW MEASURED
+#   40 steps at batch 8 took 48 seconds. The same 40 steps at batch 16 had not
+#   finished after seven minutes. That is the collapse LATIN-XXV recorded at
+#   dim 512, arriving earlier here because the model is larger: not gradual
+#   degradation but a cliff, once the working set stops fitting 16GB.
+#
+#   Watch the machine's free memory, not the process's RSS. MLX allocates
+#   unified memory, which `ps` does not attribute to the process, so a
+#   thrashing run looks like 0.1 GB at 11% CPU — starved rather than greedy.
+#   Two probes were misread that way here before the cause was found.
 
 name: latin-lii
 description: 52.07M parameters, all Latin including NonCommercial sources, era-tagged.
+# Single phase: see the note below on why the classical narrowing phase was removed.
 
 defaults:
   vocab: 4000
@@ -49,26 +54,39 @@ defaults:
   checkpoint_every: 1000
   period_tags: true
 
+# WHY THERE IS NO ROMANITAS PHASE HERE, THOUGH LATIN-XXV HAS ONE
+#   It was tried and it made the model worse at the thing it was for.
+#   Measured on the same held-out sets, through the same vocabulary:
+#
+#                          on classical   on corpus-b
+#     after latinitas             27.3          21.3
+#     after romanitas             30.2          32.5
+#
+#   LATIN-XXV-2 at 27.5M parameters gets the opposite result — 34.8 -> 28.3 on
+#   classical — so the phase is not wrong in itself. It has a capacity ceiling,
+#   and 52M is past it.
+#
+#   The cause is arithmetic. classical.train is a SUBSET of corpus.train, so
+#   the phase introduces no new text; it only re-weights toward 4% of what the
+#   model has already read. At 27.5M there is still something to learn from
+#   that. At 52M there is not: 10.7M tokens against 52M parameters is 0.4
+#   tokens per parameter, fifty times short of what the weights can absorb, so
+#   the model memorises instead. The train/validation gap went from 0.138 to
+#   0.484 while held-out perplexity got worse.
+#
+#   Do not re-add this phase for a model this size. A genuine narrowing phase
+#   would need classical text HELD OUT of phase one — otherwise it is
+#   re-reading, not transfer, which is the confound feasibility.md suspected
+#   and this measures.
+
 phases:
   # Latinitas — fifteen centuries of Latin, every document era-tagged so the
   # period is a thing the model can be asked for rather than a thing it has
   # to infer. Note that 42% of the corpus is currently UNASSIGNED and carries
   # no tag at all; improving that coverage is worth more to conditioned
   # generation than the next ten million words are.
-  - name: latin-lii-latinitas
+  - name: latin-lii
     corpus: corpus-b
     epochs: 4.0          # the line past which repeated data stops paying
     lr: 2.5e-4
     warmup: 1000
-
-  # Romanitas — narrow onto classical. Short, because adapting register inside
-  # a language already known is far cheaper than learning the language.
-  # Optimizer state is deliberately not carried over: a phase change wants a
-  # fresh schedule.
-  - name: latin-lii
-    corpus: classical
-    init_from: latin-lii-latinitas
-    epochs: 2.0
-    lr: 1.0e-4
-    warmup: 100
-    eval_every: 250

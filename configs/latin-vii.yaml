@@ -38,6 +38,15 @@ defaults:
   checkpoint_every: 500
   period_tags: true
 
+# WHY THIS ONE MAY LATER WANT A NARROWING PHASE AND LATIN-LII MUST NOT
+#   The classical annealing phase has a capacity ceiling. Measured: at 27.5M
+#   parameters it improves classical perplexity 34.8 -> 28.3; at 52M it makes
+#   it worse, 27.3 -> 30.2, because 10.7M tokens cannot occupy that many
+#   weights and the model memorises instead. 7.28M is comfortably under the
+#   ceiling, so if a narrowing phase is ever wanted, this is the model that
+#   can take one — though here it would narrow onto the corpus it already
+#   trains on, so there would be nothing to narrow from.
+
 phases:
   - name: latin-vii
     corpus: classical
