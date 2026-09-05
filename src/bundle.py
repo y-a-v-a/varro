@@ -12,9 +12,16 @@ build.py and provenance.py all enforce. This script closes both holes:
      report — or the assembly fails. Prose lives in a template under
      docs/modelcards/<name>.md; numbers are substituted, never retyped.
 
-  2. Only Track A models can be bundled. LATIN-LII trains on NonCommercial
-     material and its weights inherit that restriction; asking for it here
-     is a hard error, not a warning.
+  2. Only Track A models can be bundled for publication. LATIN-LII trains on
+     NonCommercial material and its weights inherit that restriction; asking
+     for it here is a hard error, not a warning.
+
+     --research-only lifts that for local inspection alone. It cannot be
+     reached by accident, it writes to dist/research/ rather than the dist/
+     directory the upload command points at, and the bundle it produces
+     declares its own restriction: NC licence in the card frontmatter, a
+     research-only header, and a DO-NOT-REDISTRIBUTE.md beside the weights.
+     A bundle that escapes should say what it is without needing this script.
 
 The same fingerprint discipline as train.py applies: the baseline floor is
 quoted only if its report describes the same corpus and the same tokenizer
@@ -24,6 +31,8 @@ refused, not approximated.
 Usage:
     python src/bundle.py --name latin-vii
     hf upload <user>/latin-vii dist/latin-vii . --repo-type model
+
+    python src/bundle.py --name latin-lii-latinitas --research-only
 """
 
 import argparse
@@ -33,7 +42,7 @@ import shutil
 import string
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, NoReturn
 
 ROOT = Path(__file__).resolve().parent.parent
 REPORTS = ROOT / "reports"
@@ -41,6 +50,7 @@ CHECKPOINTS = ROOT / "checkpoints"
 TOKENIZERS = ROOT / "data" / "processed" / "tokenizers"
 MODELCARDS = ROOT / "docs" / "modelcards"
 DIST = ROOT / "dist"
+RESEARCH_DIST = DIST / "research"
 LOADER = ROOT / "src" / "hf_loader.py"
 
 # The HF frontmatter wants a licence identifier from its fixed list. Only
@@ -52,8 +62,38 @@ HF_LICENSE_IDS = {
     "CC-BY-SA-4.0 + UBPL-1.0": "cc-by-sa-4.0",
 }
 
+# Reachable only under --research-only. Kept separate so a NonCommercial
+# licence can never be resolved on the publication path: a corpus that
+# resolves to NC while claiming Track A is a contradiction, and it should
+# fail rather than quietly stamp the bundle with an NC identifier.
+RESEARCH_LICENSE_IDS = {
+    "CC-BY-NC-SA-4.0": "cc-by-nc-sa-4.0",
+    "NonCommercial — research only": "other",
+}
 
-def fail(msg: str) -> None:
+REDISTRIBUTION_NOTICE = """# Do not redistribute
+
+These weights were trained on the claudius **Track B** corpus, which includes
+NonCommercial sources. They are a research artifact: publishable as results,
+not as a download.
+
+- Effective licence of the training corpus: **{licence}**
+- NonCommercial sources: {nc_sources}
+
+The project's position is that NonCommercial propagates into weights, which
+is why `src/bundle.py` refuses Track B models on the publication path and why
+this bundle was written to `dist/research/` instead. It exists so the result
+can be inspected and run locally.
+
+If you want a Latin model to publish or build on, use LATIN-VII, whose corpus
+carries no NonCommercial term anywhere: https://huggingface.co/vincent-b/latin-vii
+
+Attribution for every source, including the NonCommercial ones, is in
+ATTRIBUTION.md — the BY in CC BY-NC-SA is the same BY as anywhere else.
+"""
+
+
+def fail(msg: str) -> NoReturn:
     sys.exit(f"bundle: {msg}")
 
 
@@ -64,18 +104,31 @@ def load_report(path: Path, hint: str) -> Dict[str, Any]:
         return json.load(fh)
 
 
-def guard_track(train_report: Dict[str, Any], name: str) -> None:
+def guard_track(train_report: Dict[str, Any], name: str,
+                research_only: bool = False) -> str:
     """Refuse to bundle a model whose training corpus was not Track A.
 
     The track is read from the training report — what the model actually
     saw — not from the corpus currently on disk, which may have been
-    rebuilt since.
+    rebuilt since. Returns the track, so callers need not re-read it.
+
+    `research_only` permits Track B for local inspection. It never permits
+    an unknown track: a report that does not say what it trained on is a
+    reason to stop, not a reason to guess.
     """
     track = (train_report.get("corpus") or {}).get("track")
-    if track != "A":
+    if track == "A":
+        return track
+    if track == "B" and research_only:
+        return track
+    if track == "B":
         fail(f"{name} trained on a Track {track!r} corpus. Only Track A "
              f"(redistributable) models may be bundled; NonCommercial terms "
-             f"propagate into the weights.")
+             f"propagate into the weights. Pass --research-only to assemble "
+             f"it locally for inspection instead.")
+    fail(f"{name} has no usable track in its training report (found "
+         f"{track!r}). Retrain or repair the report; the track is derived, "
+         f"never assumed.")
 
 
 def matched_floor(train_report: Dict[str, Any], corpus: str) -> float:
@@ -93,13 +146,25 @@ def matched_floor(train_report: Dict[str, Any], corpus: str) -> float:
 
 def fmt_m(n: float) -> str:
     """151_552_000 -> '151.5M' — the card's compact figure style."""
-    return f"{n / 1e6:.1f}M".replace(".0M", "M") if n >= 1e6 else f"{n:,.0f}"
+    if n >= 1e9:
+        return f"{n / 1e9:.2f}B"
+    if n >= 1e6:
+        return f"{n / 1e6:.1f}M".replace(".0M", "M")
+    return f"{n:,.0f}"
 
 
-def source_table(rows: List[Dict[str, Any]]) -> str:
+def source_table(rows: List[Dict[str, Any]], mark_nc: bool = False) -> str:
+    """The per-source table.
+
+    `mark_nc` flags the sources that restrict the whole corpus — on a Track B
+    card the reader needs to see which two of eleven sources are the reason
+    the weights cannot be redistributed.
+    """
     lines = []
     for r in rows:
         licence = "public domain" if r["license"] == "public-domain" else r["license"]
+        if mark_nc and r["tier"] == "amber":
+            licence += " **(NC)**"
         lines.append(f"| {r['name']} | {r['share']:.1%} | {licence} |")
     return "\n".join(lines)
 
@@ -115,7 +180,8 @@ def memo_table(curve: Dict[str, Dict[str, float]]) -> str:
 def build_values(name: str, train_report: Dict[str, Any],
                  floor: float, memo_report: Dict[str, Any],
                  sources: List[Dict[str, Any]], effective_license: str,
-                 default_period: str) -> Dict[str, str]:
+                 default_period: str,
+                 research_only: bool = False) -> Dict[str, str]:
     cfg = train_report["config"]
     corpus_info = train_report["corpus"]
     final = train_report["final"]
@@ -125,13 +191,19 @@ def build_values(name: str, train_report: Dict[str, Any],
     tokens_seen = cfg["steps"] * cfg["batch"] * cfg["context"]
     memo = memo_report["memorization"]
 
-    if effective_license not in HF_LICENSE_IDS:
-        fail(f"no HF licence identifier mapped for {effective_license!r} — "
-             f"decide one and add it to HF_LICENSE_IDS")
+    known = dict(HF_LICENSE_IDS)
+    if research_only:
+        known.update(RESEARCH_LICENSE_IDS)
+    if effective_license not in known:
+        hint = ("" if research_only else
+                " (NonCommercial licences map only under --research-only)")
+        fail(f"no HF licence identifier mapped for {effective_license!r}"
+             f"{hint} — decide one and add it to HF_LICENSE_IDS")
 
     return {
         "name": name,
-        "hf_license": HF_LICENSE_IDS[effective_license],
+        "recipe": cfg["config"],
+        "hf_license": known[effective_license],
         "effective_license": effective_license,
         "track": corpus_info["track"],
         "parameters": f"{params:,}",
@@ -158,9 +230,10 @@ def build_values(name: str, train_report: Dict[str, Any],
         "heads": str(cfg["heads"]),
         "context": str(cfg["context"]),
         "tokenizer_sha": train_report["tokenizer"]["sha256"],
-        "period_tag": default_period or "CLASSICAL",
-        "period_tag_lower": (default_period or "CLASSICAL").lower(),
-        "source_table": source_table(sources),
+        "period_tag": default_period or "none",
+        "period_tag_lower": (default_period or "none").lower(),
+        "nc_share": f"{sum(r['share'] for r in sources if r['tier'] == 'amber'):.1%}",
+        "source_table": source_table(sources, mark_nc=research_only),
         "memo_table": memo_table(memo_report["curve"]),
     }
 
@@ -207,6 +280,7 @@ def write_config(out: Path, name: str, train_report: Dict[str, Any],
         "tie_word_embeddings": True,
         "parameters": train_report["parameters"],
         "default_period_tag": default_period,
+        "redistributable": train_report["corpus"]["track"] == "A",
         "special_tokens": [t["content"] for t in tok.get("added_tokens", [])],
         "training": {
             "corpus": train_report["corpus_name"],
@@ -241,12 +315,16 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--name", required=True, help="run name, e.g. latin-vii")
+    ap.add_argument("--research-only", action="store_true",
+                    help="assemble a Track B model into dist/research/ for "
+                         "local inspection. Never publishable.")
     args = ap.parse_args()
     name = args.name
 
     train_report = load_report(REPORTS / f"train-{name}.json",
                                "no training report; has this model been trained?")
-    guard_track(train_report, name)
+    track = guard_track(train_report, name, args.research_only)
+    research = track == "B"
     corpus = train_report["corpus_name"]
     floor = matched_floor(train_report, corpus)
     memo_report = load_report(
@@ -289,10 +367,10 @@ def main() -> int:
 
     default_period = default_period_tag(train_report)
     values = build_values(name, train_report, floor, memo_report,
-                          sources, effective_license, default_period)
+                          sources, effective_license, default_period, research)
     card = render_card(name, values)
 
-    out = DIST / name
+    out = (RESEARCH_DIST if research else DIST) / name
     out.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(weights, out / "model.safetensors")
     shutil.copyfile(tokenizer_path, out / "tokenizer.json")
@@ -302,11 +380,25 @@ def main() -> int:
                  tokenizer_path, default_period)
     (out / "README.md").write_text(card, encoding="utf-8")
 
+    if research:
+        nc = [r["name"] for r in sources
+              if r["tier"] == "amber"] or ["(none listed)"]
+        (out / "DO-NOT-REDISTRIBUTE.md").write_text(
+            REDISTRIBUTION_NOTICE.format(licence=effective_license,
+                                         nc_sources=", ".join(nc)),
+            encoding="utf-8")
+
     rel = out.relative_to(ROOT)
     print(f"bundled {name} -> {rel}/")
     for f in sorted(out.iterdir()):
-        print(f"  {f.name:20} {f.stat().st_size:>12,} bytes")
-    print(f"\nupload with:\n  hf upload <user>/{name} {rel} . --repo-type model")
+        print(f"  {f.name:24} {f.stat().st_size:>12,} bytes")
+    if research:
+        print(f"\nTrack B — research only. Effective licence "
+              f"{effective_license}.\nDo not upload this bundle. "
+              f"LATIN-VII is the publishable model.")
+    else:
+        print(f"\nupload with:\n"
+              f"  hf upload <user>/{name} {rel} . --repo-type model")
     return 0
 
 

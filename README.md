@@ -921,6 +921,19 @@ into weights), and the bigram floor is quoted only if the baseline report
 matches the training report's corpus *and* tokenizer fingerprints. A floor
 measured through a different tokenizer is refused, not approximated.
 
+```bash
+python src/bundle.py --name latin-lii-latinitas --research-only
+```
+
+`--research-only` lifts the first guard for local inspection and nothing
+else. It cannot be reached by accident, it writes to `dist/research/` rather
+than the `dist/` directory the upload command points at, and the bundle
+declares its own restriction without needing this repository to explain it:
+NC licence in the card frontmatter, a research-only header naming the two
+sources responsible, and a `DO-NOT-REDISTRIBUTE.md` beside the weights. It
+does **not** lift the requirement to know what a model trained on — a report
+with no track fails either way, because the track is derived, never assumed.
+
 ## Status
 
 - [x] Source survey, licence-checked (`sources.md`)

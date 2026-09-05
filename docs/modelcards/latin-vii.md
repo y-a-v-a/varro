@@ -169,7 +169,7 @@ redistribution.
 
 Everything here is reproducible from the
 [claudius repository](https://github.com/y-a-v-a/claudius): the manifest pins
-every source to a git SHA, `configs/${name}.yaml` is the exact training
+every source to a git SHA, `${recipe}` is the exact training
 recipe (seed included), and the training/evaluation reports this card quotes
 are generated files, not hand-written numbers — the bundle itself is
 assembled by `src/bundle.py` from those reports.

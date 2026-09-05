@@ -44,7 +44,7 @@ def test_track_b_is_refused():
 
 
 def test_track_a_passes():
-    guard_track(train_report(), "latin-vii")
+    assert guard_track(train_report(), "latin-vii") == "A"
 
 
 def test_missing_track_is_refused_not_assumed():
@@ -52,6 +52,19 @@ def test_missing_track_is_refused_not_assumed():
     del report["corpus"]["track"]
     with pytest.raises(SystemExit):
         guard_track(report, "x")
+
+
+def test_track_b_allowed_only_under_research_only():
+    assert guard_track(train_report(track="B"), "x", research_only=True) == "B"
+
+
+def test_research_only_does_not_excuse_an_unknown_track():
+    # The flag lifts the Track B refusal, never the requirement to know what
+    # the model trained on.
+    report = train_report()
+    del report["corpus"]["track"]
+    with pytest.raises(SystemExit, match="no usable track"):
+        guard_track(report, "x", research_only=True)
 
 
 def test_floor_refused_on_tokenizer_drift(tmp_path, monkeypatch):
@@ -75,7 +88,8 @@ def test_floor_quoted_when_fingerprints_match(tmp_path, monkeypatch):
 
 
 def values():
-    sources = [{"name": "Perseus", "share": 0.873, "license": "CC-BY-SA-4.0"}]
+    sources = [{"name": "Perseus", "share": 0.873, "license": "CC-BY-SA-4.0",
+                "tier": "green"}]
     return build_values("latin-vii", train_report(), 185.7, memo_report(),
                         sources, "CC-BY-SA-4.0", "CLASSICAL")
 
@@ -92,11 +106,50 @@ def test_tokens_seen_derived_from_recipe():
 def test_unmapped_licence_is_an_error_not_a_default():
     with pytest.raises(SystemExit, match="HF licence"):
         build_values("x", train_report(), 185.7, memo_report(),
+                     [], "SOMETHING-NOBODY-MAPPED", "CLASSICAL")
+
+
+def test_noncommercial_never_maps_on_the_publication_path():
+    with pytest.raises(SystemExit, match="research-only"):
+        build_values("x", train_report(), 185.7, memo_report(),
                      [], "CC-BY-NC-SA-4.0", "CLASSICAL")
+
+
+def test_noncommercial_maps_under_research_only():
+    values = build_values("x", train_report(track="B"), 185.9, memo_report(),
+                          [], "CC-BY-NC-SA-4.0", None, research_only=True)
+    assert values["hf_license"] == "cc-by-nc-sa-4.0"
+
+
+def test_unknown_licence_still_fails_under_research_only():
+    with pytest.raises(SystemExit, match="HF licence"):
+        build_values("x", train_report(track="B"), 185.9, memo_report(),
+                     [], "SOMETHING-NOBODY-MAPPED", None, research_only=True)
+
+
+def test_recipe_comes_from_the_report_not_the_run_name():
+    # latin-lii-latinitas is a phase of configs/latin-lii.yaml; a card that
+    # built the path from the run name would cite a file that does not exist.
+    assert values()["recipe"] == "configs/x.yaml"
+
+
+def test_nc_share_counts_only_amber_sources():
+    sources = [{"name": "A", "share": 0.6, "license": "CC-BY-SA-4.0", "tier": "green"},
+               {"name": "B", "share": 0.4, "license": "NonCommercial", "tier": "amber"}]
+    result = build_values("x", train_report(track="B"), 185.9, memo_report(),
+                          sources, "CC-BY-NC-SA-4.0", None, research_only=True)
+    assert result["nc_share"] == "40.0%"
 
 
 def test_period_tag_single_period():
     assert default_period_tag(train_report()) == "CLASSICAL"
+
+
+def test_mixed_period_model_claims_no_tag():
+    # Defaulting to CLASSICAL here would be a claim about the training data.
+    result = build_values("x", train_report(track="B"), 185.9, memo_report(),
+                          [], "CC-BY-NC-SA-4.0", None, research_only=True)
+    assert result["period_tag"] == "none"
 
 
 def test_period_tag_none_for_mixed_corpus():
@@ -128,11 +181,24 @@ def test_fmt_m():
     assert fmt_m(151_552_000) == "151.6M"
     assert fmt_m(1_000_000) == "1M"
     assert fmt_m(999) == "999"
+    # LATIN-LII saw 1.05B tokens; "1054.2M" is arithmetic, not a figure.
+    assert fmt_m(1_054_232_576) == "1.05B"
 
 
 def test_source_table_renders_public_domain_readably():
-    rows = [{"name": "A", "share": 0.5, "license": "public-domain"}]
+    rows = [{"name": "A", "share": 0.5, "license": "public-domain",
+             "tier": "green"}]
     assert source_table(rows) == "| A | 50.0% | public domain |"
+
+
+def test_source_table_marks_noncommercial_rows_when_asked():
+    rows = [{"name": "A", "share": 0.5, "license": "CC-BY-SA-4.0", "tier": "green"},
+            {"name": "B", "share": 0.5, "license": "NonCommercial", "tier": "amber"}]
+    plain = source_table(rows)
+    marked = source_table(rows, mark_nc=True)
+    assert "(NC)" not in plain
+    assert marked.count("**(NC)**") == 1
+    assert "| B | 50.0% | NonCommercial **(NC)** |" in marked
 
 
 def test_memo_table_sorts_windows_numerically():
