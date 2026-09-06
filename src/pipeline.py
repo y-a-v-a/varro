@@ -61,13 +61,15 @@ Usage:
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, NamedTuple, Optional
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / "data" / "pipeline.state.json"
@@ -87,12 +89,20 @@ class Stage:
     def __init__(self, name: str, script: str, config: List[str],
                  argv: Optional[List[List[str]]] = None, note: str = "",
                  derived: Optional[Callable[[], str]] = None,
-                 parts: Optional[List["Part"]] = None):
+                 parts: Optional[List["Part"]] = None,
+                 concurrent: bool = False):
         self.name = name
         self.script = script
         self.config = config
         self.argv = argv or [[]]
         self.note = note
+        # Whether this stage's invocations may run at the same time. Off by
+        # default, and it is not a property of being partitioned: extract's
+        # parts write one interim file each and never read another's, while
+        # build's four invocations each read every interim file into memory to
+        # assemble a corpus, so running them together would multiply the peak
+        # by four for no parallelism the machine can actually deliver.
+        self.concurrent = concurrent
         # For an input whose bytes churn without its meaning changing. Called
         # at fingerprint time, never cached, so it sees the file as it is now.
         self.derived = derived
@@ -138,14 +148,55 @@ class Stage:
             h.update(self.derived().encode())
         return h.hexdigest()[:16]
 
-    def run(self, argv: Optional[List[List[str]]] = None) -> None:
-        for extra in (self.argv if argv is None else argv):
-            cmd = [PY, str(ROOT / self.script), *extra]
-            printable = " ".join([Path(self.script).name, *extra])
+    def _invoke(self, extra: List[str], capture: bool) -> Tuple[str, int, str]:
+        cmd = [PY, str(ROOT / self.script), *extra]
+        printable = " ".join([Path(self.script).name, *extra])
+        if not capture:
             print(f"    $ {printable}", flush=True)
-            result = subprocess.run(cmd, cwd=ROOT)
-            if result.returncode != 0:
-                raise RuntimeError(f"{printable} exited {result.returncode}")
+            return printable, subprocess.run(cmd, cwd=ROOT).returncode, ""
+        done = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+        return printable, done.returncode, done.stdout + done.stderr
+
+    def run(self, argv: Optional[List[List[str]]] = None, jobs: int = 1) -> None:
+        """Run this stage's invocations, concurrently where that is declared safe.
+
+        WHY THE OUTPUT IS CAPTURED WHEN THEY OVERLAP
+            Sequentially each invocation inherits this terminal and streams as
+            it goes, which is what you want when watching one long extractor.
+            Run several at once and their lines interleave into something no
+            one can read, so a concurrent run collects each invocation's output
+            and prints it whole when it finishes. The trade is that a slow part
+            says nothing until it is done; the alternative says everything at
+            once and means nothing.
+
+        Every invocation is run even if an earlier one fails, because they are
+        independent by construction — that is the same reason they may overlap
+        at all — and there is no sense in abandoning eight sources because the
+        ninth has a malformed file. The stage still fails, and pipeline state
+        is not advanced.
+        """
+        commands = self.argv if argv is None else argv
+        if jobs <= 1 or not self.concurrent or len(commands) < 2:
+            for extra in commands:
+                printable, code, _ = self._invoke(extra, capture=False)
+                if code != 0:
+                    raise RuntimeError(f"{printable} exited {code}")
+            return
+
+        print(f"    ({len(commands)} invocations, {min(jobs, len(commands))} "
+              f"at a time)", flush=True)
+        failures: List[str] = []
+        with ThreadPoolExecutor(max_workers=jobs) as pool:
+            for printable, code, output in pool.map(
+                    lambda extra: self._invoke(extra, capture=True), commands):
+                mark = "" if code == 0 else f"   <-- EXIT {code}"
+                print(f"    $ {printable}{mark}", flush=True)
+                for line in output.rstrip("\n").splitlines():
+                    print(f"      {line}")
+                if code != 0:
+                    failures.append(f"{printable} exited {code}")
+        if failures:
+            raise RuntimeError("; ".join(failures))
 
 
 def extractable_sources() -> List[str]:
@@ -236,10 +287,16 @@ def build_stages() -> List[Stage]:
         Stage("fetch", "src/fetch.py", ["manifest/sources.yaml"],
               argv=[["--track", "B"]],
               note="green + amber; idempotent, existing clones are updated"),
+        # Concurrent: one part per source, each reading data/raw/<source>/ and
+        # writing data/interim/<source>.jsonl. No part reads another's input or
+        # output, which is the same independence that lets them be invalidated
+        # separately — extraction is XML parsing, so this is the stage with the
+        # most idle cores to reclaim.
         Stage("extract", "src/extract.py", [],
               parts=[Part(s, ["--source", s], partial(lockfile_identity, s))
                      for s in sources],
               argv=[["--source", s] for s in sources] or [["--help"]],
+              concurrent=True,
               note=f"{len(sources)} source(s), invalidated independently"),
         Stage("enrich", "src/enrich.py",
               ["manifest/authorities.yaml", "manifest/genres.yaml"],
@@ -300,6 +357,14 @@ def main() -> int:
     ap.add_argument("--from", dest="start", help="run from this stage onward")
     ap.add_argument("--skip-fetch", action="store_true",
                     help="assume data/raw is current (fetch is the slow, networked stage)")
+    # Four rather than every core: each extractor holds one source's records in
+    # memory before writing them, and the largest are hundreds of megabytes. The
+    # bound here is RAM, not CPU.
+    ap.add_argument("--jobs", type=int, default=min(4, os.cpu_count() or 1),
+                    metavar="N",
+                    help="invocations to run at once within a stage that "
+                         "declares it safe (default 4; 1 runs everything in "
+                         "order, streaming output as it goes)")
     args = ap.parse_args()
 
     stages = build_stages()
@@ -383,7 +448,8 @@ def main() -> int:
                       if stage.parts is not None else None)
         try:
             # None means the whole stage; a list means only these parts.
-            stage.run([part.argv for part in pending] if pending else None)
+            stage.run([part.argv for part in pending] if pending else None,
+                      jobs=args.jobs)
         except RuntimeError as exc:
             print(f"\nFAILED at {stage.name}: {exc}", file=sys.stderr)
             print("State not advanced; fix and re-run — completed stages are "
