@@ -1,6 +1,6 @@
 # Current state — pick-up notes
 
-Written 2026-08-17 as a handoff into a fresh session; updated 2026-08-26.
+Written 2026-08-17 as a handoff into a fresh session; updated 2026-09-06.
 `README.md` explains how things work; this file says where they stand, what is
 stale, and what to do next.
 
@@ -804,36 +804,49 @@ cannot mean — the honest framing is *interlocutor, not assistant*.
 
 ## Corpus — current
 
-**10,192 records, 78,975,089 words** (Track A, after dedup), from **5 of 9**
+Measured on the 2026-08-27 build. Every figure here is read off
+`data/processed/*.summary.json` and `data/processed/token-growth.json` —
+regenerate those rather than editing this section, which is how the numbers
+below drifted a build behind before.
+
+**10,782 records, 94,923,570 words** (Track A, after dedup), from **9 of 11**
 green sources.
 
 | period | words | |
 |---|---:|---|
-| UNASSIGNED | 33,953,816 | 43.0% |
-| LATE | 24,284,319 | 30.7% |
-| MEDIEVAL | 16,015,187 | 20.3% |
-| CLASSICAL | 4,539,515 | 5.7% |
-| NEOLATIN | 182,252 | 0.2% |
+| UNASSIGNED | 39,488,556 | 41.6% |
+| LATE | 28,040,177 | 29.5% |
+| MEDIEVAL | 21,400,056 | 22.5% |
+| CLASSICAL | 5,055,913 | 5.3% |
+| NEOLATIN | 938,868 | 1.0% |
 
 | source | records | words (pre-dedup) |
 |---|---:|---:|
-| vicifons | 11,753 | 86,368,214 |
+| vicifons | 11,744 | 86,275,924 |
+| latin-library | 2,130 | 13,505,742 |
+| tesserae | 747 | 6,734,531 |
+| opengreekandlatin-csel | 356 | 6,652,629 |
 | digiliblt | 373 | 6,509,980 |
-| opengreekandlatin-csel | 271 | 6,036,274 |
-| perseus-canonical-latinLit | 324 | 5,595,104 |
-| edcs-sdam | 267 | 4,356,994 |
+| perseus-canonical-latinLit | 324 | 5,586,624 |
+| edcs-sdam | 267 | 4,356,735 |
+| edh | 133 | 1,057,053 |
+| papyri-idp | 5 | 89,915 |
 
-Dedup removes **29.8M words (27.4%)** — high because Wikisource re-hosts much of
-what Perseus and CSEL already provide.
+Dedup removes **35,845,563 words (27.4%)** of the 130.8M green words extracted —
+high because Wikisource re-hosts much of what Perseus and CSEL already provide.
 
-**Tokens** (4k vocabulary, counted not projected): **153.0M full corpus,
-9.6M classical**.
+**Tokens** (4k vocabulary, counted not projected): **183.3M full corpus,
+10.7M classical**. Track B, which adds the NonCommercial sources and is never
+redistributed, holds **263.5M full, 12.0M classical** — 43.8% more than Track A,
+where before the 2026-08-27 build it held 0.06% more.
 
 ### Not yet extracted
 
-`latin-library` (~15M est), `papyri-idp`, `edh`, `gutenberg-latin`. Each needs an
-extractor: plaintext, EpiDoc XML, EpiDoc XML, manual plaintext respectively.
-`latin-library` overlaps Perseus heavily, so expect dedup to eat much of it.
+`gutenberg-latin` and `latinise`, both green, both `method: manual` — neither is
+blocked on an extractor. Gutenberg is declared and unfetched; `latinise` is
+`include: false` by default because it is substantially derived from
+LacusCurtius, IntraText and Musisque Deoque, so most of it would be dedup'd
+against text already held.
 
 ---
 
@@ -864,23 +877,30 @@ would exclude classical from Phase 1 — still open.
 
 ---
 
-## The ladder, remeasured on 79M words
+## The ladder, remeasured on 94.9M words
 
 Chinchilla-optimal ≈ 20 tokens/parameter; repeated data is worth nearly as much
 as fresh up to ~4 epochs, decaying to ~zero past 16.
 
-| epochs | classical (9.6M tok) | full corpus (153.0M tok) |
-|---|---|---|
-| 4 (safe) | 1.9M params | **30.6M params** |
-| 8 | 3.8M | **61.2M** |
-| 16 (aggressive) | 7.7M | **122.4M** |
+| epochs | classical (10.7M tok) | Track A full (183.3M tok) | Track B full (263.5M tok) |
+|---|---|---|---|
+| 4 (safe) | 2.1M params | **36.7M params** | **52.7M params** |
+| 8 | 4.3M | **73.3M** | **105.4M** |
+| 16 (aggressive) | 8.5M | **146.6M** | **210.8M** |
 
-**LATIN-XXV at 25M now fits inside 4 epochs**, where it previously sat on the
+**LATIN-XXV at 27.5M fits inside 4 epochs of Track A**, where it once sat on the
 16-epoch line. Path A's 25–40M licensing ceiling is no longer the binding
 constraint; the corpus is.
 
-Classical is essentially unchanged (9.5M → 9.6M tokens) because dedup removed
-Wikisource's copies of Perseus texts, so **Latin-0's sizing is untouched**.
+**LATIN-LII at 52.07M now fits Track B's 4-epoch line exactly** — 20.2
+tokens/parameter, where `configs/latin-lii.yaml` was written against a 182.4M
+Track B that gave it 14.0 and called itself undertrained. The recipe did not
+change. Stating recipes in epochs rather than steps is what let the corpus grow
+into it.
+
+Classical has grown from 9.5M to 10.7M tokens, so **Latin-0 at 3.53M and
+LATIN-VII at 7.28M both remain correctly sized** — LATIN-VII at 20.8
+tokens/parameter against the 16-epoch ceiling of 8.5M.
 
 ---
 
