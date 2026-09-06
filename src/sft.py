@@ -16,9 +16,16 @@ must end its turn. Every example terminates in <|endoftext|>, and that token is
 included in the loss, so producing it is learned behaviour rather than an
 inference-time hack.
 
+CHECKPOINTS, FOR THE SAME REASON train.py HAS THEM. A run that can only be
+restarted from zero is a run you will eventually lose, and Adam's moments take
+hundreds of steps to rebuild — dropping them mid-run puts a visible spike in the
+loss. This shares train.py's checkpoint format rather than inventing a second
+one, so `--resume` means the same thing in both.
+
 Usage:
     python src/sft.py --report                 # data shape, train nothing
     python src/sft.py                          # fine-tune latin-2
+    python src/sft.py --resume                 # continue from the last checkpoint
     python src/sft.py --chat                   # talk to the result
 """
 
@@ -43,11 +50,11 @@ try:
     import mlx.core as mx
     import mlx.nn as nn
     import mlx.optimizers as optim
-    from mlx.utils import tree_flatten
 except ImportError:
     sys.exit("MLX required — pip install mlx")
 
-from train import GPT  # noqa: E402
+from train import (GPT, is_report_step, load_checkpoint,  # noqa: E402
+                   save_checkpoint)
 
 MAX_LEN = 256
 
@@ -129,6 +136,10 @@ def main() -> int:
     ap.add_argument("--lr", type=float, default=5e-5)
     ap.add_argument("--warmup", type=int, default=100)
     ap.add_argument("--eval-every", type=int, default=250)
+    ap.add_argument("--checkpoint-every", type=int, default=500,
+                    help="save a resumable checkpoint every N steps")
+    ap.add_argument("--resume", action="store_true",
+                    help="continue this fine-tune from its last checkpoint")
     ap.add_argument("--seed", type=int, default=20260817)
     ap.add_argument("--report", action="store_true")
     ap.add_argument("--chat", action="store_true", help="load and talk to --name")
@@ -177,17 +188,26 @@ def main() -> int:
         print("\n--report: nothing trained")
         return 0
 
-    model.load_weights(str(CHECKPOINTS / f"{args.base}.safetensors"))
-    mx.eval(model.parameters())
-
     optimizer = optim.AdamW(learning_rate=args.lr, weight_decay=0.0)
+    history: List[Dict[str, Any]] = []
+    start_step = 0
+    if args.resume:
+        # The checkpoint holds the fine-tuned weights and the optimizer's
+        # moments. Loading the base over them would silently undo the run and
+        # report the result as a resumed one.
+        start_step, history = load_checkpoint(args.name, model, optimizer)
+        print(f"resumed {args.name} at step {start_step:,}")
+    else:
+        model.load_weights(str(CHECKPOINTS / f"{args.base}.safetensors"))
+        mx.eval(model.parameters())
+
     loss_and_grad = nn.value_and_grad(model, loss_fn)
     stream = batches(data, masks, args.batch, args.seed)
-    history: List[Dict[str, Any]] = []
     started = time.time()
     running = 0.0
+    since_report = 0
 
-    for step in range(args.steps):
+    for step in range(start_step, args.steps):
         frac = min(1.0, (step + 1) / max(1, args.warmup))
         progress = max(0.0, (step - args.warmup) / max(1, args.steps - args.warmup))
         optimizer.learning_rate = args.lr * frac * (0.1 + 0.9 * 0.5 *
@@ -197,18 +217,28 @@ def main() -> int:
         optimizer.update(model, grads)
         mx.eval(model.parameters(), optimizer.state)
         running += loss.item()
+        since_report += 1
 
-        if (step + 1) % args.eval_every == 0:
-            mean = running / args.eval_every
-            running = 0.0
+        if is_report_step(step, args.steps, args.eval_every):
+            # Divide by what was actually accumulated, not by eval_every. The
+            # final block is closed by reaching the end rather than by the
+            # interval, so it is short whenever steps is not a multiple of
+            # eval_every — the same arithmetic that reported LATIN-XXV's real
+            # 3.12 train loss as 1.25. The defaults here divide evenly, which
+            # is why it never showed; a --steps on the command line is all it
+            # would have taken.
+            mean = running / max(1, since_report)
+            running, since_report = 0.0, 0
             elapsed = time.time() - started
             print(f"  step {step+1:>5,}/{args.steps:,}  loss {mean:.4f}  "
                   f"ppl {math.exp(mean):>7.1f}  {elapsed/60:.1f}m", flush=True)
             history.append({"step": step + 1, "loss": mean,
                             "perplexity": math.exp(mean), "elapsed_s": elapsed})
 
-    CHECKPOINTS.mkdir(parents=True, exist_ok=True)
-    model.save_weights(str(CHECKPOINTS / f"{args.name}.safetensors"))
+        if (step + 1) % args.checkpoint_every == 0:
+            save_checkpoint(args.name, model, optimizer, step + 1, history)
+
+    save_checkpoint(args.name, model, optimizer, args.steps, history)
     print(f"\nsaved checkpoints/{args.name}.safetensors")
 
     REPORTS.mkdir(parents=True, exist_ok=True)
