@@ -6,6 +6,52 @@ stale, and what to do next.
 
 ---
 
+## Update 2026-09-06 (later) — the tokenizer's two ends now agree
+
+Four more commits on `review/src-findings`. Tests 495 -> 523. Nothing here
+changes a corpus, a tokenizer or a checkpoint.
+
+**A prompt is now folded the way the corpus was.** normalize.py folds v to u
+and j to i; the built corpus has **0 occurrences of `v` and 0 of `j` in
+659,309,740 characters**. Nothing folded the other end, so a person typing
+`venit` was asking the model a question in an orthography it had never read —
+through the 4k vocabulary, `venit` is `_ · v · en · it` where `uenit` is one
+token, and a prefix-space followed by `v` is a bigram that appears nowhere in
+training. Measured end to end after the fix: `Jam civitas vetus` went from 10
+tokens to 5. `sample.py` and `sft.py --chat` fold and print the folded form;
+`sft.py --chat` also takes `--prompt` now.
+
+The fold stays on the corpus and not on the model's output. The v-share of a
+source varies several-fold and tracks the publisher rather than the century,
+so unfolding would give a period-tagged model a repository signature to learn
+instead of the Latin. If a model that *writes* `v` is ever wanted, that is a
+display-time re-spelling, not a corpus decision.
+
+**Every checkpoint is now loaded through the vocabulary it was trained with.**
+`sft.py` opened `latin-bpe-{vocab}.json` by name — the 2026-08-20 failure
+verbatim — because `resolve_tokenizer` lived in `sample.py`, which cannot be
+imported without MLX. It moved to `encoding.py`. `train.py --resume` had the
+same hole with no way to see it, so `save_checkpoint` now records the
+tokenizer fingerprint and `load_checkpoint` refuses a mismatch before touching
+the weights; older checkpoints resume unverified and say so. A test in
+`test_portability.py` now enumerates who may name a tokenizer file and why —
+`train.py` for a fresh run, `evaluate.py` because it loads no checkpoint,
+`bundle.py` because it re-hashes what it opens.
+
+**The tokenizer sweep writes `reports/tokenizer.json`.** It printed a table and
+kept nothing, and that table is where tokens-per-word comes from — the number
+20-tokens-per-parameter is computed against. Measured now on
+`classical.train`: **2.221 tokens/word**, 3.12 chars/token, 3,740 of 4,000
+vocabulary entries used, top 3,000 covering 99.11% of the stream. The ladder
+ran on an assumed 1.8 for months because no artifact held the measurement.
+
+**Not run: `src/tokenizer.py` itself.** A sweep retrains and overwrites
+`latin-bpe-*.json`, which every existing checkpoint is keyed to. The report
+will be written by the next legitimate sweep — after the corpus rebuild, when
+the tokenizer has to be retrained anyway.
+
+---
+
 ## Update 2026-09-06 — code review of src/, and record ids are not unique
 
 Fifteen commits on `review/src-findings`. Tests went 403 -> 495. Nothing here
