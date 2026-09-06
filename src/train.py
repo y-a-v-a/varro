@@ -60,13 +60,18 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from encoding import CHUNK_CHARS, chunk_records  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
 TOKENIZERS = PROCESSED / "tokenizers"
 CHECKPOINTS = ROOT / "checkpoints"
 REPORTS = ROOT / "reports"
+
 
 def rel(path: Path) -> str:
     """A path for a message, shortened to the repo when it lies inside it.
@@ -308,35 +313,10 @@ def steps_for_epochs(epochs: float, train_tokens: int, batch: int,
 PERIOD_TOKENS = {"CLASSICAL": "<CLASSICAL>", "LATE": "<LATE>",
                  "MEDIEVAL": "<MEDIEVAL>", "NEOLATIN": "<NEOLATIN>"}
 
-# How much text to hand the tokenizer at once.
-#
-# `encode_batch` runs the BPE across every core; encoding one record at a time
-# uses one. That is the only part of a training run where a second core has
-# anything to do — the step itself is Metal, and measured at 0.15 of a core on
-# an 8-core M2 (see the note on load_tokens).
-#
-# Bounded by characters rather than by record count because the two corpora
-# differ by two orders of magnitude in record size, and the tokenizer holds an
-# Encoding per record while a batch is in flight. 8MB is ~2.5M tokens per
-# batch: enough to keep every core fed, small enough that Track B's 906MB
-# corpus never has more than a fraction of itself resident.
-ENCODE_CHUNK_CHARS = 8_000_000
-
-
-def chunk_records(lines: Iterable[str],
-                  budget: int = ENCODE_CHUNK_CHARS) -> Iterator[List[Dict[str, Any]]]:
-    """Group JSONL lines into batches of at most `budget` characters of text."""
-    batch: List[Dict[str, Any]] = []
-    size = 0
-    for line in lines:
-        rec = json.loads(line)
-        batch.append(rec)
-        size += len(rec["text"])
-        if size >= budget:
-            yield batch
-            batch, size = [], 0
-    if batch:
-        yield batch
+# Shared with tokenizer.py, evaluate.py and token_growth.py, which encode the
+# same corpora and cannot import this module — evaluate.py has to keep running
+# where there is no MLX. encoding.py carries the reasoning and the measurement.
+ENCODE_CHUNK_CHARS = CHUNK_CHARS
 
 
 def load_tokens(corpus: str, split: str, tok, cache: bool = True,

@@ -36,6 +36,10 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, Iterator, List
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from encoding import encode_all  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
 OUT = PROCESSED / "tokenizers"
@@ -107,13 +111,16 @@ def fertility(tok, records: List[Dict[str, Any]]) -> Dict[str, float]:
     window), but the headline number did not mean what it said.
 
     Encoding the whole corpus per vocabulary costs a couple of minutes. That is
-    the right price for a number the entire parameter ladder rests on.
+    the right price for a number the entire parameter ladder rests on — and
+    encode_all spends it across every core rather than one, which is most of
+    that couple of minutes back on a sweep of six vocabularies.
     """
     words = tokens = chars = 0
-    for rec in records:
+    ids_per_record = encode_all(tok, (rec["text"] for rec in records))
+    for rec, ids in zip(records, ids_per_record):
         words += len(rec["text"].split())
         chars += len(rec["text"])
-        tokens += len(tok.encode(rec["text"]).ids)
+        tokens += len(ids)
     return {
         "tokens_per_word": tokens / words if words else 0.0,
         "chars_per_token": chars / tokens if tokens else 0.0,

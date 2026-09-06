@@ -6,9 +6,14 @@ per corpus would make the token counts incomparable, which is the whole point
 of measuring them side by side.
 """
 import json
+import sys
 from pathlib import Path
 
 from tokenizers import Tokenizer
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from encoding import encode_all  # noqa: E402
 
 # Derived, not written down. The hardcoded absolute path this replaced worked
 # on exactly one machine, which is the opposite of what the rest of the
@@ -26,10 +31,9 @@ def main() -> None:
     rows = []
     for name, label in CORPORA:
         summary = json.loads((P / f"{name}.summary.json").read_text())
-        n = 0
         with (P / f"{name}.train.jsonl").open(encoding="utf-8") as fh:
-            for line in fh:
-                n += len(tok.encode(json.loads(line)["text"]).ids)
+            texts = (json.loads(line)["text"] for line in fh)
+            n = sum(len(ids) for ids in encode_all(tok, texts))
         rows.append({"name": name, "label": label, "train_tokens": n,
                      "words": summary["words"], "records": summary["records"],
                      "train_words": summary["train_words"],
