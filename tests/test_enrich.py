@@ -112,6 +112,68 @@ def test_pl_volume_resolves_between_author_and_prior(authority):
     assert (date, period, origin, confidence) == (400, "LATE", "pl-volume", "inferred")
 
 
+# --- idempotency ------------------------------------------------------------
+#
+# enrich rewrites data/interim/ in place, and pipeline.py re-runs it alone
+# whenever authorities.yaml or genres.yaml changes without re-extracting. So a
+# second pass over already-enriched records is the normal case, and resolve()
+# has to be a fixed point: `approximate_date` is both what extract wrote and
+# what enrich writes back, and reading it unconditionally turned every
+# inferred date into a stated one.
+
+
+def enrich_once(authority, record):
+    """One pass of what main() does to a record, so a second can be run over it."""
+    date, period, origin, confidence = authority.resolve(record)
+    return {**record, "approximate_date": date, "period": period,
+            "date_source": origin, "date_confidence": confidence}
+
+
+def test_an_inferred_pl_date_does_not_become_a_stated_one(authority):
+    """The bug: 3,103 records flip from `pl-volume`/`inferred` on a re-run."""
+    record = {"author": "Nemo", "source": "opengreekandlatin-csel",
+              "pl_volume": 101}
+    first = enrich_once(authority, record)
+    assert (first["date_source"], first["date_confidence"]) == ("pl-volume", "inferred")
+    second = enrich_once(authority, first)
+    assert (second["date_source"], second["date_confidence"]) == ("pl-volume", "inferred")
+    assert second["approximate_date"] == first["approximate_date"] == 400
+
+
+def test_a_genuinely_stated_date_survives_a_second_pass(authority):
+    """The guard must not cost extract.py its own dates — Tesserae dates 748 files."""
+    record = {"author": "Nemo", "source": "tesserae", "approximate_date": 1835}
+    first = enrich_once(authority, record)
+    assert (first["date_source"], first["date_confidence"]) == \
+        ("source-metadata", "stated")
+    second = enrich_once(authority, first)
+    assert second == first
+
+
+@pytest.mark.parametrize("record", [
+    {"work": "Aetna", "author": "Cicero"},                       # work
+    {"author": "Cicero"},                                        # author floruit
+    {"author": "Ecclesia"},                                      # author, period only
+    {"author": "Nemo", "source": "tesserae", "approximate_date": 1835},
+    {"author": "Nemo", "source": "opengreekandlatin-csel", "pl_volume": 101},
+    {"author": "Nemo", "source": "opengreekandlatin-csel"},      # source prior
+    {"author": "Nemo", "source": "x"},                           # nothing
+])
+def test_every_resolution_path_is_a_fixed_point(authority, record):
+    """Whatever a record resolves to, resolving it again must not move it."""
+    first = enrich_once(authority, record)
+    assert enrich_once(authority, first) == first
+
+
+def test_an_authority_added_later_still_overrides_an_enriched_record(authority):
+    """The guard must not freeze a record against the curated list improving."""
+    inferred = enrich_once(authority, {"author": "Nemo", "pl_volume": 101,
+                                       "source": "opengreekandlatin-csel"})
+    assert inferred["date_source"] == "pl-volume"
+    named = enrich_once(authority, {**inferred, "author": "Cicero"})
+    assert (named["date_source"], named["approximate_date"]) == ("author", -55)
+
+
 def test_duplicate_alias_refused(tmp_path):
     path = tmp_path / "authorities.yaml"
     path.write_text("""\
