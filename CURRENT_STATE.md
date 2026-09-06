@@ -6,6 +6,94 @@ stale, and what to do next.
 
 ---
 
+## Update 2026-09-06 — code review of src/, and record ids are not unique
+
+Fifteen commits on `review/src-findings`. Tests went 403 -> 495. Nothing here
+changes a corpus or a checkpoint; the two that could have were verified
+byte-identical first.
+
+### The question that started it: can training use more cores?
+
+No, and it is worth writing down so nobody measures it again. The training
+step is Metal. Measured on this 8-core M2: a 25-step run of the LATIN-VII
+shape spent **37.6s of CPU across 257s of wall clock — 0.15 of one core**,
+with seven and a half idle. The bound is the GPU and the 100GB/s it shares
+with everything, which is the same bound the batch-size cliff in
+`configs/latin-xxv.yaml` records. `mx.compile` around the step was measured at
+1.04x for LATIN-VII and 1.24x for LATIN-XXV and **not adopted** — a fused graph
+that trains subtly differently is not something to accept on a 20-step
+benchmark.
+
+Tokenisation is the exception, and everything else on the CPU side did have
+cores to reclaim:
+
+| stage | before | after | |
+|---|---:|---:|---|
+| `load_tokens` (corpus.train, 183M tokens) | 178.2s, 4.70GB | **55.2s, 2.68GB** | 3.2x |
+| `dedupe` sketching (48.6M chars) | 6.80s | **1.99s** | 3.4x |
+| `normalize` (360 records) | 10.2s | **3.1s** | 3.3x |
+| `pipeline` extract (11 sources) | 501.3s | **280.5s** | 1.79x |
+
+Extract is not 4x because it cannot be: `corpus-corporum` and `vicifons` are
+minutes each while `papyri-idp` is five records, so the wall clock is the
+slowest source. Concurrency is opt-in per stage — `build` looks like the same
+shape and is not, because each of its four invocations reads every interim file
+into memory.
+
+### Correctness, in rough order of how much they mattered
+
+- **`enrich.py` was not idempotent.** `approximate_date` is both what
+  extract writes and what enrich writes back, so a second pass could not tell
+  evidence from inference: dates interpolated from Migne volume numbers came
+  back as dates the source had stated, `inferred` became `stated`. 3,103 of
+  18,606 records would have flipped, and `pipeline.py` re-runs enrich alone
+  whenever an authority file changes. Now 0 move.
+- **`dedupe.py --verify` only ever checked Track A**, so every drop LATIN-LII's
+  corpus rests on went unverified. It runs per track now.
+- **`dedupe.py`'s `would drop` figure bypassed its own guard.** It summed whole
+  clusters, which is the number the direct-pair guard exists to prevent. On the
+  real corpus that is **35,845,563 words reported as 50,123,161** — 18.7% told
+  as 26.1%.
+- **`requirements.txt` did not list `mlx` or `tokenizers`**, so the documented
+  install did not produce a runnable project.
+- **`train.py` used `Optional` without importing it** — survives only because
+  Python 3.14 defers annotation evaluation, `NameError` on 3.13.
+- `sft.py` had no checkpointing and averaged its loss over `eval_every`
+  regardless of what it accumulated — the arithmetic that once reported
+  LATIN-XXV's 3.12 train loss as 1.25.
+- `token_growth.py` had a hardcoded `/Users/vincentb/...` and no argument
+  parser, so `--help` tokenised four corpora.
+
+### Record ids are not unique, and that is the open one
+
+Running `dedupe.py --verify` at nine sources — Next step 5 below, outstanding
+since it was written — reported **130 of 5,297 Track A marks below the 15%
+verbatim floor, 121 of them at exactly 0%**. That looks like mass false
+positives. It is not.
+
+`extract_plaintext` builds ids as `f"{source_id}/{path.stem}"`, discarding the
+directory. The Latin Library nests by author, so `isidore/14.txt`,
+`justin/14.txt`, `juvenal/14.txt`, `ammianus/14.txt` and `williamtyre/14.txt`
+all become `latin-library/14`.
+
+**58 ids are shared by 171 records** — 49 in `latin-library`, 5 in `vicifons`,
+4 in `corpus-corporum`. `verify()` looks its keeper up in a dict keyed by id, so
+it has been comparing the wrong records; the 0% scores are its own lookups
+colliding, not bad marks.
+
+The corpus is not currently corrupt: 16 colliding ids carry 32 records into the
+built Track A corpus, and **0 appear in both train and validation**. That is
+luck, not design. `build.py` splits with `r["id"] not in val_ids`, so the first
+collision selected for validation drags unrelated works across with it, and
+`apportion()` keys its keep-set by id too.
+
+The fix is one line — key on the path relative to the source root — but it
+changes every id in four sources, which invalidates every `duplicate_of` and
+needs a re-extract. **Not done. Decide before the next rebuild**, because a
+rebuild is when it would silently start mattering.
+
+---
+
 ## Update 2026-09-01 (later) — LATIN-VII trained: data beats sizing
 
 3 hours, 7.28M parameters, 14.2 epochs over the classical corpus at 20.8
@@ -1040,7 +1128,10 @@ bounded by activation memory rather than parameters, see the batch-size cliff.
    stopping are learned, register matching emerges, correctness does not.
 4. **Serve it.** MLX + safetensors, small model, runs on the laptop. This is the
    stated goal in `plan.md` and LATIN-XXV is the base it was waiting for.
-5. **`dedupe.py --verify` at five sources** — the outstanding claim gap.
+5. ~~**`dedupe.py --verify` at five sources**~~ **run 2026-09-06 at nine.**
+   It reports 130 Track A marks and 193 Track B marks below the floor, but the
+   cause is colliding record ids breaking its keeper lookup, not bad marks. Fix
+   the ids first, then this number means something.
 6. **Remaining four sources**, if more data is wanted.
 7. **Disjoint-phase ablation** — exclude classical from Phase 1 to separate
    transfer from extra exposure. Still open, and now more affordable to answer
