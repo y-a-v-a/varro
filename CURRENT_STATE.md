@@ -87,10 +87,24 @@ luck, not design. `build.py` splits with `r["id"] not in val_ids`, so the first
 collision selected for validation drags unrelated works across with it, and
 `apportion()` keys its keep-set by id too.
 
-The fix is one line — key on the path relative to the source root — but it
-changes every id in four sources, which invalidates every `duplicate_of` and
-needs a re-extract. **Not done. Decide before the next rebuild**, because a
-rebuild is when it would silently start mattering.
+**Fixed in code, and it takes effect at the next extract.** `record_id()` keys
+on the path relative to the source root; `slug_id()` appends a blake2b digest of
+the full title when one is too long to keep whole; the Corpus Corporum id
+carries the archive stem as well as the member's name. `assert_unique_ids()`
+runs before anything is written and raises rather than repairing — appending a
+counter would make an id depend on the order files were walked in, so the same
+text would change identity between runs, which is the one thing an id exists to
+prevent.
+
+Verified by extracting all eleven fetched sources and counting distinct ids:
+324/324, 2,130/2,130, 373/373, 357/357, 133/133, 267/267, 5/5, 11,763/11,763,
+2,289/2,289, 242/242, 747/747. Zero collisions.
+
+**`data/interim/` still holds the old ids until it is re-extracted**, so
+`--verify` still reports 130 there and the 32 colliding records are still in the
+built corpus. The re-key invalidates every `duplicate_of`, which a rebuild
+regenerates anyway — `pipeline.py --status` already reports extract onward
+stale. Nothing else is waiting on it.
 
 ---
 
@@ -1129,9 +1143,10 @@ bounded by activation memory rather than parameters, see the batch-size cliff.
 4. **Serve it.** MLX + safetensors, small model, runs on the laptop. This is the
    stated goal in `plan.md` and LATIN-XXV is the base it was waiting for.
 5. ~~**`dedupe.py --verify` at five sources**~~ **run 2026-09-06 at nine.**
-   It reports 130 Track A marks and 193 Track B marks below the floor, but the
-   cause is colliding record ids breaking its keeper lookup, not bad marks. Fix
-   the ids first, then this number means something.
+   130 Track A marks and 193 Track B marks came back below the floor, caused by
+   colliding record ids breaking its keeper lookup rather than by bad marks.
+   The ids are fixed; **re-run this after the rebuild**, when the number will
+   mean what it says.
 6. **Remaining four sources**, if more data is wanted.
 7. **Disjoint-phase ablation** — exclude classical from Phase 1 to separate
    transfer from extra exposure. Still open, and now more affordable to answer

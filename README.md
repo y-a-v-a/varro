@@ -305,10 +305,11 @@ built, so checking one is checking half. Cross-edition duplicates score 50–90%
 part-of-collection duplicates 100%.
 
 **At three sources, 0 of 59 fell below the 15% floor. At nine, 130 of 5,297 do
-— and that number cannot be read yet**: record ids are not unique
-(`extract_plaintext` keys on the filename stem, and The Latin Library nests by
-author), so `verify` resolves some keepers to the wrong record. See the
-2026-09-06 entry in `CURRENT_STATE.md`. The claim below is the precise one, and it
+— and that number cannot be read against interim data extracted before
+2026-09-06**: record ids were not unique then, so `verify` resolved some
+keepers to the wrong record. The ids are fixed and the guard is in
+`extract.py`; re-run this after the next extract. See the 2026-09-06 entry in
+`CURRENT_STATE.md`. The claim below is the precise one, and it
 is weaker than "no false positives": passing establishes that the duplicate's text
 really does occur in its keeper, not that discarding the whole record was the right
 call. Deciding that needs cluster-by-cluster human review, which has not been done. It earned its place — the
