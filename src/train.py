@@ -18,6 +18,27 @@ SIZING (feasibility.md §2)
     roughly 2-4M parameters. Latin-0 defaults to ~3.5M: d_model 192, 6 layers.
     Going wider mostly buys embedding table, which does no reasoning.
 
+WHERE THE TIME GOES, MEASURED RATHER THAN ASSUMED
+    The training step is Metal, not Python. Measured 2026-09-05 on an 8-core
+    M2 (4P+4E, 10-core GPU, 16GB): a 25-step run of the LATIN-VII shape spent
+    37.6s of CPU across 257s of wall clock — 0.15 of a single core, with seven
+    and a half idle. Throwing cores at a training run therefore buys nothing;
+    the bound is the GPU and the 100GB/s it shares with everything else, which
+    is the same bound the batch-size cliff in configs/latin-xxv.yaml records.
+
+    The one exception is tokenisation. `load_tokens` is ordinary Python calling
+    a Rust tokenizer, it runs before the first step, and it is where the cores
+    are. Batching the encode made it 2.4-3.2x faster: corpus.train, 183,265,520
+    tokens, went 178.2s and 4.70GB peak to 55.2s and 2.68GB. The token stream
+    is bit-identical, checked against the old path on three splits.
+
+    Also measured, and NOT adopted: wrapping the step in `mx.compile` gave
+    1.04x at the LATIN-VII shape and 1.24x at LATIN-XXV. The larger figure is
+    worth revisiting, but it needs a full run against a recorded perplexity
+    before a recipe depends on it — a fused graph that trains subtly
+    differently is exactly the kind of change this project refuses to make on
+    a 20-step benchmark.
+
 WHAT SUCCESS LOOKS LIKE, STATED IN ADVANCE
     evaluate.py --baselines puts an interpolated bigram at 195.2 perplexity on
     held-out text. Beating that is the minimum bar, not the goal. The real
@@ -39,13 +60,27 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
 TOKENIZERS = PROCESSED / "tokenizers"
 CHECKPOINTS = ROOT / "checkpoints"
 REPORTS = ROOT / "reports"
+
+def rel(path: Path) -> str:
+    """A path for a message, shortened to the repo when it lies inside it.
+
+    load_recipe already refuses `relative_to(ROOT)` on the grounds that a
+    missing-file message which itself crashes is worse than the missing file.
+    The same is true of every other path this file names, so the rule lives in
+    one function rather than being remembered at each call site.
+    """
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
 
 try:
     import mlx.core as mx
@@ -124,7 +159,7 @@ def load_checkpoint(name: str, model, optimizer) -> Tuple[int, List[Dict]]:
     state_path = CHECKPOINTS / f"{name}.state.json"
     if not weights.exists() or not state_path.exists():
         sys.exit(f"cannot resume {name}: missing weights or state in "
-                 f"{CHECKPOINTS.relative_to(ROOT)}/")
+                 f"{rel(CHECKPOINTS)}/")
     model.load_weights(str(weights))
     opt_path = CHECKPOINTS / f"{name}.opt.safetensors"
     if opt_path.exists():
@@ -273,9 +308,40 @@ def steps_for_epochs(epochs: float, train_tokens: int, batch: int,
 PERIOD_TOKENS = {"CLASSICAL": "<CLASSICAL>", "LATE": "<LATE>",
                  "MEDIEVAL": "<MEDIEVAL>", "NEOLATIN": "<NEOLATIN>"}
 
+# How much text to hand the tokenizer at once.
+#
+# `encode_batch` runs the BPE across every core; encoding one record at a time
+# uses one. That is the only part of a training run where a second core has
+# anything to do — the step itself is Metal, and measured at 0.15 of a core on
+# an 8-core M2 (see the note on load_tokens).
+#
+# Bounded by characters rather than by record count because the two corpora
+# differ by two orders of magnitude in record size, and the tokenizer holds an
+# Encoding per record while a batch is in flight. 8MB is ~2.5M tokens per
+# batch: enough to keep every core fed, small enough that Track B's 906MB
+# corpus never has more than a fraction of itself resident.
+ENCODE_CHUNK_CHARS = 8_000_000
+
+
+def chunk_records(lines: Iterable[str],
+                  budget: int = ENCODE_CHUNK_CHARS) -> Iterator[List[Dict[str, Any]]]:
+    """Group JSONL lines into batches of at most `budget` characters of text."""
+    batch: List[Dict[str, Any]] = []
+    size = 0
+    for line in lines:
+        rec = json.loads(line)
+        batch.append(rec)
+        size += len(rec["text"])
+        if size >= budget:
+            yield batch
+            batch, size = [], 0
+    if batch:
+        yield batch
+
 
 def load_tokens(corpus: str, split: str, tok, cache: bool = True,
-                period_tags: bool = True) -> mx.array:
+                period_tags: bool = True,
+                chunk_chars: int = ENCODE_CHUNK_CHARS) -> mx.array:
     """Tokenise a split once and keep it as a flat token stream.
 
     Each document is prefixed with its period tag, which is what makes the
@@ -291,7 +357,7 @@ def load_tokens(corpus: str, split: str, tok, cache: bool = True,
     """
     path = PROCESSED / f"{corpus}.{split}.jsonl"
     if not path.exists():
-        sys.exit(f"missing {path.relative_to(ROOT)} — run src/build.py")
+        sys.exit(f"missing {rel(path)} — run src/build.py")
     suffix = "tagged" if period_tags else "plain"
     cached = PROCESSED / f"{corpus}.{split}.{suffix}.tokens.npy"
     if cache and cached.exists() and cached.stat().st_mtime > path.stat().st_mtime:
@@ -303,22 +369,32 @@ def load_tokens(corpus: str, split: str, tok, cache: bool = True,
     if period_tags and missing:
         sys.exit(f"tokenizer lacks period tokens {missing} — retrain src/tokenizer.py")
 
-    stream: List[int] = []
+    # Ids are bounded by the vocabulary, so the width is known before a single
+    # record is read. The previous `max(stream)` needed the whole corpus in a
+    # Python list to ask a question the tokenizer could already answer.
+    dtype = mx.uint16 if tok.get_vocab_size() <= 65535 else mx.int32
+
+    pieces: List[mx.array] = []
     counts: Dict[str, int] = {}
     with path.open(encoding="utf-8") as fh:
-        for line in fh:
-            rec = json.loads(line)
-            if period_tags:
-                tag = tag_ids.get(rec.get("period") or "")
-                if tag is not None:
-                    stream.append(tag)
-                    counts[rec.get("period")] = counts.get(rec.get("period"), 0) + 1
-            stream.extend(tok.encode(rec["text"]).ids)
-            stream.append(eos)
+        for records in chunk_records(fh, chunk_chars):
+            stream: List[int] = []
+            encoded = tok.encode_batch([rec["text"] for rec in records])
+            for rec, ids in zip(records, encoded):
+                if period_tags:
+                    tag = tag_ids.get(rec.get("period") or "")
+                    if tag is not None:
+                        stream.append(tag)
+                        counts[rec.get("period")] = counts.get(rec.get("period"), 0) + 1
+                stream.extend(ids.ids)
+                stream.append(eos)
+            pieces.append(mx.array(stream, dtype=dtype))
+    if not pieces:
+        sys.exit(f"{rel(path)} is empty — run src/build.py")
     if period_tags and counts:
         print(f"  {split}: period tags " +
               ", ".join(f"{k} x{v}" for k, v in sorted(counts.items())))
-    arr = mx.array(stream, dtype=mx.uint16 if max(stream) < 65535 else mx.int32)
+    arr = mx.concatenate(pieces) if len(pieces) > 1 else pieces[0]
     if cache:
         mx.save(str(cached), arr)
     return arr
@@ -417,7 +493,7 @@ def main() -> int:
     from tokenizers import Tokenizer
     tok_path = TOKENIZERS / f"latin-bpe-{args.vocab}.json"
     if not tok_path.exists():
-        sys.exit(f"missing {tok_path.relative_to(ROOT)} — run src/tokenizer.py")
+        sys.exit(f"missing {rel(tok_path)} — run src/tokenizer.py")
     tok = Tokenizer.from_file(str(tok_path))
 
     # Caught here rather than as an MLX traceback six frames down. Easy to hit
@@ -437,10 +513,10 @@ def main() -> int:
     if args.init_from:
         prior = CHECKPOINTS / f"{args.init_from}.safetensors"
         if not prior.exists():
-            sys.exit(f"missing {prior.relative_to(ROOT)} — train {args.init_from} first")
+            sys.exit(f"missing {rel(prior)} — train {args.init_from} first")
         model.load_weights(str(prior))
         mx.eval(model.parameters())
-        print(f"initialised from {prior.relative_to(ROOT)} "
+        print(f"initialised from {rel(prior)} "
               f"(optimizer state is fresh, by design: a phase change wants a new "
               f"schedule, not the tail of the old one)")
 
@@ -530,7 +606,7 @@ def main() -> int:
     save_checkpoint(args.name, model, optimizer, args.steps, history)
     weights = CHECKPOINTS / f"{args.name}.safetensors"
     final = history[-1] if history else {}
-    print(f"\nsaved {weights.relative_to(ROOT)}")
+    print(f"\nsaved {rel(weights)}")
 
     # The floor must come from a baseline trained AND evaluated on the same
     # splits as this run. Quoting a floor computed on a different corpus
@@ -583,7 +659,7 @@ def main() -> int:
     with path.open("w", encoding="utf-8") as fh:
         json.dump(report, fh, indent=2, sort_keys=True, default=str)
         fh.write("\n")
-    print(f"wrote {path.relative_to(ROOT)}")
+    print(f"wrote {rel(path)}")
     return 0
 
 

@@ -285,3 +285,167 @@ def test_shipped_recipes_reproduce_the_runs_that_were_actually_made():
     second, _ = train.load_recipe("latin-xxv", "latin-xxv")
     assert second["init_from"] == "latin-xxv-latinitas"
     assert second["corpus"] == "classical"
+
+
+# --- token loading ----------------------------------------------------------
+#
+# `load_tokens` hands the tokenizer whole batches so the BPE runs across every
+# core; encoding one record at a time used one, and held the entire corpus as
+# a Python list of ints while it did. What must not change is the token stream
+# itself — a different stream silently invalidates every checkpoint and every
+# perplexity measured through it.
+
+class Encoded:
+    def __init__(self, ids):
+        self.ids = ids
+
+
+class FakeTokenizer:
+    """Ids are derived from word length, so an expected stream can be written out."""
+
+    SPECIALS = {"<|endoftext|>": 1, "<CLASSICAL>": 2, "<LATE>": 3,
+                "<MEDIEVAL>": 4, "<NEOLATIN>": 5}
+
+    def __init__(self, vocab_size=4000):
+        self._vocab_size = vocab_size
+        self.batches = []
+
+    def token_to_id(self, token):
+        return self.SPECIALS.get(token)
+
+    def get_vocab_size(self):
+        return self._vocab_size
+
+    def encode(self, text):
+        return Encoded([10 + len(word) for word in text.split()])
+
+    def encode_batch(self, texts):
+        self.batches.append(len(texts))
+        return [self.encode(text) for text in texts]
+
+
+def write_split(processed, corpus, split, records):
+    path = processed / f"{corpus}.{split}.jsonl"
+    with path.open("w", encoding="utf-8") as fh:
+        for rec in records:
+            fh.write(json.dumps(rec) + "\n")
+    return path
+
+
+def serial_stream(records, tok, period_tags=True):
+    """The pre-batching implementation, kept as the reference to match."""
+    stream = []
+    for rec in records:
+        if period_tags:
+            tag = tok.token_to_id(train.PERIOD_TOKENS.get(rec.get("period") or "", ""))
+            if tag is not None:
+                stream.append(tag)
+        stream.extend(tok.encode(rec["text"]).ids)
+        stream.append(tok.token_to_id("<|endoftext|>"))
+    return stream
+
+
+RECORDS = [
+    {"text": "arma uirumque cano", "period": "CLASSICAL"},
+    {"text": "gallia est omnis diuisa in partes tres", "period": "CLASSICAL"},
+    {"text": "confessionum liber primus", "period": "LATE"},
+    {"text": "sic transit gloria mundi", "period": "MEDIEVAL"},
+    {"text": "nouum organum scientiarum", "period": "NEOLATIN"},
+    {"text": "an untagged record", "period": None},
+]
+
+
+def test_chunk_records_groups_by_characters_not_by_record_count():
+    lines = [json.dumps({"text": "x" * 40}) for _ in range(10)]
+    chunks = list(train.chunk_records(lines, budget=100))
+    assert [len(c) for c in chunks] == [3, 3, 3, 1]
+    assert sum(len(c) for c in chunks) == 10
+
+
+def test_chunk_records_yields_the_trailing_partial_batch():
+    """A tail shorter than the budget is still corpus and must not be dropped."""
+    lines = [json.dumps({"text": "abc"}) for _ in range(5)]
+    assert sum(len(c) for c in train.chunk_records(lines, budget=1_000_000)) == 5
+
+
+def test_a_record_larger_than_the_budget_is_still_emitted():
+    """The budget bounds memory; it must never silently discard a long work."""
+    lines = [json.dumps({"text": "x" * 5000})]
+    assert [len(c) for c in train.chunk_records(lines, budget=100)] == [1]
+
+
+def test_chunk_records_never_splits_a_record_across_batches():
+    lines = [json.dumps({"text": f"record {i}"}) for i in range(7)]
+    seen = [rec["text"] for chunk in train.chunk_records(lines, budget=20)
+            for rec in chunk]
+    assert seen == [f"record {i}" for i in range(7)]
+
+
+def test_batched_loading_reproduces_the_serial_token_stream(paths, monkeypatch):
+    """The property the whole change rests on: same corpus, same tokens.
+
+    A stream that differs by one token re-keys every embedding and makes every
+    recorded perplexity incomparable, and nothing would report it.
+    """
+    processed, _ = paths
+    write_split(processed, "demo", "train", RECORDS)
+    tok = FakeTokenizer()
+    arr = train.load_tokens("demo", "train", tok, cache=False)
+    assert arr.tolist() == serial_stream(RECORDS, tok)
+
+
+def test_the_stream_is_unchanged_when_the_batching_actually_splits(paths):
+    """Same answer whether the corpus arrives in one batch or several.
+
+    The chunk boundary is an implementation detail of how much memory the
+    tokenizer is allowed to hold, and it must not be visible in the output.
+    """
+    processed, _ = paths
+    write_split(processed, "demo", "train", RECORDS)
+    one, many = FakeTokenizer(), FakeTokenizer()
+    whole = train.load_tokens("demo", "train", one, cache=False)
+    split = train.load_tokens("demo", "train", many, cache=False, chunk_chars=20)
+    assert one.batches == [len(RECORDS)]      # one batch covered the corpus
+    assert len(many.batches) > 1              # and this one genuinely split
+    assert split.tolist() == whole.tolist()
+
+
+def test_untagged_loading_omits_the_period_tokens(paths):
+    processed, _ = paths
+    write_split(processed, "demo", "train", RECORDS)
+    tok = FakeTokenizer()
+    arr = train.load_tokens("demo", "train", tok, cache=False, period_tags=False)
+    assert arr.tolist() == serial_stream(RECORDS, tok, period_tags=False)
+    assert not set(arr.tolist()) & {2, 3, 4, 5}
+
+
+def test_a_record_with_no_period_gets_no_tag(paths):
+    """`period: null` is 27% of Track B; it must pass through, not crash."""
+    processed, _ = paths
+    write_split(processed, "demo", "train", [{"text": "sine tempore", "period": None}])
+    arr = train.load_tokens("demo", "train", FakeTokenizer(), cache=False)
+    assert arr.tolist() == [10 + 4, 10 + 7, 1]
+
+
+def test_token_width_comes_from_the_vocabulary_not_from_the_stream(paths):
+    """Ids are bounded by the vocabulary, so the width is known before reading."""
+    import mlx.core as mx
+    processed, _ = paths
+    write_split(processed, "demo", "train", RECORDS)
+    assert train.load_tokens("demo", "train", FakeTokenizer(4000),
+                             cache=False).dtype == mx.uint16
+    assert train.load_tokens("demo", "train", FakeTokenizer(70_000),
+                             cache=False).dtype == mx.int32
+
+
+def test_an_empty_split_is_an_error_not_an_empty_corpus(paths):
+    processed, _ = paths
+    write_split(processed, "demo", "train", [])
+    with pytest.raises(SystemExit):
+        train.load_tokens("demo", "train", FakeTokenizer(), cache=False)
+
+
+def test_a_missing_split_names_the_stage_that_builds_it(paths):
+    with pytest.raises(SystemExit) as excinfo:
+        train.load_tokens("absent", "train", FakeTokenizer(), cache=False)
+    assert "build.py" in str(excinfo.value)
