@@ -166,3 +166,61 @@ def test_options_reach_the_workers():
 
 def test_an_empty_corpus_does_not_start_a_pool():
     assert list(N.normalize_all([], OPTIONS, jobs=4)) == []
+
+
+# ---------------------------------------------------------------------------
+# fold_prompt
+#
+# The corpus contains no `v` and no `j` at all — 0 of each in 659,309,740
+# characters — and until this existed nothing folded the other end. A person
+# typing `venit` was asking the model a question in an orthography it had
+# never read.
+# ---------------------------------------------------------------------------
+
+def test_prompt_is_folded_the_way_the_corpus_was():
+    folded, changed = N.fold_prompt("Venit civitas iam Jesus")
+    assert folded == "Uenit ciuitas iam Iesus"
+    assert changed is True
+
+
+def test_an_already_classical_prompt_is_left_alone_and_says_so():
+    folded, changed = N.fold_prompt("Gallia est omnis diuisa")
+    assert folded == "Gallia est omnis diuisa"
+    assert changed is False
+
+
+def test_the_fold_is_idempotent():
+    once, _ = N.fold_prompt("Vita brevis, ars longa")
+    twice, changed = N.fold_prompt(once)
+    assert twice == once
+    assert changed is False
+
+
+def test_prompt_fold_matches_what_the_pipeline_actually_runs():
+    """The coupling this rests on, pinned.
+
+    pipeline.py invokes normalize.py with no arguments, so the corpus carries
+    normalize()'s DEFAULTS. Those defaults are not recorded per record — the
+    stamp is just VERSION — so fold_prompt cannot read back what was used and
+    calls normalize() bare instead. If a default moves, the two ends of the
+    model part company silently; this is what notices.
+    """
+    import inspect
+
+    defaults = {name: param.default
+                for name, param in inspect.signature(N.normalize).parameters.items()
+                if param.default is not inspect.Parameter.empty}
+    assert defaults["uv"] == "u"
+    assert defaults["diacritics"] is False
+    assert defaults["lowercase"] is False
+    assert defaults["hyphen_space"] == "split"
+
+    sample = "Venit, civitas iam — Jésus!"
+    assert N.fold_prompt(sample)[0] == N.normalize(sample)
+
+
+def test_diacritics_and_editorial_marks_go_from_a_prompt_too():
+    """A prompt copied out of an edition carries the editor's apparatus."""
+    folded, changed = N.fold_prompt("iússu [uir] uítae")
+    assert "\u00fa" not in folded and "\u00ed" not in folded
+    assert changed is True

@@ -265,6 +265,47 @@ def normalize(text: str, uv: str = "u", diacritics: bool = False,
     return text.strip()
 
 
+def fold_prompt(text: str) -> Tuple[str, bool]:
+    """Put text typed by a person through what the corpus went through.
+
+    WHY THIS EXISTS
+        The fold is applied to the corpus and nowhere else, so the two ends of
+        the same model disagreed about how Latin is spelled. Counted on the
+        built corpus: 0 occurrences of `v` and 0 of `j` in 659,309,740
+        characters. A prompt is written by a person, who will type `venit`,
+        `civitas` and `iam`/`jam` as their edition does — and through the 4k
+        vocabulary that is a different, essentially unseen token sequence:
+
+            uenit    1 token   _uenit
+            venit    4 tokens  _ · v · en · it
+            ciuitas  1 token   _ciuitas
+            civitas  4 tokens  _c · i · v · itas
+
+        A bare prefix-space followed by `v` is a bigram the model has never
+        been trained on. Nothing was wrong with the model; it was being asked
+        a question in an orthography it had never read.
+
+    WHY THE PROMPT MOVES AND NOT THE CORPUS
+        Folding is what keeps editorial house style out of the model — the
+        v-share of a source varies several-fold and tracks the publisher
+        rather than the century, so unfolding would hand a period-tagged model
+        a repository signature to learn instead of the Latin. So the corpus
+        keeps one spelling, and both spellings are accepted at the door.
+
+    THE DEFAULTS ARE THE COUPLING
+        This calls normalize() with its defaults because that is what
+        pipeline.py runs — it passes normalize.py no arguments at all. The
+        options are not recorded per record (the stamp is just VERSION), so
+        this cannot read back what the corpus was actually built with; a test
+        pins the defaults instead, and will fail if they move.
+
+    Returns the folded text and whether it differs, so a caller can show the
+    person what was actually asked rather than silently rewriting them.
+    """
+    folded = normalize(text)
+    return folded, folded != text
+
+
 # Text handed to the pool in one pass. Same reasoning as dedupe's window:
 # ProcessPoolExecutor.map submits every task up front, so mapping a whole file
 # would pickle all of it into the task queues at once, and corpus-corporum's
