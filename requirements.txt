@@ -1,4 +1,23 @@
-PyYAML>=6.0
+# Every third-party import under src/ is declared here. tests/test_requirements.py
+# checks that, because the quickstart in README.md is `pip install -r
+# requirements.txt` and a dependency that only exists in the author's venv is a
+# reproducibility hole in a project whose whole claim is reproducibility.
+#
+# Versions are floors, not pins, matching how the manifest treats a floating
+# source: the resolved version is recorded rather than frozen. What is written
+# beside each is the version the results in CURRENT_STATE.md were produced
+# through.
+
+# The corpus half — fetch, extract, enrich, normalize, dedupe, build.
+PyYAML>=6.0                 # 6.0.3
+tokenizers>=0.20            # 0.23.1
+
+# The training half — train, sample, sft, score, evaluate, bundle.
+#
+# MLX is Apple Silicon only; it has no wheel for anything else, so the marker
+# keeps `pip install -r requirements.txt` working on a machine that can still
+# build the corpus. The scripts that need it say so on import.
+mlx>=0.29 ; sys_platform == "darwin" and platform_machine == "arm64"      # 0.32.0
 
 # tests
-pytest>=8
+pytest>=8                   # 9.1.1

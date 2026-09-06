@@ -28,6 +28,11 @@ Planning documents:
 
 ## Quickstart
 
+Python 3.14 — not incidental. Annotations are evaluated lazily there and eagerly
+before it, and the scripts are written against that. MLX is Apple Silicon only, so
+`requirements.txt` marks it as such: the corpus half of this repo installs and runs
+anywhere, and only the training half needs a Mac.
+
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
