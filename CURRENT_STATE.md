@@ -850,20 +850,64 @@ against text already held.
 
 ---
 
-## Models — ALL TRAINED ON THE OLD 17M-WORD CORPUS
+## Models — eleven training runs and one fine-tune, across three eras of the corpus
 
-**This is the most important thing to know.** Every checkpoint predates the
-Vicifons/EDCS expansion. Their perplexities were measured on a different corpus,
-a different held-out set, and in latin-2's case a tokenizer trained on different
-text. **Do not compare new models to these numbers.**
+`python src/compare.py` prints this live from `reports/train-*.json`, with a
+staleness mark per row, and **it is the source** — the snapshot below was taken
+2026-09-06 and will drift. What matters is not the list but which rows may be
+read against each other: a corpus keeps its name across rebuilds, so two runs
+labelled `classical` can be held-out scores over different text.
 
-| run | params | corpus | ppl | vs floor | memorisation |
-|---|---:|---|---:|---:|---:|
-| latin-0 | 3.53M | classical (9.5M tok) | 74.3 | 2.14× | 0% |
-| ablation-no-latinitas | 15.90M | classical | 58.3 | 2.72× | 0% |
-| latin-2-latinitas | 15.90M | full (33.7M tok) | 48.2 | 4.05× | — |
-| latin-2 | 15.90M | all → classical | 44.1 | 3.60× | 0% |
-| latin-2-chat | 15.90M | + dialogue SFT | — | — | — |
+### Comparable to the current floors
+
+| run | params | corpus | tokens | ep | ppl | floor | × floor | memo | hours |
+|---|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| **latin-vii** | 7.28M | classical | 10,671,909 | 14.2 | **70.1** | 185.7 | **2.65×** | 0% | 3.1 |
+| **latin-lii-latinitas** | 52.07M | corpus-b | 263,558,393 | 4.0 | **21.3** | 185.9 | **8.73×** | 0% | 73.8 |
+| latin-lii-romanitas | 52.07M | classical | 10,671,909 | 2.0 | 30.2 | 185.7 | 6.15× | — | 1.5 |
+
+The two LATIN-LII rows are one model at two points in one recipe, not two
+models. The romanitas phase made it **worse** at the thing it exists for — 27.3
+→ 30.2 on classical, measured through the same vocabulary — because it
+introduces no new text, only re-weights toward a few per cent of what the model
+has already read, and 10.7M tokens cannot occupy 52M parameters. See the 2026-09-01 entry; `configs/latin-vii.yaml` records why
+7.28M is the size that could still take such a phase.
+
+**latin-lii-romanitas is not published.** LATIN-LII trains on Track B, which
+carries NonCommercial material, and that restriction travels to the weights.
+LATIN-VII is the one released — [on Hugging Face](https://huggingface.co/vincent-b/latin-vii),
+CC-BY-SA-4.0, classical only, no NC term anywhere in its corpus.
+
+### Measured on an earlier build of the same corpus name — marked `!`
+
+| run | params | corpus | tokens | ep | ppl | memo | hours |
+|---|---:|---|---:|---:|---:|---:|---:|
+| latin-xxv-latinitas | 27.49M | corpus | 152,985,050 | 4.0 | 25.2 | — | 24.7 |
+| latin-xxv | 27.49M | classical | 9,562,431 | 3.0 | 29.8 | 0% | 1.2 |
+| latin-xxv-2-latinitas | 27.49M | corpus | 152,247,527 | 4.0 | 25.8 | — | 24.5 |
+| latin-xxv-2 | 27.49M | classical | 9,539,941 | 3.0 | 30.1 | 0% | 1.2 |
+
+Same names, smaller corpus: `corpus` was 152M tokens when these ran and is
+183.3M now. compare.py refuses to quote a floor beside them rather than
+flattering them with one measured over different held-out text.
+
+### Predating corpus fingerprinting — marked `?`, the 17M-word era
+
+| run | params | corpus | tokens | ep | ppl | memo | hours |
+|---|---:|---|---:|---:|---:|---:|---:|
+| latin-0 | 3.53M | classical | 9,538,436 | 8.6 | 74.3 | 0% | 1.0 |
+| ablation-no-latinitas | 15.90M | classical | 9,538,623 | 8.6 | 58.3 | 0% | 2.5 |
+| latin-2-latinitas | 15.90M | corpus | 33,689,916 | 7.8 | 48.2 | — | 8.1 |
+| latin-2 | 15.90M | classical | 9,538,623 | 3.0 | 44.1 | 0% | 0.9 |
+
+Their reports carry no corpus fingerprint at all, so the build they were
+measured on cannot be established — assume it differs. Every one predates the
+Vicifons/EDCS expansion.
+
+`latin-2-chat` is the one SFT run and has no training report of its own
+(`reports/sft-latin-2-chat.json`): latin-2 fine-tuned on 54,535 of 54,536 mined
+dialogue pairs, 1,689,049 supervised response tokens, 0.6 hours. Behaviour, not
+knowledge — it takes a turn and stops.
 
 **The ablation result is the one worth carrying forward.** Of the 30.2-point
 improvement from latin-0 to latin-2, model size accounted for ~53% and the
