@@ -1,11 +1,20 @@
-"""encoding.py — batching must not change what gets encoded.
+"""encoding.py — batching must not change what gets encoded, and a model must
+never be loaded against the wrong vocabulary.
 
 Every stage that reads a whole corpus goes through here, so a batch boundary
 that loses or reorders a record would move a bigram floor, a fertility figure
 and a training corpus at once, and none of them would report it.
+
+The resolve_tokenizer tests were in test_sample.py and skipped wholesale
+without MLX — which is to say they did not run on the machine most likely to
+be checking out this repository. The function needs no MLX and neither do
+they now.
 """
 
+import hashlib
 import json
+
+import pytest
 
 import encoding
 
@@ -100,3 +109,63 @@ def test_encoding_needs_nothing_beyond_the_standard_library():
                 assert alias.name.split(".")[0] in sys.stdlib_module_names
         elif isinstance(node, ast.ImportFrom) and node.module:
             assert node.module.split(".")[0] in sys.stdlib_module_names
+
+
+# ---------------------------------------------------------------------------
+# resolve_tokenizer
+#
+# A model's embeddings are keyed to specific token ids. With a different
+# vocabulary, token 1234 means a different string, and the model emits fluent
+# nonsense rather than failing — the worst failure mode available here.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def tokenizers(tmp_path, monkeypatch):
+    d = tmp_path / "tokenizers"
+    d.mkdir()
+    monkeypatch.setattr(encoding, "TOKENIZERS", d)
+    monkeypatch.setattr(encoding, "ROOT", tmp_path)
+    return d
+
+
+def write(path, body):
+    path.write_text(body, encoding="utf-8")
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+
+def test_current_tokenizer_used_when_it_is_the_right_one(tokenizers):
+    digest = write(tokenizers / "latin-bpe-4000.json", '{"v": 1}')
+    run = {"run": "m", "tokenizer": {"sha256": digest}}
+    assert encoding.resolve_tokenizer(4000, run).endswith("latin-bpe-4000.json")
+
+
+def test_archived_copy_is_preferred_when_the_current_one_has_moved(tokenizers):
+    """A model outlives a retrained tokenizer as long as its copy is kept."""
+    write(tokenizers / "latin-bpe-4000.json", '{"v": 2}')          # retrained
+    write(tokenizers / "latin-bpe-4000.aaaabbbbccccdddd.json", '{"v": 1}')
+    run = {"run": "m", "tokenizer": {"sha256": "aaaabbbbccccdddd"}}
+    resolved = encoding.resolve_tokenizer(4000, run)
+    assert resolved.endswith("latin-bpe-4000.aaaabbbbccccdddd.json")
+
+
+def test_mismatch_with_no_archive_refuses_rather_than_mis_tokenising(tokenizers):
+    """What actually happened on 2026-08-20, and what should have stopped it."""
+    write(tokenizers / "latin-bpe-4000.json", '{"v": 2}')
+    run = {"run": "latin-xxv", "tokenizer": {"sha256": "24d1515e65807859"}}
+    with pytest.raises(SystemExit) as excinfo:
+        encoding.resolve_tokenizer(4000, run)
+    message = str(excinfo.value)
+    assert "24d1515e65807859" in message
+    assert "nonsense" in message
+
+
+def test_unfingerprinted_run_is_used_but_says_so(tokenizers, capsys):
+    write(tokenizers / "latin-bpe-4000.json", '{"v": 1}')
+    resolved = encoding.resolve_tokenizer(4000, {"run": "old"})
+    assert resolved.endswith("latin-bpe-4000.json")
+    assert "unverified" in capsys.readouterr().err
+
+
+def test_no_tokenizer_at_all_is_an_error(tokenizers):
+    with pytest.raises(SystemExit):
+        encoding.resolve_tokenizer(4000, {"run": "m", "tokenizer": {"sha256": "x"}})

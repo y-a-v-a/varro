@@ -19,15 +19,70 @@ WHY THE BATCH IS BOUNDED BY CHARACTERS
     8MB is about 2.5M tokens per batch: enough to keep every core fed, small
     enough that no corpus here has more than a fraction of itself resident.
 
+IT ALSO OWNS resolve_tokenizer, FOR THE SAME REASON
+    Choosing *which* vocabulary file to open is tokenizer plumbing that every
+    stage needs and no stage should reimplement — and it lived in sample.py,
+    which cannot be imported without MLX. sft.py therefore could not reach it
+    and opened `latin-bpe-{vocab}.json` by name instead, which is the one
+    mistake the function exists to prevent.
+
 This module deliberately imports nothing beyond the standard library. It is
 used by the training half and by evaluate.py, which has to keep running on a
 machine with no MLX.
 """
 
+import hashlib
 import json
+import sys
+from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List
 
+ROOT = Path(__file__).resolve().parent.parent
+TOKENIZERS = ROOT / "data" / "processed" / "tokenizers"
+
 CHUNK_CHARS = 8_000_000
+
+
+def resolve_tokenizer(vocab: int, run: Dict[str, Any]) -> str:
+    """The exact vocabulary this run was trained through, or a clear refusal.
+
+    A model's embeddings are keyed to specific token ids: with the wrong
+    vocabulary, token 1234 means a different string and the model emits
+    confident nonsense rather than failing. That is the worst failure mode
+    available here, so it is checked rather than assumed.
+
+    tokenizer.py keeps a content-named copy of every vocabulary it trains, so
+    a model outlives a retrained tokenizer as long as its copy is on disk.
+
+    Every caller that loads a CHECKPOINT must come through here. Callers that
+    only measure the corpus — evaluate.py's baselines — have no embedding
+    table to misalign; they record the tokenizer they used instead, and
+    compare.py refuses to read a floor and a run that disagree.
+    """
+    want = (run.get("tokenizer") or {}).get("sha256")
+    current = TOKENIZERS / f"latin-bpe-{vocab}.json"
+    if want is None:
+        # Reports written before tokenizers were fingerprinted cannot be
+        # checked; say so rather than imply the check passed.
+        print(f"  [no tokenizer fingerprint in this run's report — using "
+              f"{current.name} unverified]", file=sys.stderr)
+        return str(current)
+
+    archived = TOKENIZERS / f"latin-bpe-{vocab}.{want}.json"
+    if archived.exists():
+        return str(archived)
+    if current.exists():
+        have = hashlib.sha256(current.read_bytes()).hexdigest()[:16]
+        if have == want:
+            return str(current)
+        sys.exit(
+            f"tokenizer mismatch: {run.get('run')} was trained through "
+            f"vocabulary {want}, and {current.name} is {have}.\n"
+            f"Loading it anyway would map every token to the wrong string and "
+            f"produce fluent nonsense.\n"
+            f"Recover it by rebuilding the corpus at the commit that trained "
+            f"this model, or retrain the model on the current vocabulary.")
+    sys.exit(f"no tokenizer for vocab {vocab} in {TOKENIZERS.relative_to(ROOT)}")
 
 
 def chunk_texts(texts: Iterable[str],
