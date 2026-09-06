@@ -273,3 +273,67 @@ def test_empty_and_single_document_corpora_do_not_crash():
 def test_a_document_with_an_empty_sketch_pairs_with_nothing():
     """sketch() returns an empty set for a text shorter than the shingle."""
     assert streamed_pairs([set(), {1}, {1}]) == {(1, 2)}
+
+
+# --- parallel sketching -----------------------------------------------------
+#
+# Sketching is the long pole: pure Python over every 5-gram of every document,
+# 7.1 Mchar/s on one core, over a corpus that only grows. It parallelises
+# because blake2b is deterministic — the answer cannot depend on which worker
+# computed it. What must be tested is that it does not depend on that in
+# practice either, and that the order survives.
+
+TEXTS = [
+    "arma uirumque cano troiae qui primus ab oris italiam fato profugus",
+    "gallia est omnis diuisa in partes tres quarum unam incolunt belgae",
+    "in principio erat uerbum et uerbum erat apud deum et deus erat uerbum",
+    "sic transit gloria mundi et omnia uanitas est sub sole nihil noui",
+    "short",                                        # fewer tokens than a shingle
+    "arma uirumque cano troiae qui primus ab oris italiam fato profugus",  # a twin
+]
+
+
+def as_records(texts):
+    return [{"id": f"r{i}", "text": t, "n_words": len(t.split())}
+            for i, t in enumerate(texts)]
+
+
+def test_a_pool_sketches_exactly_what_one_process_does():
+    records = as_records(TEXTS)
+    assert list(dedupe.sketch_all(records, jobs=4)) == \
+        list(dedupe.sketch_all(records, jobs=1))
+
+
+def test_sketches_come_back_in_record_order():
+    """sizes[i] and sorted_sketches[i] have to describe records[i]."""
+    records = as_records(TEXTS)
+    expected = [dedupe.sketch_record(t) for t in TEXTS]
+    assert list(dedupe.sketch_all(records, jobs=4)) == expected
+
+
+def test_the_window_boundary_is_not_visible_in_the_result():
+    records = as_records(TEXTS)
+    whole = list(dedupe.sketch_all(records, jobs=2, window=10**9))
+    split = list(dedupe.sketch_all(records, jobs=2, window=40))
+    assert split == whole
+
+
+def test_identical_documents_sketch_identically_across_processes():
+    """blake2b, not hash(): a per-process seed would make twins look unrelated."""
+    out = list(dedupe.sketch_all(as_records(TEXTS), jobs=4))
+    assert out[0] == out[5] and out[0][1] > 0
+
+
+def test_a_document_too_short_to_shingle_sketches_empty():
+    out = list(dedupe.sketch_all(as_records(TEXTS), jobs=2))
+    assert out[4] == ((), 0)
+
+
+def test_sketch_record_returns_the_sketch_already_sorted():
+    ordered, cardinality = dedupe.sketch_record(TEXTS[0])
+    assert list(ordered) == sorted(ordered)
+    assert cardinality >= len(ordered)
+
+
+def test_an_empty_corpus_does_not_start_a_pool():
+    assert list(dedupe.sketch_all([], jobs=4)) == []

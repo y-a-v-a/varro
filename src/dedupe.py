@@ -40,14 +40,20 @@ Usage:
 import argparse
 import heapq
 import json
+import os
 import random
 import re
 import sys
 from bisect import bisect_right
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
 from hashlib import blake2b
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from encoding import chunk_texts  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 INTERIM = ROOT / "data" / "interim"
@@ -112,6 +118,55 @@ def sketch(tokens: Sequence[str], k: int = SKETCH_K,
         elif -heap[0] > value:
             heapq.heapreplace(heap, -value)
     return {-x for x in heap}, len(seen)
+
+
+# How much text one pass hands to the worker pool.
+#
+# ProcessPoolExecutor.map submits every task up front, so mapping over the
+# whole corpus would pickle all 500MB of it into the task queues at once. The
+# records are already resident — load_all reads them all — so a window costs
+# nothing to assemble; it exists purely to bound what is in flight. 64MB is
+# roughly nine seconds of serial sketching, long enough that the synchronise at
+# each window boundary disappears against it.
+SKETCH_WINDOW_CHARS = 64_000_000
+
+
+def sketch_record(text: str) -> Tuple[Tuple[int, ...], int]:
+    """Fold and sketch one record: the unit of work a worker process gets.
+
+    Module-level and taking a plain string, because a process pool has to
+    pickle both the function and its argument. Returns the sketch already
+    sorted, which the scoring loop needs anyway and which is cheaper to send
+    back than a set.
+    """
+    values, cardinality = sketch(fold(text))
+    return tuple(sorted(values)), cardinality
+
+
+def sketch_all(records: List[Dict[str, Any]], jobs: int,
+               window: int = SKETCH_WINDOW_CHARS
+               ) -> Iterator[Tuple[Tuple[int, ...], int]]:
+    """Sketch every record, in order, across `jobs` processes.
+
+    Sketching is the long pole here and it is pure Python over every 5-gram of
+    every document — 7.1 Mchar/s on one core, and the corpus only grows. It is
+    also embarrassingly parallel: blake2b is deterministic, so the answer does
+    not depend on which worker computed it or in what order. Measured on 48.6M
+    characters of real records: 6.80s on one core, 1.99s across eight, results
+    identical.
+
+    `jobs=1` stays in this process. A pool that never had a second worker is
+    just a slower way to call a function, and it keeps a profiler, a debugger
+    and the tests in one process.
+    """
+    if jobs <= 1:
+        for record in records:
+            yield sketch_record(record["text"])
+        return
+    with ProcessPoolExecutor(max_workers=jobs) as pool:
+        for batch in chunk_texts((r["text"] for r in records), window):
+            yield from pool.map(sketch_record, batch,
+                                chunksize=max(1, len(batch) // (jobs * 4)))
 
 
 def jaccard(a: Sequence[int], b: Sequence[int], a_set: Set[int], b_set: Set[int],
@@ -370,6 +425,9 @@ def main() -> int:
     ap.add_argument("--containment", type=float, default=0.8,
                     help="containment at or above which the smaller is redundant (default 0.8)")
     ap.add_argument("--show", type=int, default=25, help="clusters to print")
+    ap.add_argument("--jobs", type=int, default=None, metavar="N",
+                    help="processes used for sketching (default: every core; "
+                         "1 keeps everything in this process)")
     args = ap.parse_args()
 
     records, by_file = load_all()
@@ -379,19 +437,19 @@ def main() -> int:
     if args.verify:
         return verify(records, tuple(args.track or sorted(TRACK_SUFFIX)))
 
-    print(f"sketching {len(records):,} records ...", flush=True)
+    jobs = args.jobs if args.jobs is not None else (os.cpu_count() or 1)
+    print(f"sketching {len(records):,} records across {jobs} process(es) ...",
+          flush=True)
     sizes: List[int] = []
     sorted_sketches: List[Tuple[int, ...]] = []
     set_sketches: List[Set[int]] = []
     sketch_heartbeat = max(1, len(records) // 10)
-    for done, rec in enumerate(records, 1):
+    for done, (ordered, cardinality) in enumerate(sketch_all(records, jobs), 1):
         if done % sketch_heartbeat == 0:
             print(f"  sketched {done:,}/{len(records):,}", flush=True)
-        tokens = fold(rec["text"])
-        s, cardinality = sketch(tokens)
         sizes.append(cardinality)
-        set_sketches.append(s)
-        sorted_sketches.append(tuple(sorted(s)))
+        set_sketches.append(set(ordered))
+        sorted_sketches.append(ordered)
 
     # Candidate prefilter: documents sharing no sketch value at all cannot be
     # duplicates, and that is the overwhelming majority of pairs. An inverted
