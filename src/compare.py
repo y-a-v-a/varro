@@ -11,6 +11,7 @@ Usage:
     python src/compare.py latin-0 latin-2
 """
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -92,7 +93,17 @@ def memorisation_for(name: str) -> Dict[str, Any] | None:
 
 
 def main() -> int:
-    runs = load_runs(sys.argv[1:])
+    # Reading sys.argv directly meant `--help` was taken for a run name and
+    # answered with "no run reports in reports/" — a script that cannot explain
+    # itself is one you have to read the source of.
+    ap = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("names", nargs="*", metavar="RUN",
+                    help="runs to compare; default is every report in reports/")
+    args = ap.parse_args()
+
+    runs = load_runs(args.names)
     if not runs:
         sys.exit("no run reports in reports/ — train something first")
 

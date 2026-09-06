@@ -79,3 +79,24 @@ def test_no_script_does_its_work_at_import_time():
                     and call_name(node.value) not in allowed):
                 naked.append(f"{path.name}:{node.lineno} {call_name(node.value)}()")
     assert not naked, f"work done at import time: {naked}"
+
+
+def test_every_script_answers_help_rather_than_doing_the_work():
+    """`--help` must never start the job.
+
+    token_growth.py had no argument parser, so argv was ignored entirely: the
+    typo you meant to catch, and `--help` itself, both tokenised four corpora
+    and rewrote token-growth.json. A script whose arguments are silently
+    discarded is a trap even when it takes none.
+    """
+    import subprocess
+    import sys as _sys
+    missing = []
+    for path in sources():
+        if path.name == "encoding.py":       # a library, not a command
+            continue
+        done = subprocess.run([_sys.executable, str(path), "--help"],
+                              capture_output=True, text=True, timeout=90)
+        if done.returncode != 0 or "usage:" not in done.stdout:
+            missing.append(path.name)
+    assert not missing, f"no argument parser reached before the work: {missing}"

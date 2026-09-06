@@ -5,6 +5,7 @@ vocabulary — the Track A one the models are trained with. A separate vocabular
 per corpus would make the token counts incomparable, which is the whole point
 of measuring them side by side.
 """
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -27,6 +28,14 @@ CORPORA = [("corpus", "Track A · full"), ("classical", "Track A · classical"),
 
 
 def main() -> None:
+    # An argument parser for a script that takes no arguments, so that `--help`
+    # answers instead of silently tokenising four corpora. Without one, every
+    # argv — including a typo, and including --help — was ignored and the full
+    # job ran regardless, which takes minutes and rewrites token-growth.json.
+    argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter).parse_args()
+
     tok = Tokenizer.from_file(str(P / "tokenizers" / "latin-bpe-4000.json"))
     rows = []
     for name, label in CORPORA:
