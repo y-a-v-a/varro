@@ -199,3 +199,77 @@ def test_a_record_is_never_dropped_without_direct_evidence(monkeypatch, tmp_path
     # known to contain C. Discarding it would be a guess.
     assert keepers[1] == 0
     assert 2 not in keepers
+
+
+# --- candidate prefilter ----------------------------------------------------
+#
+# The prefilter used to materialise every candidate pair into one Python set:
+# a posting list of length m contributed m(m-1)/2 tuples, and nothing bounded
+# m. Shingles common to many witnesses — liturgy, scripture, the citation
+# formulae MIN_CONTAINED exists for — are exactly where m grows. Pairs are now
+# streamed per document. The set of pairs examined must not change: a pair that
+# stops being scored is a duplicate that stops being found, silently.
+
+import itertools
+
+import dedupe
+
+
+def brute_force_pairs(set_sketches):
+    """Every pair sharing at least one sketch value — the definition, stated slowly."""
+    return {(i, j) for i, j in itertools.combinations(range(len(set_sketches)), 2)
+            if set_sketches[i] & set_sketches[j]}
+
+
+def streamed_pairs(set_sketches):
+    postings = dedupe.build_postings(set_sketches)
+    return {(i, j) for i in range(len(set_sketches))
+            for j in dedupe.neighbours(i, set_sketches, postings)}
+
+
+SKETCHES = [
+    {1, 2, 3},          # 0 — shares 3 with 1, 1 with 3
+    {3, 4, 5},          # 1
+    {90, 91},           # 2 — shares nothing
+    {1, 7},             # 3
+    {1, 2, 3, 4, 5},    # 4 — overlaps almost everything
+]
+
+
+def test_streaming_examines_exactly_the_pairs_the_definition_names():
+    assert streamed_pairs(SKETCHES) == brute_force_pairs(SKETCHES)
+
+
+def test_a_document_sharing_nothing_is_never_a_candidate():
+    assert not any(2 in pair for pair in streamed_pairs(SKETCHES))
+
+
+def test_every_pair_is_offered_once_and_from_its_lower_index():
+    """Scoring a pair twice would double its weight in the heartbeat and the log."""
+    postings = dedupe.build_postings(SKETCHES)
+    emitted = [(i, j) for i in range(len(SKETCHES))
+               for j in dedupe.neighbours(i, SKETCHES, postings)]
+    assert len(emitted) == len(set(emitted))
+    assert all(i < j for i, j in emitted)
+
+
+def test_identical_documents_are_all_mutually_candidates():
+    """The case a posting-list cap would have broken: n witnesses of one work."""
+    identical = [set(range(50)) for _ in range(12)]
+    assert streamed_pairs(identical) == brute_force_pairs(identical)
+    assert len(streamed_pairs(identical)) == 12 * 11 // 2
+
+
+def test_postings_are_ascending_which_is_what_lets_bisect_skip():
+    postings = dedupe.build_postings(SKETCHES)
+    assert all(docs == sorted(docs) for docs in postings.values())
+
+
+def test_empty_and_single_document_corpora_do_not_crash():
+    assert streamed_pairs([]) == set()
+    assert streamed_pairs([{1, 2}]) == set()
+
+
+def test_a_document_with_an_empty_sketch_pairs_with_nothing():
+    """sketch() returns an empty set for a text shorter than the shingle."""
+    assert streamed_pairs([set(), {1}, {1}]) == {(1, 2)}
