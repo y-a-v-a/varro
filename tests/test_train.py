@@ -5,6 +5,7 @@ of the suite deliberately runs without it.
 """
 
 import json
+import pathlib
 
 import pytest
 
@@ -449,3 +450,77 @@ def test_a_missing_split_names_the_stage_that_builds_it(paths):
     with pytest.raises(SystemExit) as excinfo:
         train.load_tokens("absent", "train", FakeTokenizer(), cache=False)
     assert "build.py" in str(excinfo.value)
+
+
+# ---------------------------------------------------------------------------
+# Resuming through the wrong vocabulary
+#
+# --resume re-reads `latin-bpe-{vocab}.json` by name, and that name is not
+# stable: retraining the tokenizer overwrites it, which happened on 2026-08-20.
+# Resuming across that feeds ids from one vocabulary into embeddings keyed to
+# another. Nothing crashes; the loss keeps printing.
+# ---------------------------------------------------------------------------
+
+class Recorder:
+    """Enough of a model and an optimizer for the checkpoint round-trip."""
+
+    def __init__(self):
+        self.loaded = None
+        self.state = {}
+
+    def save_weights(self, path):
+        pathlib.Path(path).write_text("weights", encoding="utf-8")
+
+    def load_weights(self, path):
+        self.loaded = path
+
+    def parameters(self):
+        return {}
+
+
+@pytest.fixture
+def checkpoints(tmp_path, monkeypatch):
+    d = tmp_path / "checkpoints"
+    monkeypatch.setattr(train, "CHECKPOINTS", d)
+    return d
+
+
+def save(name, tokenizer):
+    train.save_checkpoint(name, Recorder(), Recorder(), 500, [], tokenizer)
+
+
+def test_a_resume_through_a_different_vocabulary_is_refused(checkpoints):
+    save("latin-xxv", {"vocab": 4000, "sha256": "24d1515e65807859"})
+    with pytest.raises(SystemExit) as excinfo:
+        train.load_checkpoint("latin-xxv", Recorder(), Recorder(),
+                              {"vocab": 4000, "sha256": "f1086bbe7f1fd140"})
+    message = str(excinfo.value)
+    assert "24d1515e65807859" in message and "f1086bbe7f1fd140" in message
+
+
+def test_the_matching_vocabulary_resumes(checkpoints):
+    fingerprint = {"vocab": 4000, "sha256": "24d1515e65807859"}
+    save("latin-xxv", fingerprint)
+    step, history = train.load_checkpoint("latin-xxv", Recorder(), Recorder(),
+                                          fingerprint)
+    assert step == 500 and history == []
+
+
+def test_a_checkpoint_written_before_fingerprinting_resumes_but_says_so(
+        checkpoints, capsys):
+    """Refusing these would strand every checkpoint already on disk."""
+    save("latin-xxv", None)
+    step, _ = train.load_checkpoint("latin-xxv", Recorder(), Recorder(),
+                                    {"vocab": 4000, "sha256": "24d1515e65807859"})
+    assert step == 500
+    assert "unverified" in capsys.readouterr().err
+
+
+def test_the_refusal_happens_before_any_weights_are_touched(checkpoints):
+    """A refusal that has already half-loaded a model is not a refusal."""
+    save("latin-xxv", {"vocab": 4000, "sha256": "24d1515e65807859"})
+    model = Recorder()
+    with pytest.raises(SystemExit):
+        train.load_checkpoint("latin-xxv", model, Recorder(),
+                              {"vocab": 4000, "sha256": "deadbeefdeadbeef"})
+    assert model.loaded is None

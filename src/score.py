@@ -43,7 +43,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
-TOKENIZERS = PROCESSED / "tokenizers"
 CHECKPOINTS = ROOT / "checkpoints"
 REPORTS = ROOT / "reports"
 
@@ -159,7 +158,7 @@ def load_model(name: str):
 
     from tokenizers import Tokenizer
     sys.path.insert(0, str(ROOT / "src"))
-    from sample import resolve_tokenizer
+    from encoding import resolve_tokenizer
     tok = Tokenizer.from_file(resolve_tokenizer(cfg["vocab"], run))
 
     model = GPT(cfg["vocab"], cfg["dim"], cfg["layers"], cfg["heads"], cfg["context"])

@@ -40,7 +40,6 @@ from typing import Any, Dict, List, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
-TOKENIZERS = PROCESSED / "tokenizers"
 CHECKPOINTS = ROOT / "checkpoints"
 REPORTS = ROOT / "reports"
 
@@ -53,6 +52,8 @@ try:
 except ImportError:
     sys.exit("MLX required — pip install mlx")
 
+from encoding import resolve_tokenizer  # noqa: E402
+from normalize import fold_prompt  # noqa: E402
 from train import (GPT, is_report_step, load_checkpoint,  # noqa: E402
                    save_checkpoint)
 
@@ -143,12 +144,19 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=20260817)
     ap.add_argument("--report", action="store_true")
     ap.add_argument("--chat", action="store_true", help="load and talk to --name")
+    ap.add_argument("--prompt", help="ask this instead of the built-in prompts "
+                                     "(--chat only); folded to the corpus "
+                                     "orthography before it is tokenised")
     args = ap.parse_args()
 
     run = load_run(args.base)
     cfg = run["config"]
     from tokenizers import Tokenizer
-    tok = Tokenizer.from_file(str(TOKENIZERS / f"latin-bpe-{cfg['vocab']}.json"))
+    # Not `TOKENIZERS / f"latin-bpe-{vocab}.json"`. Fine-tuning loads the base
+    # model's embedding table, which is keyed to the exact vocabulary that
+    # model was trained through; opening whatever file currently has that name
+    # is how a retrained tokenizer silently turns a fine-tune into nonsense.
+    tok = Tokenizer.from_file(resolve_tokenizer(cfg["vocab"], run))
 
     model = GPT(cfg["vocab"], cfg["dim"], cfg["layers"], cfg["heads"], cfg["context"])
 
@@ -161,9 +169,13 @@ def main() -> int:
         mx.eval(model.parameters())
         prompts = ["Quid est ueritas?", "Quid agis?", "Vnde uenis?",
                    "Quot sunt partes orationis?", "Cur me uerberas?"]
+        if args.prompt:
+            prompts = [args.prompt]
         print(f"{args.name} — one turn per prompt, stopping at <|endoftext|>\n")
-        for i, p in enumerate(prompts):
-            print(f"  > {p}")
+        for i, raw in enumerate(prompts):
+            # The corpus has no `v` and no `j`; a person's question has both.
+            p, folded = fold_prompt(raw)
+            print(f"  > {raw}" + (f"   [folded: {p}]" if folded else ""))
             print(f"  < {chat(model, tok, p, seed=i + 1)}\n")
         return 0
 
@@ -195,7 +207,8 @@ def main() -> int:
         # The checkpoint holds the fine-tuned weights and the optimizer's
         # moments. Loading the base over them would silently undo the run and
         # report the result as a resumed one.
-        start_step, history = load_checkpoint(args.name, model, optimizer)
+        start_step, history = load_checkpoint(args.name, model, optimizer,
+                                              run.get("tokenizer"))
         print(f"resumed {args.name} at step {start_step:,}")
     else:
         model.load_weights(str(CHECKPOINTS / f"{args.base}.safetensors"))
@@ -236,15 +249,20 @@ def main() -> int:
                             "perplexity": math.exp(mean), "elapsed_s": elapsed})
 
         if (step + 1) % args.checkpoint_every == 0:
-            save_checkpoint(args.name, model, optimizer, step + 1, history)
+            save_checkpoint(args.name, model, optimizer, step + 1, history,
+                            run.get("tokenizer"))
 
-    save_checkpoint(args.name, model, optimizer, args.steps, history)
+    save_checkpoint(args.name, model, optimizer, args.steps, history,
+                    run.get("tokenizer"))
     print(f"\nsaved checkpoints/{args.name}.safetensors")
 
     REPORTS.mkdir(parents=True, exist_ok=True)
     report = {"schema_version": 1,
               "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
               "run": args.name, "base": args.base, "config": vars(args),
+              # Which vocabulary this fine-tune's embeddings are keyed to, so a
+              # later --chat can be refused rather than mis-tokenised.
+              "tokenizer": run.get("tokenizer"),
               "pairs_mined": len(pairs), "pairs_used": kept,
               "supervised_tokens": supervised, "history": history,
               "final": history[-1] if history else {}}

@@ -141,13 +141,21 @@ class GPT(nn.Module):
         return self.embed.as_linear(self.ln_f(x))
 
 
-def save_checkpoint(name: str, model, optimizer, step: int, history: List[Dict]) -> None:
+def save_checkpoint(name: str, model, optimizer, step: int, history: List[Dict],
+                    tokenizer: Optional[Dict[str, Any]] = None) -> None:
     """Weights, optimizer state and position — everything needed to resume.
 
     A twelve-hour run that can only be restarted from zero is a twelve-hour run
     you will eventually lose. Optimizer state matters as much as weights: Adam's
     moment estimates take hundreds of steps to rebuild, and dropping them mid-run
     produces a visible loss spike.
+
+    The tokenizer fingerprint is written for the same reason the run report
+    carries one. A resume re-reads `latin-bpe-{vocab}.json` by name, and that
+    name is not stable: retraining the tokenizer overwrites it, which is what
+    happened on 2026-08-20. Resuming across that would feed ids from one
+    vocabulary into embeddings keyed to another — the model would keep training,
+    the loss would keep printing, and every token would mean something else.
     """
     CHECKPOINTS.mkdir(parents=True, exist_ok=True)
     model.save_weights(str(CHECKPOINTS / f"{name}.safetensors"))
@@ -156,22 +164,43 @@ def save_checkpoint(name: str, model, optimizer, step: int, history: List[Dict])
     if arrays:
         mx.save_safetensors(str(CHECKPOINTS / f"{name}.opt.safetensors"), arrays)
     with (CHECKPOINTS / f"{name}.state.json").open("w", encoding="utf-8") as fh:
-        json.dump({"step": step, "history": history}, fh)
+        json.dump({"step": step, "history": history, "tokenizer": tokenizer}, fh)
 
 
-def load_checkpoint(name: str, model, optimizer) -> Tuple[int, List[Dict]]:
+def load_checkpoint(name: str, model, optimizer,
+                    tokenizer: Optional[Dict[str, Any]] = None
+                    ) -> Tuple[int, List[Dict]]:
+    """Restore a run, refusing one that would resume through a different vocabulary."""
     weights = CHECKPOINTS / f"{name}.safetensors"
     state_path = CHECKPOINTS / f"{name}.state.json"
     if not weights.exists() or not state_path.exists():
         sys.exit(f"cannot resume {name}: missing weights or state in "
                  f"{rel(CHECKPOINTS)}/")
+    with state_path.open(encoding="utf-8") as fh:
+        saved = json.load(fh)
+
+    # Before the weights are touched, so a refusal costs nothing.
+    want = (saved.get("tokenizer") or {}).get("sha256")
+    have = (tokenizer or {}).get("sha256")
+    if want and have and want != have:
+        sys.exit(
+            f"cannot resume {name}: it was training through vocabulary {want} "
+            f"and the tokenizer on disk is {have}.\n"
+            f"Resuming would feed ids from one vocabulary into embeddings keyed "
+            f"to another — the loss would keep printing and every token would "
+            f"mean something else.\n"
+            f"Restore the vocabulary this run started with, or start again.")
+    if have and not want:
+        # Checkpoints written before this was recorded. Say so rather than
+        # imply the check passed, exactly as resolve_tokenizer does.
+        print(f"  [{name}.state.json predates tokenizer fingerprinting — "
+              f"resuming unverified]", file=sys.stderr)
+
     model.load_weights(str(weights))
     opt_path = CHECKPOINTS / f"{name}.opt.safetensors"
     if opt_path.exists():
         loaded = mx.load(str(opt_path))
         optimizer.state = tree_unflatten(list(loaded.items()))
-    with state_path.open(encoding="utf-8") as fh:
-        saved = json.load(fh)
     mx.eval(model.parameters())
     return saved["step"], saved.get("history", [])
 
@@ -471,10 +500,15 @@ def main() -> int:
         sys.exit("--phase only means something with --config")
 
     from tokenizers import Tokenizer
+    # By name, deliberately: a fresh run is DEFINED by the tokenizer currently
+    # on disk, and stamps it into its own report at the end. What must not be
+    # taken on trust is --resume, and that is checked in load_checkpoint against
+    # the fingerprint the checkpoint carries.
     tok_path = TOKENIZERS / f"latin-bpe-{args.vocab}.json"
     if not tok_path.exists():
         sys.exit(f"missing {rel(tok_path)} — run src/tokenizer.py")
     tok = Tokenizer.from_file(str(tok_path))
+    tok_fingerprint = tokenizer_fingerprint(args.vocab)
 
     # Caught here rather than as an MLX traceback six frames down. Easy to hit
     # from a recipe: override --dim without --heads and the two stop dividing.
@@ -540,7 +574,8 @@ def main() -> int:
     history: List[Dict[str, Any]] = []
     start_step = 0
     if args.resume:
-        start_step, history = load_checkpoint(args.name, model, optimizer)
+        start_step, history = load_checkpoint(args.name, model, optimizer,
+                                              tok_fingerprint)
         print(f"resumed {args.name} at step {start_step:,}")
     started = time.time()
     running = 0.0
@@ -581,9 +616,11 @@ def main() -> int:
                             "elapsed_s": elapsed})
 
         if (step + 1) % args.checkpoint_every == 0:
-            save_checkpoint(args.name, model, optimizer, step + 1, history)
+            save_checkpoint(args.name, model, optimizer, step + 1, history,
+                            tok_fingerprint)
 
-    save_checkpoint(args.name, model, optimizer, args.steps, history)
+    save_checkpoint(args.name, model, optimizer, args.steps, history,
+                    tok_fingerprint)
     weights = CHECKPOINTS / f"{args.name}.safetensors"
     final = history[-1] if history else {}
     print(f"\nsaved {rel(weights)}")
@@ -623,7 +660,7 @@ def main() -> int:
         "config": vars(args),
         "corpus_name": args.corpus,
         "corpus": corpus_fingerprint(args.corpus),
-        "tokenizer": tokenizer_fingerprint(args.vocab),
+        "tokenizer": tok_fingerprint,
         # Which recipe, and how many passes it asked for. `steps` alone does
         # not survive corpus growth; `epochs` is what a later run reproduces.
         "recipe": args.config,

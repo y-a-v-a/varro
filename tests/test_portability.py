@@ -100,3 +100,71 @@ def test_every_script_answers_help_rather_than_doing_the_work():
         if done.returncode != 0 or "usage:" not in done.stdout:
             missing.append(path.name)
     assert not missing, f"no argument parser reached before the work: {missing}"
+
+
+# ---------------------------------------------------------------------------
+# One more thing that has to hold across every script, for the same kind of
+# reason: a rule kept in one place and broken in another is not a rule.
+# ---------------------------------------------------------------------------
+
+# `latin-bpe-{...}.json` assembled from a vocabulary size. Loading a model
+# through whatever file currently has that name is how a retrained tokenizer
+# turns a trained checkpoint into fluent nonsense, silently — it happened on
+# 2026-08-20. encoding.resolve_tokenizer exists to refuse that, and sft.py
+# named the file directly anyway because the function lived in sample.py,
+# which cannot be imported without MLX.
+BY_NAME = re.compile(r'latin-bpe-\{|latin-bpe-\{vocab')
+
+# Who is allowed to build that name. tokenizer.py writes the file; encoding.py
+# is the resolver itself; evaluate.py and token_growth.py measure the corpus
+# and load no checkpoint, so they have no embedding table to misalign — and
+# evaluate.py records the digest it used, which compare.py checks against the
+# run's before it will call two numbers comparable.
+# train.py names it twice and both are correct: a FRESH run is defined by the
+# tokenizer currently on disk and stamps it into its own report, and the other
+# site is the stamping itself. The case that is not safe there is --resume,
+# which is checked in load_checkpoint against the fingerprint the checkpoint
+# carries. bundle.py builds the content-named archive path from the run's
+# recorded sha and then re-hashes the file, which is stricter than the
+# resolver, not looser.
+MAY_NAME_A_TOKENIZER = {"tokenizer.py", "encoding.py", "evaluate.py",
+                        "token_growth.py", "train.py", "bundle.py"}
+
+
+def test_only_the_resolver_names_a_tokenizer_file():
+    offenders = {}
+    for path in sources():
+        if path.name in MAY_NAME_A_TOKENIZER:
+            continue
+        hits = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()
+                if BY_NAME.search(line) and not line.strip().startswith("#")]
+        if hits:
+            offenders[path.name] = hits
+    assert not offenders, (
+        "these load a tokenizer by name instead of through "
+        f"encoding.resolve_tokenizer: {offenders}")
+
+
+def test_the_tokenizer_scan_is_not_vacuous():
+    """The allowlist must still contain the pattern it is exempting."""
+    text = (SRC / "tokenizer.py").read_text(encoding="utf-8")
+    assert BY_NAME.search(text)
+
+
+def test_every_script_that_loads_a_checkpoint_resolves_its_vocabulary():
+    """The positive half: naming nothing is not the same as checking."""
+    for name in ("sample.py", "sft.py", "score.py"):
+        text = (SRC / name).read_text(encoding="utf-8")
+        assert "resolve_tokenizer(" in text, f"{name} loads a model unchecked"
+
+
+def test_resuming_a_run_checks_the_vocabulary_it_started_with():
+    """train.py may name the tokenizer, but not for --resume.
+
+    A fresh run defines its own vocabulary. A resumed one inherits embeddings
+    keyed to whatever the earlier steps used, so it has to be told what that
+    was and refuse if the file has moved underneath it.
+    """
+    text = (SRC / "train.py").read_text(encoding="utf-8")
+    assert "def load_checkpoint(name: str, model, optimizer,\n" in text
+    assert "tok_fingerprint)" in text, "--resume passes no fingerprint to check"
