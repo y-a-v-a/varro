@@ -21,6 +21,12 @@ Byte-level BPE is used throughout: it cannot emit <unk>, which matters because
 249 stray non-ASCII characters survived normalisation deliberately, and it is
 what GPT-2-class training pipelines expect.
 
+The vocabulary is fitted on corpus.train MINUS everything any corpus holds
+out — not just this one's validation split. build.py chooses each corpus's
+split independently, so a work held out of `classical` or `corpus-b` can still
+sit in `corpus`'s training text, and the tokenizer would be reading text those
+models are scored against. See held_out_ids().
+
 Every run that saves tokenizers also writes reports/tokenizer.json, so the
 sweep survives the terminal it was printed in. tokens-per-word is what the
 parameter ladder is computed against, and it was an assumption for months
@@ -40,7 +46,7 @@ import unicodedata
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterator, List
+from typing import Any, Dict, Iterator, List, Set
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -88,6 +94,40 @@ def load(split: str) -> List[Dict[str, Any]]:
         sys.exit(f"missing {path.relative_to(ROOT)} — run src/build.py first")
     with path.open(encoding="utf-8") as fh:
         return [json.loads(line) for line in fh]
+
+
+def held_out_ids() -> Set[str]:
+    """Every record that ANY corpus holds out, not just this one's.
+
+    build.py runs once per corpus and each run chooses its own validation split
+    independently, so a work held out of `classical` can still sit in `corpus`'s
+    training split — 14 of LATIN-VII's 22 held-out works do, 104,211 words. The
+    tokenizer trains on corpus.train, so it was reading text LATIN-VII is then
+    scored against.
+
+    Nothing leaked into a model: LATIN-VII's weights never saw those works. What
+    saw them was the merge table used to encode both sides, and BPE picks its
+    merges by frequency over its input, so sequences peculiar to a held-out work
+    could earn one. Measured directly — two 4k vocabularies over the same 90M
+    words, one including those 14 works and one excluding them — the effect is
+    0.026% on their tokens-per-word, against 0.01% in the opposite direction on
+    the 8 works neither tokenizer saw. Real in sign, invisible in size.
+
+    So this is not fixed because it moves a number. It is fixed because
+    "no vocabulary was fitted on text a model is scored against" is worth being
+    unconditionally true rather than true to within a fortieth of a percent, and
+    the filter costs 0.12% of the input.
+
+    Over-exclusion is the safe direction here. While record ids collide a train
+    record can share an id with a held-out one and be dropped with it; dropping
+    a little too much never leaks, and the id fix removes the ambiguity anyway.
+    """
+    ids: Set[str] = set()
+    for path in sorted(PROCESSED.glob("*.validation.jsonl")):
+        with path.open(encoding="utf-8") as fh:
+            for line in fh:
+                ids.add(json.loads(line)["id"])
+    return ids
 
 
 def texts(records: List[Dict[str, Any]]) -> Iterator[str]:
@@ -265,8 +305,19 @@ def main() -> int:
     for rec in train:
         alphabet.update(rec["text"])
 
+    # What the vocabulary may be FITTED on, which is not the same as what the
+    # fertility figures are measured over. The measurements describe the corpus
+    # train.py will actually tokenise, so they stay on the whole split; only the
+    # merge table is denied the held-out works. See held_out_ids().
+    withheld = held_out_ids()
+    fitting = [r for r in train if r["id"] not in withheld]
+    fitting_words = sum(r["n_words"] for r in fitting)
+
     print(f"training corpus  {len(train):,} records, {total_words:,} words, "
           f"{total_chars:,} chars")
+    print(f"fitted on        {len(fitting):,} records, {fitting_words:,} words "
+          f"({len(train) - len(fitting):,} withheld: held out by some corpus, "
+          f"{100 * (total_words - fitting_words) / total_words:.2f}% of the split)")
     print(f"classical subset {len(classical):,} records, "
           f"{sum(r['n_words'] for r in classical):,} words")
     print(f"distinct characters {len(alphabet)}   "
@@ -277,7 +328,7 @@ def main() -> int:
     rows = []
     for vocab_size in vocabs:
         print(f"training vocab={vocab_size:,} ...", flush=True)
-        tok = train_one(train, vocab_size)
+        tok = train_one(fitting, vocab_size)
         full = fertility(tok, train)
         cls = fertility(tok, classical)
         morph = morphology(tok)
@@ -377,6 +428,12 @@ def main() -> int:
         "chars": total_chars,
         "chars_per_word": total_chars / total_words if total_words else 0.0,
         "distinct_characters": len(alphabet),
+        # What the merges were actually fitted on, so the claim that no
+        # vocabulary saw a held-out work is checkable rather than asserted.
+        "fitted_records": len(fitting),
+        "fitted_words": fitting_words,
+        "withheld_records": len(train) - len(fitting),
+        "withheld_words": total_words - fitting_words,
     })
     print(f"\nwrote {path.relative_to(ROOT)}")
     return 0

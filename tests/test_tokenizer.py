@@ -3,6 +3,7 @@ the report the sweep never used to write.
 """
 
 import json
+import pathlib
 
 import pytest
 
@@ -133,3 +134,59 @@ def test_report_diffs_as_measurements_and_not_as_key_order(reports):
 
     top = [k for k in json.loads(first)]
     assert top == sorted(top), f"keys are not sorted: {top}"
+
+
+# ---------------------------------------------------------------------------
+# held_out_ids
+#
+# build.py runs once per corpus and each run picks its own validation split, so
+# a work held out of one corpus can sit in another's training text. The
+# tokenizer trains on corpus.train and every model uses the result, so without
+# this it fits merges on text those models are scored against.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def processed(tmp_path, monkeypatch):
+    d = tmp_path / "processed"
+    d.mkdir()
+    monkeypatch.setattr(T, "PROCESSED", d)
+    return d
+
+
+def jsonl(path, ids):
+    path.write_text("".join(json.dumps({"id": i, "text": i, "n_words": 1}) + "\n"
+                            for i in ids), encoding="utf-8")
+
+
+def test_every_corpus_contributes_not_just_this_one(processed):
+    """The whole point: corpus-b's held-out works are the bulk of the overlap."""
+    jsonl(processed / "corpus.validation.jsonl", ["a"])
+    jsonl(processed / "classical.validation.jsonl", ["b"])
+    jsonl(processed / "corpus-b.validation.jsonl", ["c"])
+    jsonl(processed / "classical-b.validation.jsonl", ["d"])
+    assert T.held_out_ids() == {"a", "b", "c", "d"}
+
+
+def test_training_splits_are_not_mistaken_for_validation_ones(processed):
+    """Only *.validation.jsonl. Globbing wider would withhold the corpus."""
+    jsonl(processed / "corpus.validation.jsonl", ["held"])
+    jsonl(processed / "corpus.train.jsonl", ["trained"])
+    jsonl(processed / "dialogue.jsonl", ["mined"])
+    assert T.held_out_ids() == {"held"}
+
+
+def test_no_built_corpus_withholds_nothing_rather_than_failing(processed):
+    """A first-ever run has no validation file to read yet."""
+    assert T.held_out_ids() == set()
+
+
+def test_the_fitting_split_is_what_the_sweep_trains_on():
+    """Static, because running the sweep means training six tokenizers.
+
+    The measurements deliberately stay on the whole train split — they describe
+    the corpus train.py will tokenise — so only the train_one call moves.
+    """
+    text = (pathlib.Path(__file__).resolve().parent.parent
+            / "src" / "tokenizer.py").read_text(encoding="utf-8")
+    assert "tok = train_one(fitting, vocab_size)" in text
+    assert "full = fertility(tok, train)" in text
