@@ -45,6 +45,19 @@ kept nothing, and that table is where tokens-per-word comes from — the number
 vocabulary entries used, top 3,000 covering 99.11% of the stream. The ladder
 ran on an assumed 1.8 for months because no artifact held the measurement.
 
+**The vocabulary is no longer fitted on held-out text.** `tokenizer.py` trained
+on `corpus.train` and every model uses the result, but `build.py` picks each
+corpus's validation split independently — so a work held out of `classical` or
+`corpus-b` routinely sits in `corpus`'s training text. Nothing reached a model's
+weights; what read the held-out works was the merge table used to encode both
+sides. The exposure is mostly LATIN-LII's, not LATIN-VII's: `classical`
+contributes 14 works and 104,211 words, `corpus-b` 335 works and 4,750,247.
+Excluding every corpus's validation set withholds 5.5% of the split. Measured
+cost of the leak, tokens/word on the exposed works: classical 0.051%,
+classical-b 0.004%, corpus-b 0.268%. Real in sign, small in size. Fitting on
+less costs nothing measurable — capping the fit at 6M words per era, a 74% cut,
+moved classical fertility 2.238 -> 2.219 — so 85.2M words is ample.
+
 **Not run: `src/tokenizer.py` itself.** A sweep retrains and overwrites
 `latin-bpe-*.json`, which every existing checkpoint is keyed to. The report
 will be written by the next legitimate sweep — after the corpus rebuild, when
