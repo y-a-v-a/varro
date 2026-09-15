@@ -17,16 +17,23 @@
 #   and cannot be released for commercial use. LATIN-VII exists so that the
 #   project still has a model that can be. Do not merge the two.
 #
-# TOKEN BUDGET, AND WHY epochs: 4.0 IS WRITTEN FOR A CORPUS WE DO NOT YET HAVE
+# TOKEN BUDGET — WRITTEN FOR A CORPUS WE DID NOT HAVE, WHICH HAS SINCE ARRIVED
 #   52.07M parameters wants 1.04B training tokens at 20:1, which is 260M
-#   unique tokens at four epochs. Track B holds 182.4M today, so running this
-#   recipe now gives 730M tokens — 14.0 per parameter, undertrained.
+#   unique tokens at four epochs.
 #
-#   The recipe is still written at 4.0 because epochs mean the same thing at
-#   any corpus size, which is the entire reason this project states recipes in
-#   epochs. As the amber sources land the same recipe trains the same model
-#   correctly, with no edit. Until then, either accept 14 tokens/param or
-#   raise phase one to 5.7 epochs for a one-off run and say so in the report.
+#   When this recipe was written Track B held 182.4M, so four epochs gave 730M
+#   tokens — 14.0 per parameter, undertrained. It was still written at 4.0,
+#   because epochs mean the same thing at any corpus size and that is the
+#   entire reason this project states recipes in epochs rather than steps: as
+#   the amber sources land, the same recipe trains the same model correctly,
+#   with no edit.
+#
+#   That is what happened. Track B now holds 263,542,144 training tokens
+#   (measured through the 4k vocabulary by src/token_growth.py, not
+#   projected), so four epochs is 1.054B tokens — 20.2 per parameter. The
+#   recipe did not change; the corpus grew into it, and the workaround this
+#   note used to offer — raise phase one to 5.7 epochs for a one-off run — is
+#   no longer needed.
 #
 # BATCH SIZE, NOW MEASURED
 #   40 steps at batch 8 took 48 seconds. The same 40 steps at batch 16 had not

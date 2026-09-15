@@ -2,15 +2,20 @@
 # Latin allows.
 #
 # WHY THIS IS THE CEILING AND NOT A BUDGET CHOICE
-#   The classical corpus is 10,241,858 tokens. That is not a funding limit or
+#   The classical corpus is 10,671,431 tokens. That is not a funding limit or
 #   a crawling limit; it is roughly half of the classical Latin that survives
 #   at all, and the other half sits in copyrighted 20th-century editions. No
 #   OCR campaign and no new repository creates more Cicero.
 #
-#   At the repeated-data limit of ~16 epochs, 10.24M tokens supports about
-#   8.2M parameters at 20 tokens per parameter. This recipe is 7.28M at 14.2
-#   epochs, which leaves a little headroom under that line rather than sitting
-#   exactly on it.
+#   At the repeated-data limit of ~16 epochs, 10.67M tokens supports about
+#   8.5M parameters at 20 tokens per parameter. This recipe is 7.28M at 14.2
+#   epochs — 20.8 tokens per parameter — which leaves a little headroom under
+#   that line rather than sitting exactly on it.
+#
+#   The figure moves when the corpus is rebuilt, and the epoch count does not
+#   have to: 10,241,858 before the 2026-08-27 rebuild, 10,671,431 after, and
+#   14.2 epochs meant a correctly-sized model both times. That is the property
+#   recipes are stated in epochs for.
 #
 # WHY IT STAYS SEPARATE FROM STAGE TWO
 #   Every source in the classical corpus is green: CC-BY-SA, CC-BY or public

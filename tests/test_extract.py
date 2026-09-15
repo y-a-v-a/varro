@@ -1265,3 +1265,84 @@ def test_an_unzipped_work_is_still_keyed_to_the_metadata_table(tmp_path):
     by_name = {d.name: d.work_id for d in tei_documents(tmp_path)}
     assert by_name["12151.xml"] == "12151"
     assert by_name["[CC]PL10_19_DE.xml"] is None
+
+
+# --- record identity --------------------------------------------------------
+#
+# A record id must be unique within its source. Nothing downstream verifies it:
+# dedupe writes `duplicate_of: <id>` and looks keepers up in a dict keyed by it,
+# and build.py splits with `r["id"] not in val_ids`. Measured 2026-09-06, before
+# these fixes: 58 ids shared by 171 records, from three different keys that each
+# discarded the part that distinguished them.
+
+from pathlib import Path
+
+import pytest
+
+from extract import assert_unique_ids, record_id, slug_id
+
+
+def test_the_directory_is_part_of_the_identity():
+    """The Latin Library nests by author: five different 14.txt files."""
+    root = Path("/raw/latin-library")
+    ids = {record_id("latin-library", root / author / "14.txt", root)
+           for author in ("isidore", "justin", "juvenal", "ammianus", "williamtyre")}
+    assert len(ids) == 5
+    assert "latin-library/isidore/14" in ids
+
+
+def test_a_file_at_the_source_root_keeps_a_flat_id():
+    root = Path("/raw/tesserae")
+    assert record_id("tesserae", root / "vergil.aeneid.tess", root) == \
+        "tesserae/vergil.aeneid"
+
+
+def test_nested_ids_use_forward_slashes_whatever_the_platform():
+    root = Path("/raw/s")
+    assert record_id("s", root / "a" / "b" / "c.txt", root) == "s/a/b/c"
+
+
+def test_a_path_outside_the_source_root_falls_back_to_its_name():
+    """Never raise while building an id; a surprising id beats a crash."""
+    assert record_id("s", Path("/elsewhere/x.txt"), Path("/raw/s")) == "s/x"
+
+
+def test_a_short_title_is_left_readable():
+    assert slug_id("vicifons", "De Bello Gallico") == "vicifons/De_Bello_Gallico"
+
+
+def test_long_titles_that_agree_on_their_first_90_characters_stay_distinct():
+    """Four chapters of Genesis agreed for 90 characters and collapsed into one."""
+    stem = ("Biblia Sacra juxta vulgatam clementinam (1938)/Vetus Testamentum/"
+            "Pentateuchus/Liber Genesis/Caput ")
+    ids = {slug_id("vicifons", stem + n) for n in ("I", "II", "III", "IV")}
+    assert len(ids) == 4
+
+
+def test_the_truncated_id_still_shows_what_it_is():
+    long = "A" * 200
+    got = slug_id("vicifons", long)
+    assert got.startswith("vicifons/" + "A" * 90 + "~")
+    assert len(got.split("~")[1]) == 8
+
+
+def test_the_digest_is_stable_across_runs():
+    """blake2b, not hash(): an id that changes per process is not an id."""
+    title = "X" * 150
+    assert slug_id("v", title) == slug_id("v", title)
+
+
+def test_unique_ids_pass_the_guard():
+    assert_unique_ids([{"id": "s/a"}, {"id": "s/b"}], "s") is None
+
+
+def test_the_guard_refuses_to_write_colliding_ids():
+    records = [{"id": "s/14"}, {"id": "s/14"}, {"id": "s/9"}]
+    with pytest.raises(RuntimeError) as excinfo:
+        assert_unique_ids(records, "latin-library")
+    message = str(excinfo.value)
+    assert "latin-library" in message and "'s/14'" in message and "x2" in message
+
+
+def test_an_empty_source_is_not_a_collision():
+    assert assert_unique_ids([], "s") is None

@@ -28,6 +28,11 @@ Planning documents:
 
 ## Quickstart
 
+Python 3.14 — not incidental. Annotations are evaluated lazily there and eagerly
+before it, and the scripts are written against that. MLX is Apple Silicon only, so
+`requirements.txt` marks it as such: the corpus half of this repo installs and runs
+anywhere, and only the training half needs a Mac.
+
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
@@ -271,7 +276,8 @@ three places, Celsus' *De Medicina* three times inside Perseus alone.
 ```bash
 python src/dedupe.py --report    # clusters and what would be dropped
 python src/dedupe.py             # mark is_duplicate / duplicate_of
-python src/dedupe.py --verify    # verbatim-check every existing mark
+python src/dedupe.py --verify    # verbatim-check every mark, both tracks
+python src/dedupe.py --jobs 1    # sketch in one process (default: every core)
 ```
 
 Detection is **content-based, not title-based** — titles vary across projects
@@ -281,8 +287,8 @@ u/v and i/j merged); without that, Perseus's `uiri` and CSEL's `viri` look like
 different words. Documents reduce to bottom-k sketches of 5-gram hashes;
 Jaccard is estimated from sketch overlap and containment derived from it.
 
-**2,799 records, 29.8M words (27.4%) marked as duplicates. Surviving corpus:
-10,192 records, 78,975,089 words — of which 4,539,515 are CLASSICAL.**
+**5,297 records, 35,845,563 words (27.4%) marked as duplicates. Surviving
+corpus: 10,782 records, 94,923,570 words — of which 5,055,913 are CLASSICAL.**
 
 Two relationships hide in the clusters and need opposite rules:
 
@@ -293,9 +299,17 @@ Two relationships hide in the clusters and need opposite rules:
   selection of Jerome's letters and discarded CSEL's complete 290k-word corpus.
 
 `--verify` is the guard against trusting an estimate: it samples 40 random
-8-word spans from each duplicate and tests literal membership in its keeper.
-Cross-edition duplicates score 50–90%, part-of-collection duplicates 100%.
-**At three sources, 0 of 59 fell below the 15% floor.** That is the precise claim, and it
+8-word spans from each duplicate and tests literal membership in its keeper, for
+each track in turn — Track A and Track B are resolved separately and both get
+built, so checking one is checking half. Cross-edition duplicates score 50–90%,
+part-of-collection duplicates 100%.
+
+**At three sources, 0 of 59 fell below the 15% floor. At nine, 130 of 5,297 do
+— and that number cannot be read against interim data extracted before
+2026-09-06**: record ids were not unique then, so `verify` resolved some
+keepers to the wrong record. The ids are fixed and the guard is in
+`extract.py`; re-run this after the next extract. See the 2026-09-06 entry in
+`CURRENT_STATE.md`. The claim below is the precise one, and it
 is weaker than "no false positives": passing establishes that the duplicate's text
 really does occur in its keeper, not that discarding the whole record was the right
 call. Deciding that needs cluster-by-cluster human review, which has not been done. It earned its place — the
@@ -325,6 +339,7 @@ Latin.
 python src/normalize.py --report   # what would change, writes nothing
 python src/normalize.py            # rewrite data/interim/*.jsonl
 python src/normalize.py --uv v --keep-diacritics   # alternative policies
+python src/normalize.py --jobs 1   # one process (default: every core)
 ```
 
 **Folding is towards `u`.** Going the other way — u to v where consonantal —
@@ -749,6 +764,7 @@ interesting result first.
 ```bash
 python src/dialogue.py          # mine turn-pairs -> data/processed/dialogue.jsonl
 python src/sft.py               # fine-tune latin-2 -> latin-2-chat
+python src/sft.py --resume      # continue from the last checkpoint
 python src/sft.py --chat        # talk to it
 ```
 
@@ -806,6 +822,7 @@ which means finishing the corpus.
 ```bash
 python src/pipeline.py --status     # what is stale and why
 python src/pipeline.py              # run only what changed
+python src/pipeline.py --jobs 1     # one source at a time (default: 4 at once)
 ```
 
 One command rebuilds everything after adding a source or editing an authority

@@ -47,12 +47,19 @@ Usage:
 
 import argparse
 import json
+import os
 import re
 import sys
 import unicodedata
 from collections import Counter
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Iterator, List, Tuple
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from encoding import chunk_texts  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 INTERIM = ROOT / "data" / "interim"
@@ -258,6 +265,91 @@ def normalize(text: str, uv: str = "u", diacritics: bool = False,
     return text.strip()
 
 
+def fold_prompt(text: str) -> Tuple[str, bool]:
+    """Put text typed by a person through what the corpus went through.
+
+    WHY THIS EXISTS
+        The fold is applied to the corpus and nowhere else, so the two ends of
+        the same model disagreed about how Latin is spelled. Counted on the
+        built corpus: 0 occurrences of `v` and 0 of `j` in 659,309,740
+        characters. A prompt is written by a person, who will type `venit`,
+        `civitas` and `iam`/`jam` as their edition does — and through the 4k
+        vocabulary that is a different, essentially unseen token sequence:
+
+            uenit    1 token   _uenit
+            venit    4 tokens  _ · v · en · it
+            ciuitas  1 token   _ciuitas
+            civitas  4 tokens  _c · i · v · itas
+
+        A bare prefix-space followed by `v` is a bigram the model has never
+        been trained on. Nothing was wrong with the model; it was being asked
+        a question in an orthography it had never read.
+
+    WHY THE PROMPT MOVES AND NOT THE CORPUS
+        Folding is what keeps editorial house style out of the model — the
+        v-share of a source varies several-fold and tracks the publisher
+        rather than the century, so unfolding would hand a period-tagged model
+        a repository signature to learn instead of the Latin. So the corpus
+        keeps one spelling, and both spellings are accepted at the door.
+
+    THE DEFAULTS ARE THE COUPLING
+        This calls normalize() with its defaults because that is what
+        pipeline.py runs — it passes normalize.py no arguments at all. The
+        options are not recorded per record (the stamp is just VERSION), so
+        this cannot read back what the corpus was actually built with; a test
+        pins the defaults instead, and will fail if they move.
+
+    Returns the folded text and whether it differs, so a caller can show the
+    person what was actually asked rather than silently rewriting them.
+    """
+    folded = normalize(text)
+    return folded, folded != text
+
+
+# Text handed to the pool in one pass. Same reasoning as dedupe's window:
+# ProcessPoolExecutor.map submits every task up front, so mapping a whole file
+# would pickle all of it into the task queues at once, and corpus-corporum's
+# interim file alone is several hundred megabytes.
+NORMALIZE_WINDOW_CHARS = 64_000_000
+
+
+def normalize_one(text: str, uv: str, diacritics: bool, lowercase: bool,
+                  hyphen_space: str) -> Tuple[str, Counter]:
+    """Normalise one record and return its own statistics.
+
+    A worker cannot share the caller's Counter, so it keeps its own and the
+    parent adds them up. Every statistic here is a count of occurrences, so the
+    sum is the same whatever order the records came back in — which is what
+    makes this safe to parallelise at all.
+    """
+    stats: Counter = Counter()
+    return normalize(text, uv=uv, diacritics=diacritics, lowercase=lowercase,
+                     stats=stats, hyphen_space=hyphen_space), stats
+
+
+def normalize_all(texts: List[str], options: Dict[str, Any], jobs: int,
+                  window: int = NORMALIZE_WINDOW_CHARS
+                  ) -> Iterator[Tuple[str, Counter]]:
+    """Normalise every text, in order, across `jobs` processes.
+
+    This is regex and str.translate over half a gigabyte of text, and it is
+    pure: the output of one record cannot depend on another. Measured on 29.1M
+    characters of real records, 5.59s on one core and 1.50s across eight, with
+    identical text and identical statistics.
+
+    `jobs=1` stays in this process, so a debugger and the tests see one.
+    """
+    work = partial(normalize_one, **options)
+    if jobs <= 1:
+        for text in texts:
+            yield work(text)
+        return
+    with ProcessPoolExecutor(max_workers=jobs) as pool:
+        for batch in chunk_texts(texts, window):
+            yield from pool.map(work, batch,
+                                chunksize=max(1, len(batch) // (jobs * 4)))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -271,6 +363,9 @@ def main() -> int:
                     help="how to treat `word- word`: strip the hyphen and keep the "
                          "boundary (default), fuse the halves, or leave untouched")
     ap.add_argument("--samples", type=int, default=6, help="before/after examples to show")
+    ap.add_argument("--jobs", type=int, default=None, metavar="N",
+                    help="processes used for normalising (default: every core; "
+                         "1 keeps everything in this process)")
     args = ap.parse_args()
 
     files = sorted(INTERIM.glob("*.jsonl"))
@@ -281,16 +376,21 @@ def main() -> int:
     samples: List[Tuple[str, str]] = []
     words_before = words_after = 0
 
+    jobs = args.jobs if args.jobs is not None else (os.cpu_count() or 1)
+    options = {"uv": args.uv, "diacritics": args.keep_diacritics,
+               "lowercase": args.lowercase, "hyphen_space": args.hyphen_space}
+    if jobs > 1:
+        print(f"normalising across {jobs} processes ...", flush=True)
+
     for path in files:
         with path.open(encoding="utf-8") as fh:
             rows = [json.loads(line) for line in fh]
 
-        for rec in rows:
-            original = rec["text"]
+        originals = [rec["text"] for rec in rows]
+        for rec, original, (text, rec_stats) in zip(
+                rows, originals, normalize_all(originals, options, jobs)):
+            stats.update(rec_stats)
             words_before += len(original.split())
-            text = normalize(original, uv=args.uv, diacritics=args.keep_diacritics,
-                             lowercase=args.lowercase, stats=stats,
-                             hyphen_space=args.hyphen_space)
             words_after += len(text.split())
             stats["records"] += 1
             if original != text:

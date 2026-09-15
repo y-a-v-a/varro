@@ -1,8 +1,169 @@
 # Current state — pick-up notes
 
-Written 2026-08-17 as a handoff into a fresh session; updated 2026-08-26.
+Written 2026-08-17 as a handoff into a fresh session; updated 2026-09-06.
 `README.md` explains how things work; this file says where they stand, what is
 stale, and what to do next.
+
+---
+
+## Update 2026-09-06 (later) — the tokenizer's two ends now agree
+
+Four more commits on `review/src-findings`. Tests 495 -> 523. Nothing here
+changes a corpus, a tokenizer or a checkpoint.
+
+**A prompt is now folded the way the corpus was.** normalize.py folds v to u
+and j to i; the built corpus has **0 occurrences of `v` and 0 of `j` in
+659,309,740 characters**. Nothing folded the other end, so a person typing
+`venit` was asking the model a question in an orthography it had never read —
+through the 4k vocabulary, `venit` is `_ · v · en · it` where `uenit` is one
+token, and a prefix-space followed by `v` is a bigram that appears nowhere in
+training. Measured end to end after the fix: `Jam civitas vetus` went from 10
+tokens to 5. `sample.py` and `sft.py --chat` fold and print the folded form;
+`sft.py --chat` also takes `--prompt` now.
+
+The fold stays on the corpus and not on the model's output. The v-share of a
+source varies several-fold and tracks the publisher rather than the century,
+so unfolding would give a period-tagged model a repository signature to learn
+instead of the Latin. If a model that *writes* `v` is ever wanted, that is a
+display-time re-spelling, not a corpus decision.
+
+**Every checkpoint is now loaded through the vocabulary it was trained with.**
+`sft.py` opened `latin-bpe-{vocab}.json` by name — the 2026-08-20 failure
+verbatim — because `resolve_tokenizer` lived in `sample.py`, which cannot be
+imported without MLX. It moved to `encoding.py`. `train.py --resume` had the
+same hole with no way to see it, so `save_checkpoint` now records the
+tokenizer fingerprint and `load_checkpoint` refuses a mismatch before touching
+the weights; older checkpoints resume unverified and say so. A test in
+`test_portability.py` now enumerates who may name a tokenizer file and why —
+`train.py` for a fresh run, `evaluate.py` because it loads no checkpoint,
+`bundle.py` because it re-hashes what it opens.
+
+**The tokenizer sweep writes `reports/tokenizer.json`.** It printed a table and
+kept nothing, and that table is where tokens-per-word comes from — the number
+20-tokens-per-parameter is computed against. Measured now on
+`classical.train`: **2.221 tokens/word**, 3.12 chars/token, 3,740 of 4,000
+vocabulary entries used, top 3,000 covering 99.11% of the stream. The ladder
+ran on an assumed 1.8 for months because no artifact held the measurement.
+
+**The vocabulary is no longer fitted on held-out text.** `tokenizer.py` trained
+on `corpus.train` and every model uses the result, but `build.py` picks each
+corpus's validation split independently — so a work held out of `classical` or
+`corpus-b` routinely sits in `corpus`'s training text. Nothing reached a model's
+weights; what read the held-out works was the merge table used to encode both
+sides. The exposure is mostly LATIN-LII's, not LATIN-VII's: `classical`
+contributes 14 works and 104,211 words, `corpus-b` 335 works and 4,750,247.
+Excluding every corpus's validation set withholds 5.5% of the split. Measured
+cost of the leak, tokens/word on the exposed works: classical 0.051%,
+classical-b 0.004%, corpus-b 0.268%. Real in sign, small in size. Fitting on
+less costs nothing measurable — capping the fit at 6M words per era, a 74% cut,
+moved classical fertility 2.238 -> 2.219 — so 85.2M words is ample.
+
+**Not run: `src/tokenizer.py` itself.** A sweep retrains and overwrites
+`latin-bpe-*.json`, which every existing checkpoint is keyed to. The report
+will be written by the next legitimate sweep — after the corpus rebuild, when
+the tokenizer has to be retrained anyway.
+
+---
+
+## Update 2026-09-06 — code review of src/, and record ids are not unique
+
+Fifteen commits on `review/src-findings`. Tests went 403 -> 495. Nothing here
+changes a corpus or a checkpoint; the two that could have were verified
+byte-identical first.
+
+### The question that started it: can training use more cores?
+
+No, and it is worth writing down so nobody measures it again. The training
+step is Metal. Measured on this 8-core M2: a 25-step run of the LATIN-VII
+shape spent **37.6s of CPU across 257s of wall clock — 0.15 of one core**,
+with seven and a half idle. The bound is the GPU and the 100GB/s it shares
+with everything, which is the same bound the batch-size cliff in
+`configs/latin-xxv.yaml` records. `mx.compile` around the step was measured at
+1.04x for LATIN-VII and 1.24x for LATIN-XXV and **not adopted** — a fused graph
+that trains subtly differently is not something to accept on a 20-step
+benchmark.
+
+Tokenisation is the exception, and everything else on the CPU side did have
+cores to reclaim:
+
+| stage | before | after | |
+|---|---:|---:|---|
+| `load_tokens` (corpus.train, 183M tokens) | 178.2s, 4.70GB | **55.2s, 2.68GB** | 3.2x |
+| `dedupe` sketching (48.6M chars) | 6.80s | **1.99s** | 3.4x |
+| `normalize` (360 records) | 10.2s | **3.1s** | 3.3x |
+| `pipeline` extract (11 sources) | 501.3s | **280.5s** | 1.79x |
+
+Extract is not 4x because it cannot be: `corpus-corporum` and `vicifons` are
+minutes each while `papyri-idp` is five records, so the wall clock is the
+slowest source. Concurrency is opt-in per stage — `build` looks like the same
+shape and is not, because each of its four invocations reads every interim file
+into memory.
+
+### Correctness, in rough order of how much they mattered
+
+- **`enrich.py` was not idempotent.** `approximate_date` is both what
+  extract writes and what enrich writes back, so a second pass could not tell
+  evidence from inference: dates interpolated from Migne volume numbers came
+  back as dates the source had stated, `inferred` became `stated`. 3,103 of
+  18,606 records would have flipped, and `pipeline.py` re-runs enrich alone
+  whenever an authority file changes. Now 0 move.
+- **`dedupe.py --verify` only ever checked Track A**, so every drop LATIN-LII's
+  corpus rests on went unverified. It runs per track now.
+- **`dedupe.py`'s `would drop` figure bypassed its own guard.** It summed whole
+  clusters, which is the number the direct-pair guard exists to prevent. On the
+  real corpus that is **35,845,563 words reported as 50,123,161** — 18.7% told
+  as 26.1%.
+- **`requirements.txt` did not list `mlx` or `tokenizers`**, so the documented
+  install did not produce a runnable project.
+- **`train.py` used `Optional` without importing it** — survives only because
+  Python 3.14 defers annotation evaluation, `NameError` on 3.13.
+- `sft.py` had no checkpointing and averaged its loss over `eval_every`
+  regardless of what it accumulated — the arithmetic that once reported
+  LATIN-XXV's 3.12 train loss as 1.25.
+- `token_growth.py` had a hardcoded `/Users/vincentb/...` and no argument
+  parser, so `--help` tokenised four corpora.
+
+### Record ids are not unique, and that is the open one
+
+Running `dedupe.py --verify` at nine sources — Next step 5 below, outstanding
+since it was written — reported **130 of 5,297 Track A marks below the 15%
+verbatim floor, 121 of them at exactly 0%**. That looks like mass false
+positives. It is not.
+
+`extract_plaintext` builds ids as `f"{source_id}/{path.stem}"`, discarding the
+directory. The Latin Library nests by author, so `isidore/14.txt`,
+`justin/14.txt`, `juvenal/14.txt`, `ammianus/14.txt` and `williamtyre/14.txt`
+all become `latin-library/14`.
+
+**58 ids are shared by 171 records** — 49 in `latin-library`, 5 in `vicifons`,
+4 in `corpus-corporum`. `verify()` looks its keeper up in a dict keyed by id, so
+it has been comparing the wrong records; the 0% scores are its own lookups
+colliding, not bad marks.
+
+The corpus is not currently corrupt: 16 colliding ids carry 32 records into the
+built Track A corpus, and **0 appear in both train and validation**. That is
+luck, not design. `build.py` splits with `r["id"] not in val_ids`, so the first
+collision selected for validation drags unrelated works across with it, and
+`apportion()` keys its keep-set by id too.
+
+**Fixed in code, and it takes effect at the next extract.** `record_id()` keys
+on the path relative to the source root; `slug_id()` appends a blake2b digest of
+the full title when one is too long to keep whole; the Corpus Corporum id
+carries the archive stem as well as the member's name. `assert_unique_ids()`
+runs before anything is written and raises rather than repairing — appending a
+counter would make an id depend on the order files were walked in, so the same
+text would change identity between runs, which is the one thing an id exists to
+prevent.
+
+Verified by extracting all eleven fetched sources and counting distinct ids:
+324/324, 2,130/2,130, 373/373, 357/357, 133/133, 267/267, 5/5, 11,763/11,763,
+2,289/2,289, 242/242, 747/747. Zero collisions.
+
+**`data/interim/` still holds the old ids until it is re-extracted**, so
+`--verify` still reports 130 there and the 32 colliding records are still in the
+built corpus. The re-key invalidates every `duplicate_of`, which a rebuild
+regenerates anyway — `pipeline.py --status` already reports extract onward
+stale. Nothing else is waiting on it.
 
 ---
 
@@ -804,53 +965,110 @@ cannot mean — the honest framing is *interlocutor, not assistant*.
 
 ## Corpus — current
 
-**10,192 records, 78,975,089 words** (Track A, after dedup), from **5 of 9**
+Measured on the 2026-08-27 build. Every figure here is read off
+`data/processed/*.summary.json` and `data/processed/token-growth.json` —
+regenerate those rather than editing this section, which is how the numbers
+below drifted a build behind before.
+
+**10,782 records, 94,923,570 words** (Track A, after dedup), from **9 of 11**
 green sources.
 
 | period | words | |
 |---|---:|---|
-| UNASSIGNED | 33,953,816 | 43.0% |
-| LATE | 24,284,319 | 30.7% |
-| MEDIEVAL | 16,015,187 | 20.3% |
-| CLASSICAL | 4,539,515 | 5.7% |
-| NEOLATIN | 182,252 | 0.2% |
+| UNASSIGNED | 39,488,556 | 41.6% |
+| LATE | 28,040,177 | 29.5% |
+| MEDIEVAL | 21,400,056 | 22.5% |
+| CLASSICAL | 5,055,913 | 5.3% |
+| NEOLATIN | 938,868 | 1.0% |
 
 | source | records | words (pre-dedup) |
 |---|---:|---:|
-| vicifons | 11,753 | 86,368,214 |
+| vicifons | 11,744 | 86,275,924 |
+| latin-library | 2,130 | 13,505,742 |
+| tesserae | 747 | 6,734,531 |
+| opengreekandlatin-csel | 356 | 6,652,629 |
 | digiliblt | 373 | 6,509,980 |
-| opengreekandlatin-csel | 271 | 6,036,274 |
-| perseus-canonical-latinLit | 324 | 5,595,104 |
-| edcs-sdam | 267 | 4,356,994 |
+| perseus-canonical-latinLit | 324 | 5,586,624 |
+| edcs-sdam | 267 | 4,356,735 |
+| edh | 133 | 1,057,053 |
+| papyri-idp | 5 | 89,915 |
 
-Dedup removes **29.8M words (27.4%)** — high because Wikisource re-hosts much of
-what Perseus and CSEL already provide.
+Dedup removes **35,845,563 words (27.4%)** of the 130.8M green words extracted —
+high because Wikisource re-hosts much of what Perseus and CSEL already provide.
 
-**Tokens** (4k vocabulary, counted not projected): **153.0M full corpus,
-9.6M classical**.
+**Tokens** (4k vocabulary, counted not projected): **183.3M full corpus,
+10.7M classical**. Track B, which adds the NonCommercial sources and is never
+redistributed, holds **263.5M full, 12.0M classical** — 43.8% more than Track A,
+where before the 2026-08-27 build it held 0.06% more.
 
 ### Not yet extracted
 
-`latin-library` (~15M est), `papyri-idp`, `edh`, `gutenberg-latin`. Each needs an
-extractor: plaintext, EpiDoc XML, EpiDoc XML, manual plaintext respectively.
-`latin-library` overlaps Perseus heavily, so expect dedup to eat much of it.
+`gutenberg-latin` and `latinise`, both green, both `method: manual` — neither is
+blocked on an extractor. Gutenberg is declared and unfetched; `latinise` is
+`include: false` by default because it is substantially derived from
+LacusCurtius, IntraText and Musisque Deoque, so most of it would be dedup'd
+against text already held.
 
 ---
 
-## Models — ALL TRAINED ON THE OLD 17M-WORD CORPUS
+## Models — eleven training runs and one fine-tune, across three eras of the corpus
 
-**This is the most important thing to know.** Every checkpoint predates the
-Vicifons/EDCS expansion. Their perplexities were measured on a different corpus,
-a different held-out set, and in latin-2's case a tokenizer trained on different
-text. **Do not compare new models to these numbers.**
+`python src/compare.py` prints this live from `reports/train-*.json`, with a
+staleness mark per row, and **it is the source** — the snapshot below was taken
+2026-09-06 and will drift. What matters is not the list but which rows may be
+read against each other: a corpus keeps its name across rebuilds, so two runs
+labelled `classical` can be held-out scores over different text.
 
-| run | params | corpus | ppl | vs floor | memorisation |
-|---|---:|---|---:|---:|---:|
-| latin-0 | 3.53M | classical (9.5M tok) | 74.3 | 2.14× | 0% |
-| ablation-no-latinitas | 15.90M | classical | 58.3 | 2.72× | 0% |
-| latin-2-latinitas | 15.90M | full (33.7M tok) | 48.2 | 4.05× | — |
-| latin-2 | 15.90M | all → classical | 44.1 | 3.60× | 0% |
-| latin-2-chat | 15.90M | + dialogue SFT | — | — | — |
+### Comparable to the current floors
+
+| run | params | corpus | tokens | ep | ppl | floor | × floor | memo | hours |
+|---|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| **latin-vii** | 7.28M | classical | 10,671,909 | 14.2 | **70.1** | 185.7 | **2.65×** | 0% | 3.1 |
+| **latin-lii-latinitas** | 52.07M | corpus-b | 263,558,393 | 4.0 | **21.3** | 185.9 | **8.73×** | 0% | 73.8 |
+| latin-lii-romanitas | 52.07M | classical | 10,671,909 | 2.0 | 30.2 | 185.7 | 6.15× | — | 1.5 |
+
+The two LATIN-LII rows are one model at two points in one recipe, not two
+models. The romanitas phase made it **worse** at the thing it exists for — 27.3
+→ 30.2 on classical, measured through the same vocabulary — because it
+introduces no new text, only re-weights toward a few per cent of what the model
+has already read, and 10.7M tokens cannot occupy 52M parameters. See the 2026-09-01 entry; `configs/latin-vii.yaml` records why
+7.28M is the size that could still take such a phase.
+
+**latin-lii-romanitas is not published.** LATIN-LII trains on Track B, which
+carries NonCommercial material, and that restriction travels to the weights.
+LATIN-VII is the one released — [on Hugging Face](https://huggingface.co/vincent-b/latin-vii),
+CC-BY-SA-4.0, classical only, no NC term anywhere in its corpus.
+
+### Measured on an earlier build of the same corpus name — marked `!`
+
+| run | params | corpus | tokens | ep | ppl | memo | hours |
+|---|---:|---|---:|---:|---:|---:|---:|
+| latin-xxv-latinitas | 27.49M | corpus | 152,985,050 | 4.0 | 25.2 | — | 24.7 |
+| latin-xxv | 27.49M | classical | 9,562,431 | 3.0 | 29.8 | 0% | 1.2 |
+| latin-xxv-2-latinitas | 27.49M | corpus | 152,247,527 | 4.0 | 25.8 | — | 24.5 |
+| latin-xxv-2 | 27.49M | classical | 9,539,941 | 3.0 | 30.1 | 0% | 1.2 |
+
+Same names, smaller corpus: `corpus` was 152M tokens when these ran and is
+183.3M now. compare.py refuses to quote a floor beside them rather than
+flattering them with one measured over different held-out text.
+
+### Predating corpus fingerprinting — marked `?`, the 17M-word era
+
+| run | params | corpus | tokens | ep | ppl | memo | hours |
+|---|---:|---|---:|---:|---:|---:|---:|
+| latin-0 | 3.53M | classical | 9,538,436 | 8.6 | 74.3 | 0% | 1.0 |
+| ablation-no-latinitas | 15.90M | classical | 9,538,623 | 8.6 | 58.3 | 0% | 2.5 |
+| latin-2-latinitas | 15.90M | corpus | 33,689,916 | 7.8 | 48.2 | — | 8.1 |
+| latin-2 | 15.90M | classical | 9,538,623 | 3.0 | 44.1 | 0% | 0.9 |
+
+Their reports carry no corpus fingerprint at all, so the build they were
+measured on cannot be established — assume it differs. Every one predates the
+Vicifons/EDCS expansion.
+
+`latin-2-chat` is the one SFT run and has no training report of its own
+(`reports/sft-latin-2-chat.json`): latin-2 fine-tuned on 54,535 of 54,536 mined
+dialogue pairs, 1,689,049 supervised response tokens, 0.6 hours. Behaviour, not
+knowledge — it takes a turn and stops.
 
 **The ablation result is the one worth carrying forward.** Of the 30.2-point
 improvement from latin-0 to latin-2, model size accounted for ~53% and the
@@ -864,23 +1082,30 @@ would exclude classical from Phase 1 — still open.
 
 ---
 
-## The ladder, remeasured on 79M words
+## The ladder, remeasured on 94.9M words
 
 Chinchilla-optimal ≈ 20 tokens/parameter; repeated data is worth nearly as much
 as fresh up to ~4 epochs, decaying to ~zero past 16.
 
-| epochs | classical (9.6M tok) | full corpus (153.0M tok) |
-|---|---|---|
-| 4 (safe) | 1.9M params | **30.6M params** |
-| 8 | 3.8M | **61.2M** |
-| 16 (aggressive) | 7.7M | **122.4M** |
+| epochs | classical (10.7M tok) | Track A full (183.3M tok) | Track B full (263.5M tok) |
+|---|---|---|---|
+| 4 (safe) | 2.1M params | **36.7M params** | **52.7M params** |
+| 8 | 4.3M | **73.3M** | **105.4M** |
+| 16 (aggressive) | 8.5M | **146.6M** | **210.8M** |
 
-**LATIN-XXV at 25M now fits inside 4 epochs**, where it previously sat on the
+**LATIN-XXV at 27.5M fits inside 4 epochs of Track A**, where it once sat on the
 16-epoch line. Path A's 25–40M licensing ceiling is no longer the binding
 constraint; the corpus is.
 
-Classical is essentially unchanged (9.5M → 9.6M tokens) because dedup removed
-Wikisource's copies of Perseus texts, so **Latin-0's sizing is untouched**.
+**LATIN-LII at 52.07M now fits Track B's 4-epoch line exactly** — 20.2
+tokens/parameter, where `configs/latin-lii.yaml` was written against a 182.4M
+Track B that gave it 14.0 and called itself undertrained. The recipe did not
+change. Stating recipes in epochs rather than steps is what let the corpus grow
+into it.
+
+Classical has grown from 9.5M to 10.7M tokens, so **Latin-0 at 3.53M and
+LATIN-VII at 7.28M both remain correctly sized** — LATIN-VII at 20.8
+tokens/parameter against the 16-epoch ceiling of 8.5M.
 
 ---
 
@@ -976,7 +1201,11 @@ bounded by activation memory rather than parameters, see the batch-size cliff.
    stopping are learned, register matching emerges, correctness does not.
 4. **Serve it.** MLX + safetensors, small model, runs on the laptop. This is the
    stated goal in `plan.md` and LATIN-XXV is the base it was waiting for.
-5. **`dedupe.py --verify` at five sources** — the outstanding claim gap.
+5. ~~**`dedupe.py --verify` at five sources**~~ **run 2026-09-06 at nine.**
+   130 Track A marks and 193 Track B marks came back below the floor, caused by
+   colliding record ids breaking its keeper lookup rather than by bad marks.
+   The ids are fixed; **re-run this after the rebuild**, when the number will
+   mean what it says.
 6. **Remaining four sources**, if more data is wanted.
 7. **Disjoint-phase ablation** — exclude classical from Phase 1 to separate
    transfer from extra exposure. Still open, and now more affordable to answer

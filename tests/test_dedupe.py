@@ -199,3 +199,141 @@ def test_a_record_is_never_dropped_without_direct_evidence(monkeypatch, tmp_path
     # known to contain C. Discarding it would be a guess.
     assert keepers[1] == 0
     assert 2 not in keepers
+
+
+# --- candidate prefilter ----------------------------------------------------
+#
+# The prefilter used to materialise every candidate pair into one Python set:
+# a posting list of length m contributed m(m-1)/2 tuples, and nothing bounded
+# m. Shingles common to many witnesses — liturgy, scripture, the citation
+# formulae MIN_CONTAINED exists for — are exactly where m grows. Pairs are now
+# streamed per document. The set of pairs examined must not change: a pair that
+# stops being scored is a duplicate that stops being found, silently.
+
+import itertools
+
+import dedupe
+
+
+def brute_force_pairs(set_sketches):
+    """Every pair sharing at least one sketch value — the definition, stated slowly."""
+    return {(i, j) for i, j in itertools.combinations(range(len(set_sketches)), 2)
+            if set_sketches[i] & set_sketches[j]}
+
+
+def streamed_pairs(set_sketches):
+    postings = dedupe.build_postings(set_sketches)
+    return {(i, j) for i in range(len(set_sketches))
+            for j in dedupe.neighbours(i, set_sketches, postings)}
+
+
+SKETCHES = [
+    {1, 2, 3},          # 0 — shares 3 with 1, 1 with 3
+    {3, 4, 5},          # 1
+    {90, 91},           # 2 — shares nothing
+    {1, 7},             # 3
+    {1, 2, 3, 4, 5},    # 4 — overlaps almost everything
+]
+
+
+def test_streaming_examines_exactly_the_pairs_the_definition_names():
+    assert streamed_pairs(SKETCHES) == brute_force_pairs(SKETCHES)
+
+
+def test_a_document_sharing_nothing_is_never_a_candidate():
+    assert not any(2 in pair for pair in streamed_pairs(SKETCHES))
+
+
+def test_every_pair_is_offered_once_and_from_its_lower_index():
+    """Scoring a pair twice would double its weight in the heartbeat and the log."""
+    postings = dedupe.build_postings(SKETCHES)
+    emitted = [(i, j) for i in range(len(SKETCHES))
+               for j in dedupe.neighbours(i, SKETCHES, postings)]
+    assert len(emitted) == len(set(emitted))
+    assert all(i < j for i, j in emitted)
+
+
+def test_identical_documents_are_all_mutually_candidates():
+    """The case a posting-list cap would have broken: n witnesses of one work."""
+    identical = [set(range(50)) for _ in range(12)]
+    assert streamed_pairs(identical) == brute_force_pairs(identical)
+    assert len(streamed_pairs(identical)) == 12 * 11 // 2
+
+
+def test_postings_are_ascending_which_is_what_lets_bisect_skip():
+    postings = dedupe.build_postings(SKETCHES)
+    assert all(docs == sorted(docs) for docs in postings.values())
+
+
+def test_empty_and_single_document_corpora_do_not_crash():
+    assert streamed_pairs([]) == set()
+    assert streamed_pairs([{1, 2}]) == set()
+
+
+def test_a_document_with_an_empty_sketch_pairs_with_nothing():
+    """sketch() returns an empty set for a text shorter than the shingle."""
+    assert streamed_pairs([set(), {1}, {1}]) == {(1, 2)}
+
+
+# --- parallel sketching -----------------------------------------------------
+#
+# Sketching is the long pole: pure Python over every 5-gram of every document,
+# 7.1 Mchar/s on one core, over a corpus that only grows. It parallelises
+# because blake2b is deterministic — the answer cannot depend on which worker
+# computed it. What must be tested is that it does not depend on that in
+# practice either, and that the order survives.
+
+TEXTS = [
+    "arma uirumque cano troiae qui primus ab oris italiam fato profugus",
+    "gallia est omnis diuisa in partes tres quarum unam incolunt belgae",
+    "in principio erat uerbum et uerbum erat apud deum et deus erat uerbum",
+    "sic transit gloria mundi et omnia uanitas est sub sole nihil noui",
+    "short",                                        # fewer tokens than a shingle
+    "arma uirumque cano troiae qui primus ab oris italiam fato profugus",  # a twin
+]
+
+
+def as_records(texts):
+    return [{"id": f"r{i}", "text": t, "n_words": len(t.split())}
+            for i, t in enumerate(texts)]
+
+
+def test_a_pool_sketches_exactly_what_one_process_does():
+    records = as_records(TEXTS)
+    assert list(dedupe.sketch_all(records, jobs=4)) == \
+        list(dedupe.sketch_all(records, jobs=1))
+
+
+def test_sketches_come_back_in_record_order():
+    """sizes[i] and sorted_sketches[i] have to describe records[i]."""
+    records = as_records(TEXTS)
+    expected = [dedupe.sketch_record(t) for t in TEXTS]
+    assert list(dedupe.sketch_all(records, jobs=4)) == expected
+
+
+def test_the_window_boundary_is_not_visible_in_the_result():
+    records = as_records(TEXTS)
+    whole = list(dedupe.sketch_all(records, jobs=2, window=10**9))
+    split = list(dedupe.sketch_all(records, jobs=2, window=40))
+    assert split == whole
+
+
+def test_identical_documents_sketch_identically_across_processes():
+    """blake2b, not hash(): a per-process seed would make twins look unrelated."""
+    out = list(dedupe.sketch_all(as_records(TEXTS), jobs=4))
+    assert out[0] == out[5] and out[0][1] > 0
+
+
+def test_a_document_too_short_to_shingle_sketches_empty():
+    out = list(dedupe.sketch_all(as_records(TEXTS), jobs=2))
+    assert out[4] == ((), 0)
+
+
+def test_sketch_record_returns_the_sketch_already_sorted():
+    ordered, cardinality = dedupe.sketch_record(TEXTS[0])
+    assert list(ordered) == sorted(ordered)
+    assert cardinality >= len(ordered)
+
+
+def test_an_empty_corpus_does_not_start_a_pool():
+    assert list(dedupe.sketch_all([], jobs=4)) == []

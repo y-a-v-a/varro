@@ -194,7 +194,7 @@ def render(rows: List[Dict[str, Any]], lock: Dict[str, Any],
         f"- **Track**: {track or 'unbuilt'}"
         + ("  — redistributable" if track == "A"
            else "  — RESEARCH ONLY, must not be redistributed" if track == "B" else ""),
-        f"- **Documents**: {len(set()) or sum(r['documents'] for r in rows):,}",
+        f"- **Documents**: {sum(r['documents'] for r in rows):,}",
         f"- **Words**: {total_words:,}",
         f"- **Effective licence of the assembled corpus**: `{effective}`",
         "",
@@ -216,11 +216,26 @@ def render(rows: List[Dict[str, Any]], lock: Dict[str, Any],
             "",
         ]
 
-    if effective in SHAREALIKE:
+    # `effective` is a rendered label, not a licence identifier, so testing it
+    # for membership in SHAREALIKE missed "CC-BY-SA-4.0 + UBPL-1.0" — the one
+    # case where a reader most needs telling that ShareAlike propagates, since
+    # there are then two copylefts in play. Ask the sources, which is where the
+    # obligation actually comes from.
+    if {row["license"] for row in rows} & SHAREALIKE:
         lines += [
             "ShareAlike propagates. Because the corpus contains CC BY-SA material, the",
             "corpus as a whole must be offered under CC BY-SA 4.0. Public-domain material",
             "sits inside that without difficulty; it simply carries no obligation itself.",
+            "",
+        ]
+
+    if {row["license"] for row in rows} & FILE_COPYLEFT:
+        lines += [
+            "One source is under a Mozilla-style, file-level copyleft. That obligation is a",
+            "different shape from ShareAlike: it attaches per file rather than to the work as",
+            "a whole, and the licence text has to travel with the distribution. Both are",
+            "redistributable and commercially usable, so the corpus's effective licence is",
+            "unchanged — but anyone deciding what they must ship needs to know which applies.",
             "",
         ]
 

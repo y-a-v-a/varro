@@ -33,18 +33,27 @@ Usage:
     python src/dedupe.py --report          # distribution + clusters, no writes
     python src/dedupe.py                   # mark duplicates in data/interim/
     python src/dedupe.py --jaccard 0.4 --containment 0.7
+    python src/dedupe.py --verify          # verbatim-check both tracks' marks
+    python src/dedupe.py --verify --track A
 """
 
 import argparse
 import heapq
 import json
+import os
 import random
 import re
 import sys
+from bisect import bisect_right
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
 from hashlib import blake2b
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Set, Tuple
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from encoding import chunk_texts  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 INTERIM = ROOT / "data" / "interim"
@@ -111,6 +120,55 @@ def sketch(tokens: Sequence[str], k: int = SKETCH_K,
     return {-x for x in heap}, len(seen)
 
 
+# How much text one pass hands to the worker pool.
+#
+# ProcessPoolExecutor.map submits every task up front, so mapping over the
+# whole corpus would pickle all 500MB of it into the task queues at once. The
+# records are already resident — load_all reads them all — so a window costs
+# nothing to assemble; it exists purely to bound what is in flight. 64MB is
+# roughly nine seconds of serial sketching, long enough that the synchronise at
+# each window boundary disappears against it.
+SKETCH_WINDOW_CHARS = 64_000_000
+
+
+def sketch_record(text: str) -> Tuple[Tuple[int, ...], int]:
+    """Fold and sketch one record: the unit of work a worker process gets.
+
+    Module-level and taking a plain string, because a process pool has to
+    pickle both the function and its argument. Returns the sketch already
+    sorted, which the scoring loop needs anyway and which is cheaper to send
+    back than a set.
+    """
+    values, cardinality = sketch(fold(text))
+    return tuple(sorted(values)), cardinality
+
+
+def sketch_all(records: List[Dict[str, Any]], jobs: int,
+               window: int = SKETCH_WINDOW_CHARS
+               ) -> Iterator[Tuple[Tuple[int, ...], int]]:
+    """Sketch every record, in order, across `jobs` processes.
+
+    Sketching is the long pole here and it is pure Python over every 5-gram of
+    every document — 7.1 Mchar/s on one core, and the corpus only grows. It is
+    also embarrassingly parallel: blake2b is deterministic, so the answer does
+    not depend on which worker computed it or in what order. Measured on 48.6M
+    characters of real records: 6.80s on one core, 1.99s across eight, results
+    identical.
+
+    `jobs=1` stays in this process. A pool that never had a second worker is
+    just a slower way to call a function, and it keeps a profiler, a debugger
+    and the tests in one process.
+    """
+    if jobs <= 1:
+        for record in records:
+            yield sketch_record(record["text"])
+        return
+    with ProcessPoolExecutor(max_workers=jobs) as pool:
+        for batch in chunk_texts((r["text"] for r in records), window):
+            yield from pool.map(sketch_record, batch,
+                                chunksize=max(1, len(batch) // (jobs * 4)))
+
+
 def jaccard(a: Sequence[int], b: Sequence[int], a_set: Set[int], b_set: Set[int],
             k: int = SKETCH_K) -> float:
     """KMV estimator over two pre-sorted sketches.
@@ -150,6 +208,35 @@ def containment(j: float, size_a: int, size_b: int) -> float:
         return 0.0
     intersection = j * (size_a + size_b) / (1 + j)
     return min(1.0, intersection / min(size_a, size_b))
+
+
+def build_postings(set_sketches: Sequence[Set[int]]) -> Dict[int, List[int]]:
+    """Sketch value -> the documents holding it, each list in ascending order.
+
+    The inverted index behind the candidate prefilter: documents sharing no
+    sketch value at all cannot be duplicates, and that is the overwhelming
+    majority of pairs.
+    """
+    postings: Dict[int, List[int]] = defaultdict(list)
+    for idx, values in enumerate(set_sketches):
+        for value in values:
+            postings[value].append(idx)
+    return postings
+
+
+def neighbours(i: int, set_sketches: Sequence[Set[int]],
+               postings: Dict[int, List[int]]) -> Set[int]:
+    """Documents after `i` sharing at least one sketch value with it.
+
+    Only those after it: every pair is examined once, from its lower index.
+    Postings are ascending by construction, so bisect skips the prefix rather
+    than filtering it.
+    """
+    found: Set[int] = set()
+    for value in set_sketches[i]:
+        docs = postings[value]
+        found.update(docs[bisect_right(docs, i):])
+    return found
 
 
 # ---------------------------------------------------------------------------
@@ -238,9 +325,15 @@ def choose_keeper(members: List[int], records: List[Dict[str, Any]]) -> List[int
     return comparable + rest
 
 
-def verify(records: List[Dict[str, Any]], probes: int = 40,
-           span: int = 8, floor: float = 0.15) -> int:
-    """Check every marked duplicate really does occur inside its keeper.
+# Which record fields carry a track's verdict. dedupe writes two — Track A's
+# marks must not move when a research-only source is added — and anything
+# reading them has to say which it means.
+TRACK_SUFFIX = {"A": "", "B": "_b"}
+
+
+def verify_track(records: List[Dict[str, Any]], track: str, probes: int,
+                 span: int, floor: float) -> List[Dict[str, Any]]:
+    """Check every duplicate this track marked really occurs inside its keeper.
 
     Sketch-based similarity is an estimate, and containment derived from it gets
     noisy when one record dwarfs the other. This is the ground truth: sample
@@ -251,6 +344,7 @@ def verify(records: List[Dict[str, Any]], probes: int = 40,
     A single probe is not enough — the Excerpta Valesiana looked like a false
     positive on its opening alone and verifies at 70% across 40 probes.
     """
+    suffix = TRACK_SUFFIX[track]
     by_id = {rec["id"]: rec for rec in records}
     cache: Dict[str, str] = {}
 
@@ -262,11 +356,11 @@ def verify(records: List[Dict[str, Any]], probes: int = 40,
     rng = random.Random(7)
     results: List[Tuple[Optional[float], Dict[str, Any], Dict[str, Any]]] = []
     for rec in records:
-        if not rec.get("is_duplicate"):
+        if not rec.get("is_duplicate" + suffix):
             continue
-        keeper = by_id.get(rec["duplicate_of"])
+        keeper = by_id.get(rec.get("duplicate_of" + suffix))
         if keeper is None:
-            print(f"  DANGLING duplicate_of: {rec['id']}", file=sys.stderr)
+            print(f"  DANGLING duplicate_of{suffix}: {rec['id']}", file=sys.stderr)
             continue
         words = folded(rec).split()
         if len(words) < span * 5:
@@ -281,6 +375,10 @@ def verify(records: List[Dict[str, Any]], probes: int = 40,
         results.append((hits / probes, rec, keeper))
 
     results.sort(key=lambda r: (r[0] is not None, r[0] if r[0] is not None else 0.0))
+    print(f"\nTrack {track} — {len(results)} marked duplicate(s)")
+    if not results:
+        print("  (none marked)")
+        return []
     print(f"{'verbatim':>9}  {'words':>9}  duplicate -> keeper")
     suspect = []
     for score, rec, keeper in results:
@@ -291,9 +389,24 @@ def verify(records: List[Dict[str, Any]], probes: int = 40,
             suspect.append(rec)
         print(f"{label}  {rec['n_words']:>9,}  {(rec['work'] or '?')[:36]:<36}"
               f" -> {(keeper['work'] or '?')[:28]}{flag}")
-    print(f"\nchecked {len(results)} marked duplicates; "
-          f"{len(suspect)} below {floor:.0%} verbatim overlap "
-          f"({sum(r['n_words'] for r in suspect):,} words)")
+    print(f"  checked {len(results)}; {len(suspect)} below {floor:.0%} verbatim "
+          f"overlap ({sum(r['n_words'] for r in suspect):,} words)")
+    return suspect
+
+
+def verify(records: List[Dict[str, Any]], tracks: Sequence[str] = ("A", "B"),
+           probes: int = 40, span: int = 8, floor: float = 0.15) -> int:
+    """Verify each track's marks in turn.
+
+    Both by default. dedupe resolves the tracks separately and writes two
+    independent verdicts, but this checked only `is_duplicate` — Track A's —
+    so every drop LATIN-LII's corpus was built on went unverified. A check
+    that silently covers half of what it is pointed at is worse than one that
+    admits it covers half.
+    """
+    suspect = []
+    for track in tracks:
+        suspect.extend(verify_track(records, track, probes, span, floor))
     return 1 if suspect else 0
 
 
@@ -303,11 +416,18 @@ def main() -> int:
     ap.add_argument("--report", action="store_true", help="analyse only, write nothing")
     ap.add_argument("--verify", action="store_true",
                     help="verbatim-check existing duplicate marks and exit")
+    ap.add_argument("--track", action="append", choices=sorted(TRACK_SUFFIX),
+                    metavar="TRACK",
+                    help="which track's marks --verify checks (repeatable); "
+                         "default is both, because both are built")
     ap.add_argument("--jaccard", type=float, default=0.5,
                     help="Jaccard at or above which two works are the same (default 0.5)")
     ap.add_argument("--containment", type=float, default=0.8,
                     help="containment at or above which the smaller is redundant (default 0.8)")
     ap.add_argument("--show", type=int, default=25, help="clusters to print")
+    ap.add_argument("--jobs", type=int, default=None, metavar="N",
+                    help="processes used for sketching (default: every core; "
+                         "1 keeps everything in this process)")
     args = ap.parse_args()
 
     records, by_file = load_all()
@@ -315,65 +435,85 @@ def main() -> int:
         sys.exit(f"no records in {INTERIM} — run extract.py and enrich.py first")
 
     if args.verify:
-        return verify(records)
+        return verify(records, tuple(args.track or sorted(TRACK_SUFFIX)))
 
-    print(f"sketching {len(records):,} records ...", flush=True)
+    jobs = args.jobs if args.jobs is not None else (os.cpu_count() or 1)
+    print(f"sketching {len(records):,} records across {jobs} process(es) ...",
+          flush=True)
     sizes: List[int] = []
     sorted_sketches: List[Tuple[int, ...]] = []
     set_sketches: List[Set[int]] = []
     sketch_heartbeat = max(1, len(records) // 10)
-    for done, rec in enumerate(records, 1):
+    for done, (ordered, cardinality) in enumerate(sketch_all(records, jobs), 1):
         if done % sketch_heartbeat == 0:
             print(f"  sketched {done:,}/{len(records):,}", flush=True)
-        tokens = fold(rec["text"])
-        s, cardinality = sketch(tokens)
         sizes.append(cardinality)
-        set_sketches.append(s)
-        sorted_sketches.append(tuple(sorted(s)))
+        set_sketches.append(set(ordered))
+        sorted_sketches.append(ordered)
 
     # Candidate prefilter: documents sharing no sketch value at all cannot be
     # duplicates, and that is the overwhelming majority of pairs. An inverted
     # index over sketch values finds the few that do, turning an O(n^2) sweep
     # into work proportional to actual overlap.
-    postings: Dict[int, List[int]] = defaultdict(list)
-    for idx, s in enumerate(set_sketches):
-        for value in s:
-            postings[value].append(idx)
-    candidates: Set[Tuple[int, int]] = set()
-    for docs in postings.values():
-        if len(docs) < 2:
-            continue
-        for x in range(len(docs)):
-            for y in range(x + 1, len(docs)):
-                candidates.add((docs[x], docs[y]))
-    print(f"candidate pairs after prefilter: {len(candidates):,} "
-          f"(of {len(records)*(len(records)-1)//2:,} possible)", flush=True)
+    postings = build_postings(set_sketches)
+
+    # WHY THE PAIRS ARE STREAMED RATHER THAN COLLECTED
+    #   The candidate set used to be materialised whole: every posting list of
+    #   length m contributed m(m-1)/2 tuples to one Python set, and nothing
+    #   bounded m. A shingle common to many witnesses — liturgy, scripture,
+    #   citation boilerplate, the formulae that made MIN_CONTAINED necessary —
+    #   is exactly the case where m grows, and the cost is quadratic in it. At
+    #   12,988 records that set held 1,105,761 pairs; it is the corpus growing
+    #   that makes it a problem, which is the direction this project only ever
+    #   moves in.
+    #
+    #   Capping the posting lists would fix the memory and silently cost
+    #   recall in the worst place: n witnesses of one work share nearly all
+    #   their sketch values, so a cap low enough to help is a cap that hides
+    #   exactly the duplicates worth finding. Scoring each document against
+    #   its neighbours as they are found costs the same time, examines the
+    #   identical set of pairs, and never holds more than one document's
+    #   neighbourhood. Results are unchanged: `pairs` is sorted before anything
+    #   reads it, so the order they were produced in was never observable.
+    #
+    #   Postings are ascending, so bisect skips the half of each list that
+    #   would only re-derive pairs already scored from the other side.
+    crowded = max((len(d) for d in postings.values()), default=0)
+    upper = sum(len(d) * (len(d) - 1) // 2 for d in postings.values())
+    print(f"candidate pairs after prefilter: at most {upper:,} "
+          f"(of {len(records)*(len(records)-1)//2:,} possible); "
+          f"most-shared shingle is in {crowded:,} document(s)", flush=True)
 
     # A heartbeat, because this loop is the long pole and used to run silent:
     # at five sources it scores over a million pairs and says nothing for
     # minutes, which is indistinguishable from a hang to anything watching.
     pairs: List[Tuple[float, float, int, int]] = []
-    heartbeat = max(1, len(candidates) // 20)
-    for scored, (i, j) in enumerate(candidates, 1):
-        if scored % heartbeat == 0:
-            print(f"  scoring pairs: {scored:,}/{len(candidates):,} "
-                  f"({scored/len(candidates):.0%}), {len(pairs):,} above threshold",
+    heartbeat = max(1, len(records) // 20)
+    scored = 0
+    for i in range(len(records)):
+        if (i + 1) % heartbeat == 0:
+            print(f"  scoring pairs: document {i+1:,}/{len(records):,}, "
+                  f"{scored:,} pairs scored, {len(pairs):,} above threshold",
                   flush=True)
-        est = jaccard(sorted_sketches[i], sorted_sketches[j],
-                      set_sketches[i], set_sketches[j])
-        cont = containment(est, sizes[i], sizes[j])
-        # No Jaccard floor before the containment test. A short text inside a
-        # long one has a legitimately tiny Jaccard — Salvian's 188-word appendix
-        # sits at J=0.03 inside his Epistulae while being 84% contained — so any
-        # cheap "skip if J is low" gate silently defeats containment detection
-        # exactly where sizes differ most, which is where it is needed.
-        if est >= args.jaccard:
-            pairs.append((est, cont, i, j))
-        elif cont >= args.containment and min(sizes[i], sizes[j]) >= MIN_CONTAINED:
-            pairs.append((est, cont, i, j))
+        for j in neighbours(i, set_sketches, postings):
+            scored += 1
+            est = jaccard(sorted_sketches[i], sorted_sketches[j],
+                          set_sketches[i], set_sketches[j])
+            cont = containment(est, sizes[i], sizes[j])
+            # No Jaccard floor before the containment test. A short text inside
+            # a long one has a legitimately tiny Jaccard — Salvian's 188-word
+            # appendix sits at J=0.03 inside his Epistulae while being 84%
+            # contained — so any cheap "skip if J is low" gate silently defeats
+            # containment detection exactly where sizes differ most, which is
+            # where it is needed.
+            if est >= args.jaccard:
+                pairs.append((est, cont, i, j))
+            elif cont >= args.containment and min(sizes[i], sizes[j]) >= MIN_CONTAINED:
+                pairs.append((est, cont, i, j))
 
     pairs.sort(reverse=True)
-    print(f"candidate duplicate pairs: {len(pairs)}\n")
+    print(f"scored {scored:,} candidate pairs; "
+          f"candidate duplicate pairs: {len(pairs)}\n")
 
     # Direct pairwise evidence, consulted by resolve() below.
     best_pair = {(min(i, j), max(i, j)): (e, c) for e, c, i, j in pairs}
@@ -455,27 +595,53 @@ def main() -> int:
     _, keep_b = resolve(eligible_b) if eligible_b != eligible_a else (None, keep_a)
 
 
-    dropped_words = 0
+    # WHAT THIS REPORTS, AND WHY IT IS NOT THE CLUSTER
+    #   A cluster is a set of candidates, not a verdict. resolve() drops a
+    #   record only in favour of one it was DIRECTLY measured against, because
+    #   union-find is transitive and textual similarity is not — the guard
+    #   above this exists because Jerome's Epistulae was otherwise absorbing
+    #   401 records and 12.8M words it had never been compared with.
+    #
+    #   This summary used to sum whole clusters instead: keeper = members[0],
+    #   everything else counted as dropped. So the headline figure was the
+    #   number the guard was written to prevent, printed as though it were
+    #   what the pipeline does, and `--report` overstated the loss by exactly
+    #   the amount the guard saves. It is now read off the marks that will
+    #   actually be written.
+    dropped_words = sum(records[i]["n_words"] for i in keep_a)
     shown = 0
     print(f"clusters: {len(clusters)}")
     for members in sorted(clusters.values(), key=lambda m: -sum(records[i]["n_words"] for i in m)):
         members[:] = choose_keeper(members, records)
-        keeper, losers = members[0], members[1:]
-        dropped_words += sum(records[i]["n_words"] for i in losers)
-        if shown < args.show:
-            shown += 1
-            k = records[keeper]
-            print(f"\n  KEEP  {k['n_words']:>7,}w  {k['source'][:22]:<22} "
-                  f"{(k['author'] or '?')[:22]:<22} {(k['work'] or '?')[:34]}")
-            for i in losers:
-                r = records[i]
-                pair = best_pair.get((min(keeper, i), max(keeper, i)))
+        keeper = members[0]
+        if shown >= args.show:
+            continue
+        shown += 1
+        k = records[keeper]
+        print(f"\n  KEEP  {k['n_words']:>7,}w  {k['source'][:22]:<22} "
+              f"{(k['author'] or '?')[:22]:<22} {(k['work'] or '?')[:34]}")
+        for i in members[1:]:
+            r = records[i]
+            against = keep_a.get(i)
+            if against is None:
+                # In the cluster, but attached to nothing it was measured
+                # against. It survives, and saying so is the point.
+                verdict, sim = "stays", "(no direct pair)"
+            else:
+                pair = best_pair.get((min(against, i), max(against, i)))
                 sim = f"J={pair[0]:.2f} C={pair[1]:.2f}" if pair else "(indirect)"
-                print(f"  drop  {r['n_words']:>7,}w  {r['source'][:22]:<22} "
-                      f"{(r['author'] or '?')[:22]:<22} {(r['work'] or '?')[:34]}  {sim}")
+                if against != keeper:
+                    sim += f" -> {(records[against]['work'] or '?')[:20]}"
+                verdict = "drop "
+            print(f"  {verdict} {r['n_words']:>7,}w  {r['source'][:22]:<22} "
+                  f"{(r['author'] or '?')[:22]:<22} {(r['work'] or '?')[:34]}  {sim}")
 
     total = sum(r["n_words"] for r in records)
-    print(f"\nwould drop {dropped_words:,} words of {total:,} ({100*dropped_words/total:.1f}%)")
+    clustered = sum(records[i]["n_words"] for m in clusters.values() for i in m[1:])
+    print(f"\nwould drop {dropped_words:,} words of {total:,} "
+          f"({100*dropped_words/total:.1f}%) — Track A")
+    print(f"  {clustered - dropped_words:,} further words are in a cluster but "
+          f"attached to no record they were directly measured against, and stay")
 
     if args.report:
         print("\n--report: nothing written")

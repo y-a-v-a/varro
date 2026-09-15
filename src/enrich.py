@@ -146,8 +146,32 @@ class Authority:
         # this is taken on trust, and it is recorded under its own origin so
         # its share of the corpus stays visible in the report, exactly as
         # `pl-volume` and `source-prior` are.
+        #
+        # WHY THIS READS date_source AND NOT JUST THE DATE
+        #   `approximate_date` is both an input and an output of this stage:
+        #   extract.py writes what the source stated, and main() writes back
+        #   whatever was resolved here. Reading it unconditionally therefore
+        #   made enrich launder its own inferences into evidence on the second
+        #   pass — a date interpolated from a Migne volume number came back as
+        #   a date the source had stated, `inferred` became `stated`, and the
+        #   confidence table said so. Measured on the interim files as they
+        #   stand: 3,103 records marked `pl-volume`/`inferred` flip.
+        #
+        #   That is not a hypothetical. Interim files are rewritten in place
+        #   and pipeline.py re-runs enrich alone whenever authorities.yaml or
+        #   genres.yaml changes, with no re-extraction in between, so a second
+        #   pass over enriched records is the normal case rather than the odd
+        #   one.
+        #
+        #   `date_source` is what separates the two. Absent means the record
+        #   has never been through here, so the date is the source's own;
+        #   `source-metadata` means an earlier pass already established that
+        #   and re-establishing it is stable. Every other value is this
+        #   function's own conclusion, and must not be read back as evidence
+        #   for itself.
+        resolved_before = record.get("date_source")
         stated = record.get("approximate_date")
-        if isinstance(stated, int):
+        if isinstance(stated, int) and resolved_before in (None, "source-metadata"):
             return stated, self.period_for(stated), "source-metadata", "stated"
 
         # Below that, above the source prior: a Patrologia Latina volume

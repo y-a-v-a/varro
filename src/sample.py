@@ -22,7 +22,6 @@ from typing import List, Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
-TOKENIZERS = PROCESSED / "tokenizers"
 CHECKPOINTS = ROOT / "checkpoints"
 REPORTS = ROOT / "reports"
 
@@ -33,47 +32,10 @@ try:
 except ImportError:
     sys.exit("MLX required — pip install mlx")
 
+from encoding import resolve_tokenizer  # noqa: E402
+from normalize import fold_prompt  # noqa: E402
 from train import GPT  # noqa: E402  (same architecture, read from the report)
 
-
-
-def resolve_tokenizer(vocab: int, run: dict) -> str:
-    """The exact vocabulary this run was trained through, or a clear refusal.
-
-    A model's embeddings are keyed to specific token ids: with the wrong
-    vocabulary, token 1234 means a different string and the model emits
-    confident nonsense rather than failing. That is the worst failure mode
-    available here, so it is checked rather than assumed.
-
-    tokenizer.py keeps a content-named copy of every vocabulary it trains, so
-    a model outlives a retrained tokenizer as long as its copy is on disk.
-    """
-    import hashlib
-
-    want = (run.get("tokenizer") or {}).get("sha256")
-    current = TOKENIZERS / f"latin-bpe-{vocab}.json"
-    if want is None:
-        # Reports written before tokenizers were fingerprinted cannot be
-        # checked; say so rather than imply the check passed.
-        print(f"  [no tokenizer fingerprint in this run's report — using "
-              f"{current.name} unverified]", file=sys.stderr)
-        return str(current)
-
-    archived = TOKENIZERS / f"latin-bpe-{vocab}.{want}.json"
-    if archived.exists():
-        return str(archived)
-    if current.exists():
-        have = hashlib.sha256(current.read_bytes()).hexdigest()[:16]
-        if have == want:
-            return str(current)
-        sys.exit(
-            f"tokenizer mismatch: {run.get('run')} was trained through "
-            f"vocabulary {want}, and {current.name} is {have}.\n"
-            f"Loading it anyway would map every token to the wrong string and "
-            f"produce fluent nonsense.\n"
-            f"Recover it by rebuilding the corpus at the commit that trained "
-            f"this model, or retrain the model on the current vocabulary.")
-    sys.exit(f"no tokenizer for vocab {vocab} in {TOKENIZERS.relative_to(ROOT)}")
 
 
 def load_run(name: str) -> dict:
@@ -139,6 +101,13 @@ def main() -> int:
     from tokenizers import Tokenizer
     tok = Tokenizer.from_file(resolve_tokenizer(cfg["vocab"], run))
 
+    # The corpus has no `v` and no `j` in it; a person's prompt has both. Fold
+    # it the way the training text was folded, and say so — a prompt silently
+    # rewritten is a prompt the user cannot debug.
+    prompt, folded = fold_prompt(args.prompt)
+    if folded:
+        print(f"prompt folded to the corpus orthography: {prompt!r}\n")
+
     model = GPT(cfg["vocab"], cfg["dim"], cfg["layers"], cfg["heads"], cfg["context"])
     weights = CHECKPOINTS / f"{args.name}.safetensors"
     if not weights.exists():
@@ -161,7 +130,7 @@ def main() -> int:
     samples: List[str] = []
     for i in range(args.n):
         key, use = mx.random.split(key)
-        text = generate(model, tok, args.prompt, args.length,
+        text = generate(model, tok, prompt, args.length,
                         args.temperature, args.top_k, cfg["context"], use,
                         period=args.period)
         samples.append(text)

@@ -35,6 +35,7 @@ import json
 import random
 import sys
 from collections import Counter, defaultdict
+from hashlib import blake2b
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -76,14 +77,38 @@ PROVENANCE_CLASSES = ("transcribed", "ocr", "model-corrected", "unknown")
 UNKNOWN_PROVENANCE = "unknown"
 
 
+def drop_order(record: Dict[str, Any], seed: int) -> Tuple[int, int]:
+    """Shortest first, ties broken by a seeded hash of the record id.
+
+    blake2b rather than hash(): Python's is randomised per process, which
+    would make two runs of the same build disagree about which records were
+    shed — the one property a seed exists to provide.
+    """
+    digest = blake2b(f"{seed}:{record['id']}".encode(), digest_size=8).digest()
+    return record["n_words"], int.from_bytes(digest, "big")
+
+
 def apportion(records: List[Dict[str, Any]], caps: Dict[str, float],
               seed: int) -> Tuple[List[Dict[str, Any]], Counter]:
     """Hold each provenance class to at most its share of the corpus, by words.
 
     Drops whole records, smallest first, so the cap is met by shedding the
-    least text; the shuffle first makes the choice independent of file order,
-    and the seed makes it repeatable. Returns what was dropped, so a build
-    reports the shrinkage rather than quietly applying it.
+    least text. Returns what was dropped, so a build reports the shrinkage
+    rather than quietly applying it.
+
+    WHERE THE ORDER COMES FROM
+        Only ties need deciding: the sort is by length, and among records of
+        the same length something has to choose. That used to be a seeded
+        shuffle applied before the sort — but Python's sort is stable, so the
+        shuffle reached nothing except ties anyway, and the generator was
+        re-seeded inside the loop so every class and every pass replayed the
+        same permutation over a differently-ordered list. It read as though it
+        randomised the choice; it randomised tie order, sometimes.
+
+        Ties are now broken by a hash of the record id under the seed, which
+        is what the docstring always claimed: independent of the order records
+        were read in, identical on every pass, and reproducible from the seed
+        alone.
     """
     if not caps:
         return records, Counter()
@@ -116,9 +141,7 @@ def apportion(records: List[Dict[str, Any]], caps: Dict[str, float],
             budget = share * other / (1.0 - share)
             if held <= budget:
                 continue
-            rng = random.Random(seed)
-            rng.shuffle(in_class)
-            for rec in sorted(in_class, key=lambda r: r["n_words"]):
+            for rec in sorted(in_class, key=lambda r: drop_order(r, seed)):
                 if held <= budget:
                     break
                 keep_ids.discard(rec["id"])

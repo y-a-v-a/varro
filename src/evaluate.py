@@ -43,6 +43,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from encoding import encode_all  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
 TOKENIZERS = PROCESSED / "tokenizers"
@@ -133,8 +137,7 @@ def perplexity(logprob: float, count: int) -> Optional[float]:
 def slice_baselines(model: NgramBaseline, tok, records: List[Dict[str, Any]],
                     axis: str) -> Dict[str, Dict[str, Any]]:
     buckets: Dict[str, List[float]] = defaultdict(lambda: [0.0, 0, 0])
-    for rec in records:
-        ids = tok.encode(rec["text"]).ids
+    for rec, ids in zip(records, encode_all(tok, (r["text"] for r in records))):
         lp, n = model.logprob(ids)
         key = str(rec.get(axis) or "UNKNOWN")
         buckets[key][0] += lp
@@ -260,12 +263,12 @@ def cmd_baselines(args) -> Dict[str, Any]:
     print(f"training {args.vocab:,}-token bigram baseline on {len(train):,} documents ...",
           flush=True)
     model = NgramBaseline(args.vocab)
-    model.train(tok.encode(rec["text"]).ids for rec in train)
+    model.train(encode_all(tok, (rec["text"] for rec in train)))
     print(f"  {model.total:,} tokens, {len(model.bigram):,} bigram contexts")
 
     overall_lp = overall_n = 0
-    for rec in val:
-        lp, n = model.logprob(tok.encode(rec["text"]).ids)
+    for ids in encode_all(tok, (rec["text"] for rec in val)):
+        lp, n = model.logprob(ids)
         overall_lp += lp
         overall_n += n
     overall = perplexity(overall_lp, overall_n)

@@ -1141,6 +1141,7 @@ def main() -> int:
         sys.exit(f"no extractor for format `{entry.get('format')}` "
                  f"(source `{args.source}`) — add one to FORMAT_EXTRACTORS")
     records, stats = extractor(args.source, args.greek, args.limit)
+    assert_unique_ids(records, args.source)
 
     print(f"source        {args.source}")
     print(f"greek policy  {args.greek}")
@@ -1451,7 +1452,7 @@ def extract_vicifons(source_id: str, greek: str, limit: Optional[int]) -> Tuple[
                 if volume:
                     stats["pl_volume_found"] += 1
                 records.append({
-                    "id": f"{source_id}/{(title or 'untitled').replace(' ', '_')[:90]}",
+                    "id": slug_id(source_id, title or "untitled"),
                     "text": text,
                     "author": author,
                     "work": work,
@@ -1497,9 +1498,10 @@ def extract_lasla(source_id: str, greek: str, limit: Optional[int]) -> Tuple[Lis
     stats = Stats()
     records: List[Dict[str, Any]] = []
 
-    files = sorted((RAW / source_id / "conllup").glob("*.conllup"))
+    root_dir = RAW / source_id / "conllup"
+    files = sorted(root_dir.glob("*.conllup"))
     if not files:
-        raise RuntimeError(f"no .conllup files under {RAW / source_id}/conllup — fetched?")
+        raise RuntimeError(f"no .conllup files under {root_dir} — fetched?")
 
     for path in files:
         if limit is not None and len(records) >= limit:
@@ -1516,7 +1518,7 @@ def extract_lasla(source_id: str, greek: str, limit: Optional[int]) -> Tuple[Lis
             continue
 
         records.append({
-            "id": f"{source_id}/{path.stem}",
+            "id": record_id(source_id, path, root_dir),
             "text": text,
             "author": author,
             "work": work,
@@ -1793,7 +1795,7 @@ def extract_plaintext(source_id: str, greek: str, limit: Optional[int]) -> Tuple
             continue
 
         records.append({
-            "id": f"{source_id}/{path.stem}",
+            "id": record_id(source_id, path, root_dir),
             "text": text,
             "author": author,
             "work": work,
@@ -1938,7 +1940,7 @@ def extract_tess(source_id: str, greek: str, limit: Optional[int]) -> Tuple[List
             stats["no_stated_date"] += 1
         author, work = tess_name(path.stem)
         records.append({
-            "id": f"{source_id}/{path.stem}",
+            "id": record_id(source_id, path, root_dir),
             "text": text,
             "author": author,
             "work": work,
@@ -2314,7 +2316,11 @@ def extract_tei_xml(source_id: str, greek: str, limit: Optional[int]) -> Tuple[L
             continue
 
         records.append({
-            "id": f"{source_id}/{path.stem}",
+            # The archive stem as well as the member's name: Corpus Corporum
+            # arrives as one zip per work and two of them can hold a member of
+            # the same name, which is four of the collisions measured above.
+            "id": (f"{source_id}/{work_id}/{path.stem}" if work_id
+                   else f"{source_id}/{path.stem}"),
             "text": text,
             "author": tei_author(root),
             "work": tei_title(root) or path.stem,
@@ -2364,6 +2370,76 @@ FORMAT_EXTRACTORS = {
     "tess": extract_tess,
     "tei-xml": extract_tei_xml,
 }
+
+
+# ---------------------------------------------------------------------------
+# Record identity
+# ---------------------------------------------------------------------------
+#
+# A record id has to be unique within its source. Nothing downstream checks:
+# dedupe writes `duplicate_of: <id>` and resolves keepers through a dict keyed
+# by it, and build.py splits with `r["id"] not in val_ids`, so one id shared by
+# two records silently makes the wrong comparison and can drag an unrelated
+# work across the train/validation boundary.
+#
+# Measured 2026-09-06, before this: 58 ids shared by 171 records. Three
+# separate causes, all of them a key that discarded the part that
+# distinguished it —
+#
+#   latin-library   `path.stem` dropped the directory, and The Latin Library
+#                   nests by author, so isidore/14.txt, justin/14.txt,
+#                   juvenal/14.txt, ammianus/14.txt and williamtyre/14.txt
+#                   all became `latin-library/14`.
+#   corpus-corporum the member's filename dropped the archive it came from.
+#   vicifons        the title was truncated to 90 characters, and Wikisource
+#                   nests page titles deeply enough that four chapters of
+#                   Genesis agree for the first 90.
+
+
+def record_id(source_id: str, path: Path, root_dir: Path) -> str:
+    """An id keyed on where the file sits, not merely what it is called."""
+    try:
+        relative = path.relative_to(root_dir)
+    except ValueError:
+        relative = Path(path.name)
+    return f"{source_id}/{relative.with_suffix('').as_posix()}"
+
+
+def slug_id(source_id: str, name: str, limit: int = 90) -> str:
+    """An id from a title, kept readable but never truncated into a collision.
+
+    The cap exists so ids stay legible in a report. When a title is longer
+    than that, what distinguishes it from its siblings is usually the tail —
+    `.../Liber Genesis/Caput III` — so the cap alone cannot be the key. A short
+    digest of the FULL title is appended, which is stable across runs because
+    blake2b is.
+    """
+    slug = name.replace(" ", "_")
+    if len(slug) <= limit:
+        return f"{source_id}/{slug}"
+    digest = blake2b(name.encode("utf-8"), digest_size=4).hexdigest()
+    return f"{source_id}/{slug[:limit]}~{digest}"
+
+
+def assert_unique_ids(records: List[Dict[str, Any]], source_id: str) -> None:
+    """Refuse to write a source whose ids collide.
+
+    Loud rather than repaired. Appending a counter would make the corpus
+    build, and would make the id depend on the order files happened to be
+    walked in — so the same text would change identity between runs, which is
+    the property ids exist to prevent.
+    """
+    seen: Dict[str, int] = {}
+    for record in records:
+        seen[record["id"]] = seen.get(record["id"], 0) + 1
+    clashes = {i: n for i, n in seen.items() if n > 1}
+    if clashes:
+        worst = sorted(clashes.items(), key=lambda kv: -kv[1])[:5]
+        raise RuntimeError(
+            f"{source_id}: {len(clashes)} id(s) shared by "
+            f"{sum(clashes.values())} records — ids must be unique within a "
+            f"source or dedupe and the held-out split resolve the wrong "
+            f"record. Worst: " + ", ".join(f"{i!r} x{n}" for i, n in worst))
 
 
 def extractor_for(source_id: str):

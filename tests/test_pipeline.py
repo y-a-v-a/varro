@@ -297,3 +297,116 @@ def test_a_stage_edited_while_running_is_not_recorded_as_fresh(
     # The pipeline records at_start, so the next run sees the stage as stale
     # and rebuilds it with the edited code.
     assert stage.fingerprint("") != at_start
+
+
+# --- running a stage's invocations ------------------------------------------
+#
+# extract has one part per source, each reading data/raw/<source>/ and writing
+# data/interim/<source>.jsonl. No part touches another's input or output, which
+# is the same independence that already lets them be invalidated separately —
+# so they can overlap, and extraction is XML parsing, which is where the idle
+# cores are. build's four invocations look similar and are not: each reads
+# every interim file into memory, so running them together multiplies the peak.
+
+import time
+
+import pytest
+
+
+SLEEPER = """\
+import sys, time
+name = sys.argv[1]
+time.sleep(0.4)
+open(name + ".done", "w").write("done")
+print("worked on " + name)
+if name == "boom":
+    print("something went wrong", file=sys.stderr)
+    sys.exit(3)
+"""
+
+
+def sleeper_stage(root, names, concurrent):
+    (root / "script.py").write_text(SLEEPER, encoding="utf-8")
+    return Stage("s", "script.py", [], argv=[[n] for n in names],
+                 concurrent=concurrent)
+
+
+def test_a_concurrent_stage_overlaps_its_invocations(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    stage = sleeper_stage(tmp_path, ["a", "b", "c", "d"], concurrent=True)
+    started = time.perf_counter()
+    stage.run(jobs=4)
+    elapsed = time.perf_counter() - started
+    assert elapsed < 4 * 0.4, f"ran in {elapsed:.2f}s — no overlap"
+    assert all((tmp_path / f"{n}.done").exists() for n in "abcd")
+
+
+def test_a_stage_that_does_not_declare_it_stays_sequential(tmp_path, monkeypatch):
+    """build reads every interim file per invocation; four at once is four copies."""
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    stage = sleeper_stage(tmp_path, ["a", "b", "c"], concurrent=False)
+    started = time.perf_counter()
+    stage.run(jobs=4)
+    assert time.perf_counter() - started >= 3 * 0.4
+
+
+def test_jobs_one_runs_a_concurrent_stage_in_order(tmp_path, monkeypatch):
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    stage = sleeper_stage(tmp_path, ["a", "b", "c"], concurrent=True)
+    started = time.perf_counter()
+    stage.run(jobs=1)
+    assert time.perf_counter() - started >= 3 * 0.4
+
+
+def test_a_failing_invocation_fails_the_stage(tmp_path, monkeypatch):
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    stage = sleeper_stage(tmp_path, ["a", "boom"], concurrent=True)
+    with pytest.raises(RuntimeError) as excinfo:
+        stage.run(jobs=4)
+    assert "boom" in str(excinfo.value) and "3" in str(excinfo.value)
+
+
+def test_the_other_sources_are_still_extracted_when_one_fails(tmp_path, monkeypatch):
+    """No sense abandoning eight sources because the ninth has a bad file."""
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    stage = sleeper_stage(tmp_path, ["boom", "a", "b"], concurrent=True)
+    with pytest.raises(RuntimeError):
+        stage.run(jobs=4)
+    assert (tmp_path / "a.done").exists() and (tmp_path / "b.done").exists()
+
+
+def test_each_invocations_output_is_kept_with_its_own_command(tmp_path, monkeypatch,
+                                                              capsys):
+    """Interleaved lines from four extractors are unreadable; grouped ones are not."""
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    sleeper_stage(tmp_path, ["a", "b"], concurrent=True).run(jobs=2)
+    out = capsys.readouterr().out
+    for name in ("a", "b"):
+        header = out.index(f"$ script.py {name}")
+        body = out.index(f"worked on {name}")
+        assert body > header, "output printed before the command that produced it"
+
+
+def test_a_failure_is_marked_on_the_command_that_produced_it(tmp_path, monkeypatch,
+                                                             capsys):
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    with pytest.raises(RuntimeError):
+        sleeper_stage(tmp_path, ["a", "boom"], concurrent=True).run(jobs=2)
+    out = capsys.readouterr().out
+    assert "$ script.py boom   <-- EXIT 3" in out
+    assert "something went wrong" in out
+    assert "EXIT" not in out.split("$ script.py a")[1].split("$ script.py boom")[0]
+
+
+def test_a_single_invocation_is_never_worth_capturing(tmp_path, monkeypatch, capsys):
+    """One extractor should stream as it goes, the way it always did."""
+    monkeypatch.setattr(pipeline, "ROOT", tmp_path)
+    sleeper_stage(tmp_path, ["a"], concurrent=True).run(jobs=4)
+    assert "at a time)" not in capsys.readouterr().out
+
+
+def test_extract_is_the_only_stage_declared_concurrent(monkeypatch):
+    """build must not be: each of its invocations holds the whole corpus."""
+    monkeypatch.setattr(pipeline, "extractable_sources", lambda: ["one", "two"])
+    declared = {s.name for s in pipeline.build_stages() if s.concurrent}
+    assert declared == {"extract"}
