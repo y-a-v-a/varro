@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Standalone loader and generator for a bundled claudius model.
+"""Standalone loader and generator for a bundled Varro model.
 
 This file is copied into every Hugging Face bundle as `generate.py` by
 `src/bundle.py`. It must stay self-contained: someone who downloads the

@@ -173,8 +173,8 @@ def test_missing_placeholder_fails_loudly(tmp_path, monkeypatch):
 
 def test_bibtex_braces_survive_substitution(tmp_path, monkeypatch):
     monkeypatch.setattr(bundle, "MODELCARDS", tmp_path)
-    (tmp_path / "x.md").write_text("@software{claudius_2026,\n} ${ppl}")
-    assert "@software{claudius_2026," in render_card("x", {"ppl": "70.1"})
+    (tmp_path / "x.md").write_text("@software{varro_2026,\n} ${ppl}")
+    assert "@software{varro_2026," in render_card("x", {"ppl": "70.1"})
 
 
 def test_fmt_m():

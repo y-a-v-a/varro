@@ -15,7 +15,7 @@ tags:
 
 # LATIN-LII — research artifact, not a download
 
-> **This model is not redistributable.** It was trained on the claudius
+> **This model is not redistributable.** It was trained on the Varro
 > **Track ${track}** corpus, which includes NonCommercial sources
 > (${nc_share} of it by words). The project's position is that NonCommercial
 > propagates into weights, so these are published as *results* — perplexity,
@@ -28,7 +28,7 @@ tags:
 A ${parameters_m}-parameter GPT trained **from random initialization on Latin
 and nothing else** — no English, no modern languages, no inherited
 multilingual representations. It is the largest and best model the
-[claudius](https://github.com/y-a-v-a/claudius) project has trained, and the
+[Varro](https://github.com/y-a-v-a/claudius) project has trained, and the
 first whose bigram floor was computed on its own corpus rather than borrowed
 from another.
 
@@ -177,13 +177,13 @@ The weights are a research artifact and are not distributed.
 ## Provenance
 
 Everything here is reproducible from the
-[claudius repository](https://github.com/y-a-v-a/claudius): the manifest pins
+[Varro repository](https://github.com/y-a-v-a/claudius): the manifest pins
 every source to a git SHA, `${recipe}` is the exact training recipe (seed
 included), and the figures this card quotes are substituted from generated
 reports by `src/bundle.py`, not hand-written.
 
 ```
-@software{claudius_latin_lii_2026,
+@software{varro_latin_lii_2026,
   author = {Vincent Bruijn},
   title = {LATIN-LII: a 52M-parameter GPT trained from scratch on Latin},
   year = {2026},

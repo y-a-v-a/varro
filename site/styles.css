@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Claudius — parchment by day, lamplight by night
+   Varro — parchment by day, lamplight by night
    ========================================================================== */
 
 :root {
@@ -267,7 +267,6 @@ main { max-width: var(--page); margin: 0 auto; padding: 0 var(--gutter); }
 }
 .glossa__mark { color: var(--rubric); font-size: 1.5em; line-height: 1; margin: 0 0 0.4rem; }
 .glossa--inline { margin-top: 1.5rem; }
-.claudian { font-family: "Segoe UI Symbol", "Noto Sans Symbols", "Cambria Math", var(--font-body); color: var(--rubric); font-style: normal; }
 
 /* ---------------------------------------------------------------- hero */
 

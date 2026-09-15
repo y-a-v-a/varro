@@ -1,4 +1,4 @@
-# Claudius — an openly licensed Latin corpus and a language model trained only on Latin
+# Varro — an openly licensed Latin corpus and a language model trained only on Latin
 
 Two deliverables, in order:
 

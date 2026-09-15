@@ -1,9 +1,9 @@
-/* Claudius — renders the page's figures from window.CLAUDIUS (site/data.js).
+/* Varro — renders the page's figures from window.VARRO (site/data.js).
    No dependencies. Every value that reaches the DOM goes through textContent. */
 (function () {
   "use strict";
 
-  var D = window.CLAUDIUS;
+  var D = window.VARRO;
   var SVGNS = "http://www.w3.org/2000/svg";
 
   // ------------------------------------------------------------------ helpers
@@ -170,7 +170,7 @@
     btn.addEventListener("click", function () {
       var next = current() === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", next);
-      try { localStorage.setItem("claudius-theme", next); } catch (e) { /* not remembered */ }
+      try { localStorage.setItem("varro-theme", next); } catch (e) { /* not remembered */ }
       label();
     });
     if (media && media.addEventListener) media.addEventListener("change", label);

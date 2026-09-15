@@ -18,7 +18,7 @@ A ${parameters_m}-parameter GPT trained **from random initialization on classica
 Latin and nothing else**. No English, no modern languages, no inherited
 multilingual representations — the model has never seen a word that is not Latin.
 
-It is the redistributable model of the [claudius](https://github.com/y-a-v-a/claudius)
+It is the redistributable model of the [Varro](https://github.com/y-a-v-a/claudius)
 project, which builds an openly licensed Latin corpus and trains Latin-only
 language models on it. Every source in this model's training corpus is
 CC-BY-SA, public domain, or equivalently free — no NonCommercial term
@@ -104,7 +104,7 @@ because retraining BPE on the same Latin changes the token stream.
 
 ## Training data
 
-The classical split of the claudius corpus: ${records} documents,
+The classical split of the Varro corpus: ${records} documents,
 ${corpus_words} words, everything datable to before ~AD 200 that survives in
 the project's free-licence sources — Caesar, Cicero, Vergil, Livy, Ovid,
 Plautus, and their contemporaries. Sources by contribution:
@@ -168,14 +168,14 @@ redistribution.
 ## Provenance
 
 Everything here is reproducible from the
-[claudius repository](https://github.com/y-a-v-a/claudius): the manifest pins
+[Varro repository](https://github.com/y-a-v-a/claudius): the manifest pins
 every source to a git SHA, `${recipe}` is the exact training
 recipe (seed included), and the training/evaluation reports this card quotes
 are generated files, not hand-written numbers — the bundle itself is
 assembled by `src/bundle.py` from those reports.
 
 ```
-@software{claudius_latin_vii_2026,
+@software{varro_latin_vii_2026,
   author = {Vincent Bruijn},
   title = {LATIN-VII: a 7M-parameter GPT trained from scratch on classical Latin},
   year = {2026},
