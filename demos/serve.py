@@ -223,7 +223,7 @@ ROUTES: Dict[str, Callable[[Dict[str, Any]], Dict[str, Any]]] = {
 # ---------------------------------------------------------------------------
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "claudius-demos"
+    server_version = "varro-demos"
 
     def log_message(self, fmt, *args):
         sys.stderr.write(f"  {self.address_string()} {fmt % args}\n")

@@ -1,4 +1,4 @@
-# Claudius — an openly licensed Latin corpus and a language model trained only on Latin
+# Varro — an openly licensed Latin corpus and a language model trained only on Latin
 
 Two deliverables, in order:
 
@@ -25,6 +25,7 @@ Planning documents:
 | [`manifest/authorities.yaml`](manifest/authorities.yaml) | Author/work dating authority — assigns period per work |
 | [`docs/explainer.html`](docs/explainer.html) | What the trained model actually is, as files on disk |
 | [`docs/capabilities.html`](docs/capabilities.html) | What the model can and cannot do, measured |
+| [`site/`](site/README.md) | The public website, deployable to Vercel; its figures are generated from the manifest and reports |
 
 ## Quickstart
 

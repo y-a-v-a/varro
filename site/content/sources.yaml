@@ -1,0 +1,70 @@
+# ===========================================================================
+# Public one-liners for the sources listed on the site — the "Fontes".
+#
+# The list itself comes from manifest/sources.yaml, which stays authoritative:
+# name, URL, licence, tier, period and format are read from there, and the
+# per-source contribution figures from ATTRIBUTION*.md. Nothing here can add
+# a source or change its licence.
+#
+# Extending the corpus:
+#   1. add the source to manifest/sources.yaml and build as usual
+#   2. python src/provenance.py --check   (and --corpus corpus-b / classical)
+#   3. optionally add a line below
+#   4. python site/tools/sync.py
+#
+# A source with no entry here still appears, with its metadata only.
+# `hidden: true` keeps a source off the page without touching the manifest.
+# ===========================================================================
+
+sources:
+
+  perseus-canonical-latinLit:
+    blurb: The canonical classical backbone — curated TEI editions of Roman literature, filtered by language so the English translations in the same tree stay out.
+
+  latin-library:
+    blurb: Archaic to modern Latin in plain text. Overlaps Perseus heavily, so most of its classical material is absorbed by deduplication.
+
+  gutenberg-latin:
+    blurb: Human-proofread public-domain Latin. The reader is written; the texts need a person to triage them out of bilingual editions.
+
+  digiliblt:
+    blurb: Secular prose of the second to seventh centuries. Only the text layer is taken; the annotation layer carries a different licence.
+
+  opengreekandlatin-csel:
+    blurb: The Latin Church Fathers from machine-corrected OCR of the CSEL volumes, including editors' prefaces recovered from the printed volumes.
+
+  edh:
+    blurb: Inscriptions of the Roman Empire — register no literary corpus has. Line breaks on stone separate words; the reader treats them so.
+
+  edcs-sdam:
+    blurb: A cleaned dump of the Clauss–Slaby epigraphic database from Aarhus — the licence-clean route to EDCS, rather than scraping it.
+
+  papyri-idp:
+    blurb: The small Latin share of a vast, mostly Greek papyrological archive. Genuine documentary prose.
+
+  vicifons:
+    blurb: Latin Wikisource. Far larger than planned, because it hosts Migne's Patrologia Latina at scale.
+
+  tesserae:
+    blurb: A derived collection, measured at 95% already present — kept because every classical word counts, and the classical corpus cannot be grown by finding more sources.
+
+  latinise:
+    blurb: A lemmatised corpus derived from collections already held. Useful as a reference for normalisation rather than as training text.
+
+  ud-latin-perseus:
+    blurb: A gold-standard treebank, held out for probing. Never trained on.
+
+  ud-latin-proiel:
+    blurb: Caesar, Cicero's letters, Palladius and the Vulgate New Testament, annotated by hand. Held out for evaluation.
+
+  corpus-corporum:
+    blurb: Zurich's collection of medieval and neo-Latin, fetched one work at a time, slowly. NonCommercial, so research builds only.
+
+  lasla:
+    blurb: Hand-verified morphology for nineteen classical authors — the gold standard for evaluation, NonCommercial, research builds only.
+
+  intratext:
+    blurb: Not fetched. The licence would allow research use; the publisher's access terms ask readers not to mirror it, and that is honoured.
+
+  musisque-deoque:
+    blurb: The complete corpus of ancient Latin poetry with apparatus. No licence is stated, and silence is not permission — the most valuable outstanding request.

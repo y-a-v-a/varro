@@ -73,7 +73,7 @@ RESEARCH_LICENSE_IDS = {
 
 REDISTRIBUTION_NOTICE = """# Do not redistribute
 
-These weights were trained on the claudius **Track B** corpus, which includes
+These weights were trained on the Varro **Track B** corpus, which includes
 NonCommercial sources. They are a research artifact: publishable as results,
 not as a download.
 
@@ -266,7 +266,7 @@ def write_config(out: Path, name: str, train_report: Dict[str, Any],
     tok = json.loads(tokenizer_path.read_text(encoding="utf-8"))
     ppl = train_report["final"]["val_perplexity"]
     config = {
-        "model_type": "gpt-claudius",
+        "model_type": "gpt-varro",
         "architecture": ("decoder-only transformer, pre-norm, tied embeddings, "
                          "learned positions"),
         "vocab_size": cfg["vocab"],
