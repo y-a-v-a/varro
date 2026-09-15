@@ -1,0 +1,50 @@
+<!doctype html>
+<!-- Source for site/og.png (1200×630). Regenerate with:
+     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+       --window-size=1200,630 --screenshot=site/og.png site/tools/og.html -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=EB+Garamond:ital,wght@0,400;1,400&display=swap">
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    background: #f3ead7; color: #2a1f16; font-family: "EB Garamond", serif;
+    display: grid; place-items: center; position: relative;
+  }
+  body::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .26 0 0 0 0 .13 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      radial-gradient(ellipse at 50% 40%, transparent 50%, rgba(120, 84, 40, 0.16) 100%);
+    opacity: .7;
+  }
+  .wrap { position: relative; text-align: center; }
+  .over { font-family: Cinzel, serif; letter-spacing: .34em; font-size: 20px; color: #54453a; margin: 0 0 30px; }
+  .over i { display: inline-block; width: 9px; height: 9px; margin: 0 14px 3px; background: #9a2a18; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+  .tabula { display: inline-grid; grid-template-columns: auto auto auto; align-items: center; }
+  .tabula svg { width: 70px; margin: 0 -1px; }
+  .tabula path { fill: #f8f2e4; stroke: #2a1f16; stroke-width: 2.2; }
+  .tabula circle { fill: #9a2a18; }
+  .field { border: 2.2px solid #2a1f16; outline: 1px solid #bfa982; outline-offset: -10px; padding: 34px 64px 30px; background: rgba(248, 242, 228, .7); }
+  h1 { font-family: Cinzel, serif; font-weight: 500; font-size: 128px; letter-spacing: .14em; margin: 0 -.14em 0 0; line-height: 1; }
+  .sub { font-style: italic; font-size: 30px; color: #54453a; margin: 14px 0 0; }
+  .foot { margin: 34px 0 0; font-size: 26px; }
+  .foot em { color: #9a2a18; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="over">CORPUS<i></i>LATINUM<i></i>LIBERUM</p>
+    <div class="tabula">
+      <svg viewBox="0 0 64 140"><path d="M64 58 L64 82 L2 136 L18 70 L2 4 Z"/><circle cx="30" cy="70" r="3.4"/></svg>
+      <div class="field">
+        <h1>CLAVDIVS</h1>
+        <p class="sub">an openly licensed corpus of Latin &amp; the models built upon it</p>
+      </div>
+      <svg viewBox="0 0 64 140"><path d="M0 58 L0 82 L62 136 L46 70 L62 4 Z"/><circle cx="34" cy="70" r="3.4"/></svg>
+    </div>
+    <p class="foot">Every source pinned, every licence honoured — <em>nihil nisi Latinum.</em></p>
+  </div>
+</body>
+</html>

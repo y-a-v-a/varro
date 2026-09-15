@@ -1,0 +1,154 @@
+# ===========================================================================
+# The model versions shown on the site — the "Fasti".
+#
+# Hand-edited. Everything *numeric* about a run (parameters, tokens, epochs,
+# perplexity, hours, memorisation, the loss curve) is read from
+# reports/train-<run>.json and reports/memorization-<run>.json by
+# `python site/tools/sync.py`; only words live here.
+#
+# Adding a model:
+#   1. train it, so reports/train-<run>.json exists
+#   2. add an entry below (newest last — the page lists them in this order)
+#   3. python site/tools/sync.py
+#
+# Fields
+#   id        a slug, used for anchors
+#   name      as it should be printed
+#   numeral   what the name means, one line
+#   date      when the headline run finished (ISO)
+#   status    published | research | superseded | first
+#   track     A | B
+#   runs      the training runs that make up this version, in order.
+#               role: latinitas (broad corpus, from random init)
+#                     romanitas (the classical narrowing phase)
+#                     single    (one phase, from random init)
+#                     ablation  (a control, not a model anyone should use)
+#               headline: true on the run whose numbers the card leads with
+#               floor: only for runs measured before today's bigram floors —
+#                      the figure the project quoted at the time. Newer runs
+#                      get theirs from reports/baselines-*.json automatically,
+#                      and only when corpus and tokenizer both match.
+#   curve     true on runs drawn in the perplexity figure; `hidden` draws
+#             them switched off, for controls and near-duplicate reruns
+#   link      optional {label, url}
+#   summary   one or two sentences, plain text
+#   notes     optional list of short findings, plain text
+# ===========================================================================
+
+models:
+
+  - id: latin-0
+    name: LATIN-0
+    numeral: "Nulla — the Romans had no zero, so the first model has no numeral."
+    date: 2026-08-15
+    status: first
+    track: A
+    runs:
+      - run: latin-0
+        role: single
+        headline: true
+        curve: true
+    summary: >
+      The first model through the whole pipeline: 3.5M parameters on classical
+      Latin, from a corpus that then held 17 million words in all. Its job was
+      to prove the chain from manifest to weights, and it did.
+    notes:
+      - "Held-out perplexity 74.3, and no twelve-word window of its output found anywhere in its training text."
+
+  - id: latin-2
+    name: LATIN-2
+    numeral: "The second rung of the ladder, named before the Roman convention took hold."
+    date: 2026-08-15
+    status: superseded
+    track: A
+    runs:
+      - run: latin-2-latinitas
+        role: latinitas
+        curve: true
+      - run: latin-2
+        role: romanitas
+        headline: true
+      - run: ablation-no-latinitas
+        role: ablation
+        curve: hidden
+    summary: >
+      15.9M parameters and the first two-phase recipe: Latinitas, a broad
+      pass over every period of the language, then Romanitas, a narrowing
+      onto the classical corpus. An ablation trained the same model on
+      classical alone to find out what the first phase was worth.
+    notes:
+      - "Of the gain from LATIN-0 to LATIN-2, size accounted for about 53% and the two-phase schedule about 47%."
+      - "LATIN-2-CHAT was fine-tuned on 54,535 dialogue pairs mined from the corpus itself — no translated instructions. It learned to take a turn and stop."
+
+  - id: latin-xxv
+    name: LATIN-XXV
+    numeral: "XXV — twenty-five, for 27.5 million parameters."
+    date: 2026-08-19
+    status: superseded
+    track: A
+    runs:
+      - run: latin-xxv-latinitas
+        role: latinitas
+        curve: true
+      - run: latin-xxv
+        role: romanitas
+        headline: true
+        floor: 149.8
+      - run: latin-xxv-2-latinitas
+        role: latinitas
+        curve: hidden
+        floor: 180.62
+      - run: latin-xxv-2
+        role: romanitas
+    summary: >
+      The first model to write recognisable Latin prose: a correct epistolary
+      salutation, correlative pairs closed across long clauses. Trained
+      twice — the second run, LATIN-XXV-2, on a rebuilt corpus after the
+      interwiki and dateline fixes.
+    notes:
+      - "5.03× better than a bigram model on the same held-out classical Latin."
+      - "The corpus rebuild silently orphaned its vocabulary; recovering it from a git worktree reproduced every figure bit for bit — the first end-to-end proof that the corpus is reproducible."
+
+  - id: latin-lii
+    name: LATIN-LII
+    numeral: "LII — fifty-two, for 52.07 million parameters."
+    date: 2026-08-31
+    status: research
+    track: B
+    runs:
+      - run: latin-lii-latinitas
+        role: single
+        headline: true
+        curve: true
+      - run: latin-lii-romanitas
+        role: romanitas
+    summary: >
+      The largest and best model the project has trained: 74 hours, four
+      epochs over 263.6M tokens of Track B. It reads NonCommercial sources,
+      so the restriction travels to its weights and they are not released.
+    notes:
+      - "8.73× its bigram floor — against a corpus that got harder, not easier, as medieval and neo-Latin arrived."
+      - "The classical narrowing phase made it worse (27.3 → 30.2): 10.7M tokens cannot occupy 52M parameters. LATIN-LII is single-phase."
+      - "From four words upward its output matches training text less often than genuine unseen Latin does."
+
+  - id: latin-vii
+    name: LATIN-VII
+    numeral: "VII — seven, for 7.28 million parameters."
+    date: 2026-09-01
+    status: published
+    track: A
+    runs:
+      - run: latin-vii
+        role: single
+        headline: true
+        curve: true
+    link:
+      label: "Weights on Hugging Face"
+      url: https://huggingface.co/vincent-b/latin-vii
+    summary: >
+      The published model. Classical Latin only, every source free of
+      NonCommercial terms, released CC BY-SA 4.0. Its value is its licence
+      rather than its quality — and that is the point of the project.
+    notes:
+      - "Sized at 20.8 tokens per parameter, fourteen passes over the classical corpus, three hours on a laptop."
+      - "0 of 3,476 generated windows memorised; the longest verbatim run is zero words."

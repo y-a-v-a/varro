@@ -1,0 +1,4 @@
+# Source for the page, not the page. Vercel serves everything else as-is.
+README.md
+content/
+tools/

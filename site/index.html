@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claudius · Corpus Latinum</title>
+  <meta name="description" content="An openly licensed Latin corpus with a reproducible build pipeline, and language models trained from random initialisation on Latin alone.">
+  <meta name="theme-color" content="#f3ead7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1c1813" media="(prefers-color-scheme: dark)">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Claudius · Corpus Latinum">
+  <meta property="og:description" content="An openly licensed Latin corpus, a pipeline that honours every licence in it, and language models trained on Latin alone.">
+  <meta property="og:image" content="/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/theme.js"></script>
+  <script src="/data.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#propositum">Skip to content</a>
+
+  <header class="masthead">
+    <div class="masthead__inner">
+      <a class="wordmark" href="#top" aria-label="Claudius, back to top">CLAVDIVS</a>
+      <nav class="nav" aria-label="Sections">
+        <a href="#propositum"><span class="nav__num">I</span> Propositum</a>
+        <a href="#via"><span class="nav__num">II</span> Via</a>
+        <a href="#numeri"><span class="nav__num">III</span> Numeri</a>
+        <a href="#fasti"><span class="nav__num">IV</span> Fasti</a>
+        <a href="#tabulae"><span class="nav__num">V</span> Tabulae</a>
+        <a href="#fontes"><span class="nav__num">VI</span> Fontes</a>
+      </nav>
+      <button class="theme-toggle" type="button" aria-label="Switch between day and lamplight">
+        <span class="theme-toggle__label" data-when="light">Dies</span>
+        <span class="theme-toggle__label" data-when="dark">Nox</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ============================================================ HERO -->
+    <section class="hero" aria-labelledby="hero-title">
+      <p class="overline">Corpus<span class="interpunct" aria-hidden="true"></span>Latinum<span class="interpunct" aria-hidden="true"></span>Liberum</p>
+
+      <div class="tabula">
+        <svg class="tabula__ansa tabula__ansa--left" viewBox="0 0 64 140" aria-hidden="true" focusable="false">
+          <path d="M64 58 L64 82 L2 136 L18 70 L2 4 Z" />
+          <circle cx="30" cy="70" r="3.4" />
+        </svg>
+        <div class="tabula__field">
+          <h1 id="hero-title" aria-label="Claudius">CLAVDIVS</h1>
+          <p class="tabula__sub">an openly licensed corpus of Latin<br>&amp; the models built upon it</p>
+        </div>
+        <svg class="tabula__ansa tabula__ansa--right" viewBox="0 0 64 140" aria-hidden="true" focusable="false">
+          <path d="M0 58 L0 82 L62 136 L46 70 L62 4 Z" />
+          <circle cx="34" cy="70" r="3.4" />
+        </svg>
+      </div>
+
+      <p class="lede">
+        A reproducible pipeline that gathers Latin only from sources whose licences allow it,
+        records exactly what each one contributed, and trains language models on the result
+        from random initialisation — on Latin, and nothing else.
+      </p>
+      <p class="motto" lang="la">Nihil nisi Latinum.</p>
+
+      <dl class="hero-stats" data-render="hero-stats" aria-label="The project at a glance"></dl>
+
+      <p class="hero-links">
+        <a class="button button--primary" href="#fontes">The sources</a>
+        <a class="button" href="https://huggingface.co/vincent-b/latin-vii">LATIN-VII weights</a>
+        <a class="button" data-repo-link href="https://github.com/y-a-v-a/claudius">Repository</a>
+      </p>
+    </section>
+
+    <!-- ======================================================== EPIGRAPH -->
+    <figure class="epigraph">
+      <blockquote lang="la">Exegi monumentum aere perennius</blockquote>
+      <figcaption>Horace, <cite>Carmina</cite> III.30 — <span>“I have raised a monument more lasting than bronze.”</span></figcaption>
+    </figure>
+
+    <!-- ===================================================== I PROPOSITVM -->
+    <section class="section" id="propositum" aria-labelledby="h-propositum">
+      <header class="section__head">
+        <p class="section__num" aria-hidden="true">I</p>
+        <h2 id="h-propositum"><span class="la" lang="la">Propositum</span> <span class="en">Why this exists</span></h2>
+      </header>
+
+      <div class="with-margin">
+        <div class="prose">
+          <p class="initial">
+            There is no properly licensed corpus of Latin. There are excellent collections —
+            curated critical editions, epigraphic databases, the digitised Church Fathers — each
+            under its own terms: some free, several NonCommercial, a few silent. Put them together
+            carelessly and the result is something nobody may redistribute and nobody can rebuild.
+          </p>
+          <p>
+            Claudius assembles one that can be both. Every source is declared in a manifest,
+            every version is pinned, and every licence is carried through to the corpus and on
+            into the weights trained on it. <strong>The corpus is the first deliverable</strong>,
+            and a contribution in its own right, independent of anything trained on it.
+          </p>
+          <p>
+            The second is a ladder of small language models trained on that corpus from random
+            initialisation. No English pretraining, no translations, no inherited multilingual
+            representations. Their entire linguistic universe is Latin — and that is enforced,
+            not assumed: English translations shipped inside Latin sources are filtered out,
+            embedded Greek is stripped, and the dialogue used for fine-tuning is mined from the
+            corpus itself rather than translated.
+          </p>
+          <p>
+            The project is data-bound, not compute-bound. Every model here trains on a laptop.
+            What limits them is how much Latin exists under a licence that can be honoured —
+            which is exactly the question the corpus exists to answer.
+          </p>
+        </div>
+
+        <aside class="glossa" aria-label="Marginal note">
+          <p class="glossa__mark" aria-hidden="true">¶</p>
+          <p>
+            <span class="smallcaps">Tiberius Claudius</span>, emperor and antiquarian, added three
+            letters to the Latin alphabet — among them <span class="claudian" lang="la">Ⅎ</span>,
+            for the consonantal <em>u</em>. They did not outlive his reign.
+          </p>
+          <p>
+            This corpus goes the other way, and folds every <em>v</em> into <em>u</em>.
+          </p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ===================================================== II VIA -->
+    <section class="section" id="via" aria-labelledby="h-via">
+      <header class="section__head">
+        <p class="section__num" aria-hidden="true">II</p>
+        <h2 id="h-via"><span class="la" lang="la">Via et ratio</span> <span class="en">The approach</span></h2>
+      </header>
+
+      <div class="prose">
+        <p class="kicker">
+          Two questions shape everything, and they have different answers:
+          <em>may I train on this?</em> and <em>may I redistribute this?</em>
+        </p>
+      </div>
+
+      <!-- two tracks -->
+      <h3 class="subhead"><span lang="la">Duo tramites</span> — two tracks from one pipeline</h3>
+
+      <div class="tracks" role="group" aria-label="How a source's licence tier decides where it may go">
+        <ol class="tiers">
+          <li class="tier tier--green">
+            <p class="tier__name"><span lang="la">Viride</span> · green</p>
+            <p class="tier__what">Free licence or public domain</p>
+            <p class="tier__to"><span class="pill pill--a">Track A</span> <span class="pill pill--b">Track B</span></p>
+          </li>
+          <li class="tier tier--amber">
+            <p class="tier__name"><span lang="la">Sucinum</span> · amber</p>
+            <p class="tier__what">NonCommercial, terms known</p>
+            <p class="tier__to"><span class="pill pill--b">Track B</span> only</p>
+          </li>
+          <li class="tier tier--unknown">
+            <p class="tier__name"><span lang="la">Incertum</span> · unknown</p>
+            <p class="tier__what">Licence unresolved</p>
+            <p class="tier__to">Neither track, until settled</p>
+          </li>
+          <li class="tier tier--eval">
+            <p class="tier__name"><span lang="la">Probatio</span> · eval</p>
+            <p class="tier__what">Held-out evaluation data</p>
+            <p class="tier__to">Never trained on</p>
+          </li>
+        </ol>
+
+        <div class="track-cards">
+          <article class="track-card track-card--a">
+            <p class="track-card__label">Track A · <span lang="la">publicum</span></p>
+            <h4>Redistributable</h4>
+            <p>
+              Free-licence sources only. This is the corpus that gets published, and the
+              only one whose weights may be released.
+            </p>
+          </article>
+          <article class="track-card track-card--b">
+            <p class="track-card__label">Track B · <span lang="la">ad studium</span></p>
+            <h4>Research only</h4>
+            <p>
+              Adds NonCommercial sources. Never redistributed — its code, results and
+              provenance are published instead. The restriction travels to the weights.
+            </p>
+          </article>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>
+          Track membership is <strong>derived</strong> from a source's licence tier, never set by
+          hand, and it is enforced three times: when a source is fetched, when a corpus is
+          built, and when provenance is audited. A NonCommercial source that reaches a
+          redistributable build is a hard error. The guarantee goes one step further — Track A
+          does not depend on which research-only sources happen to be on disk, because
+          deduplication resolves each track separately.
+        </p>
+      </div>
+
+      <!-- three invariants -->
+      <h3 class="subhead"><span lang="la">Tres leges</span> — three invariants</h3>
+      <ol class="leges">
+        <li>
+          <p class="leges__num" aria-hidden="true">I</p>
+          <h4>Fetched text is never edited</h4>
+          <p>
+            Every correction belongs downstream, in code. The moment a downloaded text is
+            hand-patched, the corpus stops being reproducible and the licence trail breaks.
+          </p>
+        </li>
+        <li>
+          <p class="leges__num" aria-hidden="true">II</p>
+          <h4>Track A stays clean</h4>
+          <p>
+            Checked at fetch, at build and at audit. Where a duplicate pair spans a free and
+            a NonCommercial source, the free copy is kept, so text never leaves the published
+            corpus by accident.
+          </p>
+        </li>
+        <li>
+          <p class="leges__num" aria-hidden="true">III</p>
+          <h4>Provenance is a standing obligation</h4>
+          <p>
+            Every build records which sources it drew on, under which licence, in what
+            proportion. The attribution notice is regenerated, never written, and the audit
+            exits non-zero on drift.
+          </p>
+        </li>
+      </ol>
+
+      <!-- the pipeline -->
+      <h3 class="subhead"><span lang="la">Ordo operum</span> — the pipeline, stage by stage</h3>
+
+      <div class="ordo">
+        <div class="ordo__half">
+          <p class="ordo__label"><span lang="la">Pars prior</span> · the corpus</p>
+          <ol class="stages">
+            <li><span class="stage__n">I</span><span class="stage__la" lang="la">Colligere</span><code>fetch</code>
+              <p>Sources declared in a manifest are fetched and pinned — commit SHAs and checksums in a committed lockfile.</p></li>
+            <li><span class="stage__n">II</span><span class="stage__la" lang="la">Excerpere</span><code>extract</code>
+              <p>One reader per format, not per source: TEI, EpiDoc, CoNLL-U, MediaWiki, plain text. A source in a known format needs no code.</p></li>
+            <li><span class="stage__n">III</span><span class="stage__la" lang="la">Notare</span><code>enrich</code>
+              <p>Each work is dated and given a period from an authority file. A date that was inferred says so.</p></li>
+            <li><span class="stage__n">IV</span><span class="stage__la" lang="la">Emendare</span><code>normalize</code>
+              <p>One orthography: <em>u</em> for <em>v</em>, <em>i</em> for <em>j</em>, marks and hyphenation resolved. The sources used opposing conventions.</p></li>
+            <li><span class="stage__n">V</span><span class="stage__la" lang="la">Discernere</span><code>dedupe</code>
+              <p>Near-duplicates are marked, never deleted — and only against a text they were directly measured against.</p></li>
+            <li><span class="stage__n">VI</span><span class="stage__la" lang="la">Componere</span><code>build</code>
+              <p>Corpora assembled per track and period, with validation held out by whole author, not by work.</p></li>
+            <li><span class="stage__n">VII</span><span class="stage__la" lang="la">Partiri</span><code>tokenizer</code>
+              <p>A 4,000-entry Latin vocabulary, small enough that inflections are composed rather than stored whole: <span lang="la">am · ab · amus</span>.</p></li>
+            <li><span class="stage__n">VIII</span><span class="stage__la" lang="la">Metiri</span><code>baselines</code>
+              <p>A bigram floor for every corpus, so no perplexity is quoted without what the same text allows.</p></li>
+            <li><span class="stage__n">IX</span><span class="stage__la" lang="la">Attribuere</span><code>provenance</code>
+              <p>An attribution notice per corpus, regenerated from what was actually built.</p></li>
+          </ol>
+        </div>
+        <div class="ordo__half">
+          <p class="ordo__label"><span lang="la">Pars altera</span> · the models</p>
+          <ol class="stages" start="10">
+            <li><span class="stage__n">X</span><span class="stage__la" lang="la">Docere</span><code>train</code>
+              <p>From random initialisation. Recipes are stated in epochs rather than steps, so a corpus can grow into a recipe without rewriting it.</p></li>
+            <li><span class="stage__n">XI</span><span class="stage__la" lang="la">Probare</span><code>evaluate</code>
+              <p>Held-out perplexity against the floor, and a memorisation test of generated text against the entire training corpus.</p></li>
+            <li><span class="stage__n">XII</span><span class="stage__la" lang="la">Edere</span><code>bundle</code>
+              <p>Only a Track A model is bundled for release, with its exact tokenizer and its own attribution.</p></li>
+          </ol>
+          <aside class="glossa glossa--inline">
+            <p>
+              Stages fingerprint their inputs in a chain. Adding a source re-extracts only that
+              source, and everything downstream rebuilds once — because the corpus did change.
+            </p>
+          </aside>
+        </div>
+      </div>
+
+      <!-- decisions -->
+      <h3 class="subhead"><span lang="la">Decreta</span> — decisions worth not relitigating</h3>
+      <ul class="decreta">
+        <li>
+          <h4>Measured, not assumed</h4>
+          <p>Every figure on this page is read from a report the pipeline wrote. Where something is assumed, the manifest says it is an assumption.</p>
+        </li>
+        <li>
+          <h4>Licences as offered</h4>
+          <p>The Latin itself is long out of copyright; the licences cover modern editorial and encoding work. They are honoured as offered, not litigated.</p>
+        </li>
+        <li>
+          <h4>Access terms count too</h4>
+          <p>A publisher that asks not to be mirrored is not mirrored, whatever its licence would permit. The way in is to ask.</p>
+        </li>
+        <li>
+          <h4>Silence is not permission</h4>
+          <p>A source that states no licence enters neither track — not as NonCommercial, not as free. It waits for an answer.</p>
+        </li>
+        <li>
+          <h4>Held out by author</h4>
+          <p>Splitting by work leaked 58% of validation words through authors present in training. Whole authors are held out instead.</p>
+        </li>
+        <li>
+          <h4>Recipes in epochs</h4>
+          <p>LATIN-LII's recipe was written against a smaller corpus that called it undertrained. The corpus grew; the recipe did not change, and fit exactly.</p>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ===================================================== III NUMERI -->
+    <section class="section" id="numeri" aria-labelledby="h-numeri">
+      <header class="section__head">
+        <p class="section__num" aria-hidden="true">III</p>
+        <h2 id="h-numeri"><span class="la" lang="la">Numeri</span> <span class="en">The corpus, as measured</span></h2>
+      </header>
+
+      <div class="corpora" data-render="corpora"></div>
+
+      <figure class="figure" aria-labelledby="periods-title">
+        <figcaption class="figure__head">
+          <p class="figure__num">Figura I</p>
+          <h3 id="periods-title">Words by period</h3>
+          <p class="figure__desc">Share of each corpus by the period its works are dated to. Undated text is still trained on, just without a period tag.</p>
+        </figcaption>
+        <div class="legend" data-render="periods-legend"></div>
+        <div class="periods" data-render="periods"></div>
+        <details class="table-view">
+          <summary>Table view</summary>
+          <div data-render="periods-table"></div>
+        </details>
+      </figure>
+    </section>
+
+    <!-- ===================================================== IV FASTI -->
+    <section class="section" id="fasti" aria-labelledby="h-fasti">
+      <header class="section__head">
+        <p class="section__num" aria-hidden="true">IV</p>
+        <h2 id="h-fasti"><span class="la" lang="la">Fasti</span> <span class="en">The versions, in order</span></h2>
+      </header>
+
+      <div class="with-margin">
+        <div class="prose">
+          <p>
+            Each model is named for its parameter count in Roman numerals, to the nearest
+            million or so. The ladder was never a race for size: the corpus decides what
+            a model can absorb, and the licence decides what may be released.
+          </p>
+        </div>
+        <aside class="glossa" aria-label="How to read the figures">
+          <p class="glossa__mark" aria-hidden="true">¶</p>
+          <p>
+            <strong>Only ×&nbsp;floor compares across versions.</strong> Raw perplexities sit
+            behind different corpora, vocabularies and held-out sets; the floor is a bigram model
+            measured on the same text. Where no floor matching the run survives, none is quoted.
+          </p>
+        </aside>
+      </div>
+
+      <ol class="fasti" data-render="fasti"></ol>
+
+      <figure class="specimen">
+        <figcaption>
+          <p class="figure__num">Specimen</p>
+          <p>LATIN-XXV, sampled in August MMXXVI. The salutation is correctly formed; <span lang="la">etsi … tamen</span> and <span lang="la">non modo … sed etiam</span> are closed across long clauses. The syntax has arrived; meaning has not.</p>
+        </figcaption>
+        <blockquote lang="la">
+          <p class="specimen__salutatio">CICERO UENERIO S.</p>
+          <p><span class="specimen__initial">E</span>tsi in re publica minime sunt ea quae iam inculta et prouisa sunt, tamen non sunt ea quoquo modo dicta omnia, quia non modo a nostris rebus, sed etiam ab externis oratio nostra inlustratur …</p>
+        </blockquote>
+      </figure>
+    </section>
+
+    <!-- ===================================================== V TABULAE -->
+    <section class="section" id="tabulae" aria-labelledby="h-tabulae">
+      <header class="section__head">
+        <p class="section__num" aria-hidden="true">V</p>
+        <h2 id="h-tabulae"><span class="la" lang="la">Tabulae</span> <span class="en">How training went</span></h2>
+      </header>
+
+      <figure class="figure figure--wide" aria-labelledby="ppl-title">
+        <figcaption class="figure__head">
+          <p class="figure__num">Figura II</p>
+          <h3 id="ppl-title">Held-out perplexity, pass by pass</h3>
+          <p class="figure__desc">
+            Every evaluation of every run trained from random initialisation. Lower is better; the scale
+            is logarithmic. Runs on different corpora descend towards different limits, so read each
+            line for its shape — the comparison across lines lives in the × floor figures above.
+            Two-phase versions appear by their first, broad phase, the one that began from nothing.
+          </p>
+        </figcaption>
+
+        <div class="controls" role="toolbar" aria-label="Chart controls">
+          <div class="segmented" role="radiogroup" aria-label="Horizontal axis">
+            <button type="button" role="radio" aria-checked="true" data-x="epochs">Epochs</button>
+            <button type="button" role="radio" aria-checked="false" data-x="tokens">Tokens seen</button>
+          </div>
+          <div class="chips" data-render="ppl-chips" aria-label="Runs shown"></div>
+        </div>
+
+        <div class="chart" data-render="ppl-chart"></div>
+
+        <details class="table-view">
+          <summary>Table view</summary>
+          <div data-render="ppl-table"></div>
+          <p class="table-view__note">Full curves: <code>reports/train-&lt;run&gt;.json</code> in the repository.</p>
+        </details>
+      </figure>
+
+      <figure class="figure" aria-labelledby="memo-title">
+        <figcaption class="figure__head">
+          <p class="figure__num">Figura III</p>
+          <h3 id="memo-title">Does it recite?</h3>
+          <p class="figure__desc">
+            Share of word windows found verbatim anywhere in the training text — for the model's own
+            output, and for genuine Latin it never saw. Real Latin repeats itself: scripture, liturgy,
+            formulae. From four words upward, the model repeats its training text <em>less</em> than
+            real Latin does, which is what makes weights trained on a NonCommercial corpus something
+            other than a copy of it.
+          </p>
+        </figcaption>
+        <div class="controls" role="toolbar" aria-label="Chart controls">
+          <div class="segmented" role="radiogroup" aria-label="Model" data-render="memo-picker"></div>
+        </div>
+        <div class="legend" data-render="memo-legend"></div>
+        <div class="chart" data-render="memo-chart"></div>
+        <details class="table-view">
+          <summary>Table view</summary>
+          <div data-render="memo-table"></div>
+        </details>
+      </figure>
+    </section>
+
+    <!-- ===================================================== VI FONTES -->
+    <section class="section" id="fontes" aria-labelledby="h-fontes">
+      <header class="section__head">
+        <p class="section__num" aria-hidden="true">VI</p>
+        <h2 id="h-fontes"><span class="la" lang="la">Fontes</span> <span class="en">The sources, and their terms</span></h2>
+      </header>
+
+      <div class="with-margin">
+        <div class="prose">
+          <p>
+            Every source ever considered, with the licence it was released under and what it
+            contributed to each corpus after deduplication. The list is generated from the
+            project's manifest and attribution notices, so it cannot say anything the build
+            did not.
+          </p>
+        </div>
+        <aside class="glossa">
+          <p class="glossa__mark" aria-hidden="true">¶</p>
+          <p>
+            <strong>ShareAlike propagates.</strong> Because Track A contains CC BY-SA material, the
+            corpus as a whole is offered under <span data-render="licence-a">CC BY-SA 4.0</span>.
+            Public-domain text sits inside it without difficulty.
+          </p>
+        </aside>
+      </div>
+
+      <div class="fontes" data-render="sources"></div>
+
+      <div class="prose prose--note">
+        <h3 class="subhead subhead--small">On the underlying texts</h3>
+        <p>
+          The Latin texts are ancient and long out of copyright. What the licences above cover is
+          the modern work: the constituted text of a critical edition, conjectures, punctuation and
+          the digital markup. Those claims vary by jurisdiction — the United States rejects
+          “sweat of the brow” after <cite>Feist</cite>, while Germany and Italy grant a
+          neighbouring right in scientific editions — and this project honours the licences as
+          offered rather than litigating them.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===================================================== VII QVOD RESTAT -->
+    <section class="section" id="restat" aria-labelledby="h-restat">
+      <header class="section__head">
+        <p class="section__num" aria-hidden="true">VII</p>
+        <h2 id="h-restat"><span class="la" lang="la">Quod restat</span> <span class="en">What remains</span></h2>
+      </header>
+      <ul class="restat">
+        <li>
+          <h4>Ask for Musisque Deoque</h4>
+          <p>The complete corpus of ancient Latin poetry with apparatus, and no stated licence. The most valuable permission request outstanding.</p>
+        </li>
+        <li>
+          <h4>Ask for PHI</h4>
+          <p>Essentially all of classical Latin, not openly licensed. Writing to ask remains the single highest-leverage action available.</p>
+        </li>
+        <li>
+          <h4>Grow the classical corpus</h4>
+          <p>Around five million words survive every filter. Classical Latin cannot be grown by finding another repository — only by permission.</p>
+        </li>
+        <li>
+          <h4>Rebuild on unique ids</h4>
+          <p>Record ids are now unique by construction. The next rebuild re-verifies every duplicate mark and retrains the vocabulary with it.</p>
+        </li>
+        <li>
+          <h4>Serve an interlocutor</h4>
+          <p>Usable weights behind a simple chat — honestly framed as an interlocutor in Latin, not an assistant.</p>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="colophon">
+    <div class="colophon__rule" aria-hidden="true"><span></span><span class="colophon__leaf">❦</span><span></span></div>
+    <p class="colophon__finis" lang="la">Finis</p>
+    <p class="colophon__links">
+      <a data-repo-link href="https://github.com/y-a-v-a/claudius">Repository</a>
+      <span aria-hidden="true">·</span>
+      <a href="https://huggingface.co/vincent-b/latin-vii">LATIN-VII on Hugging Face</a>
+      <span aria-hidden="true">·</span>
+      <a href="#fontes">Attribution</a>
+    </p>
+    <p class="colophon__copy">
+      <span aria-hidden="true">©</span><span class="visually-hidden">Copyright</span>
+      <span data-render="year" title="2026">MMXXVI</span> Vincent Bruijn
+      <span class="colophon__auc" data-render="auc" lang="la"></span>
+    </p>
+    <p class="colophon__small">
+      Corpus figures as of <span data-render="updated">the latest build</span>.
+      Set in EB Garamond and Cinzel.
+    </p>
+  </footer>
+
+  <div class="tooltip" role="status" aria-live="polite" hidden></div>
+  <noscript><p class="noscript">The figures, versions and sources on this page are drawn by script from the project's own reports.</p></noscript>
+</body>
+</html>

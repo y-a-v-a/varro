@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    .plate { fill: #f3ead7; stroke: #2a1f16; }
+    .c { stroke: #9a2a18; }
+    @media (prefers-color-scheme: dark) {
+      .plate { fill: #1c1813; stroke: #efe5cf; }
+      .c { stroke: #e27a60; }
+    }
+  </style>
+  <!-- a tabula ansata, with an inscriptional C -->
+  <path class="plate" stroke-width="3" stroke-linejoin="miter"
+        d="M14 10 H50 V22 L61 12 L56 32 L61 52 L50 42 V54 H14 V42 L3 52 L8 32 L3 12 L14 22 Z"/>
+  <path class="c" fill="none" stroke-width="5.5" stroke-linecap="butt"
+        d="M40.5 23.5 A11.5 11.5 0 1 0 40.5 40.5"/>
+</svg>
