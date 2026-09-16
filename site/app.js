@@ -449,11 +449,15 @@
     for (var i = 0; i < steps.length; i++) if (span / steps[i] <= maxTicks) return steps[i];
     return steps[steps.length - 1];
   }
+  /* Charts are drawn as they would be on a page zoomed to 125% (see html in
+     styles.css): at 1/1.25 of the space they get, then stretched to fill it,
+     so their type and margins grow with the rest of the page. */
+  var ZOOM = 1.25;
   function watchWidth(node, draw) {
     var last = 0, frame = 0;
     function run() {
       frame = 0;
-      var w = Math.round(node.clientWidth);
+      var w = Math.round(node.clientWidth / ZOOM);
       if (w && w !== last) { last = w; draw(w); }
     }
     if (window.ResizeObserver) new ResizeObserver(function () { if (!frame) frame = requestAnimationFrame(run); }).observe(node);

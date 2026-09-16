@@ -82,8 +82,8 @@ cd site && python3 -m http.server 8000     # http://localhost:8000
 
 With the CLI: `cd site && vercel` (then `vercel --prod`).
 
-`og:image` is the relative `/og.png`; some link unfurlers insist on an absolute
-URL, so once the production domain is known, write it into `index.html`.
+The production URL is `https://varro.vercel.app/`; `og:url`, `og:image` and the
+canonical link in `index.html` are absolute, so change them if the domain moves.
 
 The Content-Security-Policy in `vercel.json` allows scripts and styles from the
 site itself and fonts from Google Fonts only. A new external resource needs an
