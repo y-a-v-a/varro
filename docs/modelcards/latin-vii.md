@@ -18,7 +18,7 @@ A ${parameters_m}-parameter GPT trained **from random initialization on classica
 Latin and nothing else**. No English, no modern languages, no inherited
 multilingual representations — the model has never seen a word that is not Latin.
 
-It is the redistributable model of the [Varro](https://github.com/y-a-v-a/claudius)
+It is the redistributable model of the [Varro](https://github.com/y-a-v-a/varro)
 project, which builds an openly licensed Latin corpus and trains Latin-only
 language models on it. Every source in this model's training corpus is
 CC-BY-SA, public domain, or equivalently free — no NonCommercial term
@@ -168,7 +168,7 @@ redistribution.
 ## Provenance
 
 Everything here is reproducible from the
-[Varro repository](https://github.com/y-a-v-a/claudius): the manifest pins
+[Varro repository](https://github.com/y-a-v-a/varro): the manifest pins
 every source to a git SHA, `${recipe}` is the exact training
 recipe (seed included), and the training/evaluation reports this card quotes
 are generated files, not hand-written numbers — the bundle itself is
@@ -179,6 +179,6 @@ assembled by `src/bundle.py` from those reports.
   author = {Vincent Bruijn},
   title = {LATIN-VII: a 7M-parameter GPT trained from scratch on classical Latin},
   year = {2026},
-  url = {https://github.com/y-a-v-a/claudius}
+  url = {https://github.com/y-a-v-a/varro}
 }
 ```
