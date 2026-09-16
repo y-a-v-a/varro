@@ -28,7 +28,7 @@ tags:
 A ${parameters_m}-parameter GPT trained **from random initialization on Latin
 and nothing else** — no English, no modern languages, no inherited
 multilingual representations. It is the largest and best model the
-[Varro](https://github.com/y-a-v-a/claudius) project has trained, and the
+[Varro](https://github.com/y-a-v-a/varro) project has trained, and the
 first whose bigram floor was computed on its own corpus rather than borrowed
 from another.
 
@@ -177,7 +177,7 @@ The weights are a research artifact and are not distributed.
 ## Provenance
 
 Everything here is reproducible from the
-[Varro repository](https://github.com/y-a-v-a/claudius): the manifest pins
+[Varro repository](https://github.com/y-a-v-a/varro): the manifest pins
 every source to a git SHA, `${recipe}` is the exact training recipe (seed
 included), and the figures this card quotes are substituted from generated
 reports by `src/bundle.py`, not hand-written.
@@ -187,6 +187,6 @@ reports by `src/bundle.py`, not hand-written.
   author = {Vincent Bruijn},
   title = {LATIN-LII: a 52M-parameter GPT trained from scratch on Latin},
   year = {2026},
-  url = {https://github.com/y-a-v-a/claudius}
+  url = {https://github.com/y-a-v-a/varro}
 }
 ```

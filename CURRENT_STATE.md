@@ -1252,5 +1252,5 @@ data/       gitignored, ~2GB, regenerable from the manifest
 checkpoints/ gitignored, ~380MB, regenerable from src/train.py
 ```
 
-Remote: `git@github.com:y-a-v-a/claudius.git` (private). Working tree should be
+Remote: `git@github.com:y-a-v-a/varro.git` (private). Working tree should be
 clean; if it is not, that is unfinished work rather than intent.
