@@ -26,6 +26,7 @@ Planning documents:
 | [`docs/explainer.html`](docs/explainer.html) | What the trained model actually is, as files on disk |
 | [`docs/capabilities.html`](docs/capabilities.html) | What the model can and cannot do, measured |
 | [`demos/`](demos/README.md) | Five instruments built on the model — grammar, word order, damage, gaps, era — each paired with a held-out measurement |
+| [`ocr/`](ocr/README.md) | An evaluation protocol for OCR repair — locked benchmark, outcome table, baselines — written before the repairer it will judge |
 | [`site/`](site/README.md) | The public website, deployable to Vercel; its figures are generated from the manifest and reports |
 
 ## Quickstart

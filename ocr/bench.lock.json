@@ -1,0 +1,23 @@
+{
+  "channel": "7b17d89bbda177f6",
+  "corpus": "corpus-b",
+  "levels": [
+    0.0,
+    0.01,
+    0.03,
+    0.08
+  ],
+  "lexicon_words": 535722,
+  "n": 800,
+  "passages": {
+    "dev": 240,
+    "test": 560
+  },
+  "per_doc": 4,
+  "seed": 20260917,
+  "sha256": {
+    "dev": "49c6f86cf5d44c49",
+    "test": "65a7724f2b24a1d5"
+  },
+  "words": 60
+}
