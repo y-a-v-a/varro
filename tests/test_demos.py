@@ -1,7 +1,9 @@
 """Tests for the demos.
 
 Scope: everything here is the pure part -- gap parsing, word regrouping,
-orthography folding, trial construction. The model itself is not loaded, both
+orthography folding, trial construction, token alignment, the corruptions the
+minimal-pair benchmark applies, the shuffles the word-order ladder applies.
+The model itself is not loaded, both
 because MLX is not available everywhere the tests run and because what could go
 wrong in a demo is the plumbing around the model, not the matrix multiply.
 
@@ -275,3 +277,127 @@ def test_margin_bands_are_ordered_and_cover_everything():
 def test_a_missing_calibration_file_is_absence_not_a_crash():
     import aetas
     assert aetas.load_calibration("no-such-model-anywhere") is None
+
+
+# ---------------------------------------------------------------------------
+# Minimal pairs
+# ---------------------------------------------------------------------------
+
+def test_align_finds_the_shared_ends():
+    from paria import align
+    assert align([1, 2, 3, 4], [1, 2, 9, 4]) == (2, 1)
+    assert align([1, 2, 3], [1, 2, 3]) == (3, 0)
+    assert align([1, 2, 3], [7, 8]) == (0, 0)
+
+
+def test_align_never_lets_the_suffix_overlap_the_prefix():
+    # `a b c` against `a c`: the shared `a` is the prefix and the shared `c`
+    # the suffix, and the middle is `b` against nothing -- not a suffix of 2
+    # that would swallow the prefix.
+    from paria import align
+    assert align([1, 2, 3], [1, 3]) == (1, 1)
+    assert align([1, 1], [1]) == (1, 0)
+
+
+def test_every_suite_pair_is_a_minimal_pair():
+    """Each pair must differ, and differ in one place, or it tests nothing."""
+    from paria import SUITE
+    for pair in SUITE:
+        assert pair.a != pair.b, pair
+        assert pair.expected in ("a", None), pair
+        a, b = pair.a.split(), pair.b.split()
+        # One word changed, or the same words in another order.
+        if sorted(a) == sorted(b):
+            assert pair.expected is None, f"reordering has no right answer: {pair}"
+        else:
+            assert sum(x != y for x, y in zip(a, b)) + abs(len(a) - len(b)) <= 2, pair
+
+
+def test_suite_is_already_in_corpus_orthography():
+    """A `v` in a suite sentence would be scored as damage, not as grammar."""
+    from paria import SUITE
+    for pair in SUITE:
+        for text in (pair.a, pair.b):
+            assert "v" not in text.lower() and "j" not in text.lower(), text
+
+
+def test_corrupt_ending_only_returns_attested_words():
+    import random
+    from paria import corrupt_ending
+    attested = {"puella", "puellam", "puellae", "amat", "amant"}
+    rng = random.Random(0)
+    for _ in range(20):
+        out = corrupt_ending("puella", attested, rng)
+        assert out in {"puellam", "puellae"}
+    assert corrupt_ending("amat", attested, rng) == "amant"
+    # No attested alternative: no corruption, rather than a made-up word.
+    assert corrupt_ending("miles", attested, rng) is None
+    # Not a word at all.
+    assert corrupt_ending("A.D.", attested, rng) is None
+
+
+def test_perturb_keeps_the_words_and_moves_only_what_it_says():
+    import random
+    from paria import perturb
+    left, word, right = ["gallia", "est"], "omnis", ["diuisa", "in", "partes"]
+    v = perturb(left, word, right, {"omnis", "omnes"}, random.Random(1))
+    assert v["original"] == "gallia est omnis diuisa in partes"
+    assert v["swap"] == "gallia est diuisa omnis in partes"
+    assert v["ending"] == "gallia est omnes diuisa in partes"
+    assert sorted(v["shuffle"].split()) == sorted(v["original"].split())
+    assert v["shuffle"] != v["original"]
+
+
+def test_perturb_declines_a_swap_that_would_change_nothing():
+    import random
+    from paria import perturb
+    v = perturb(["a"], "b", ["b", "c"], set(), random.Random(1))
+    assert v["swap"] is None
+    v = perturb(["a"], "b", [], set(), random.Random(1))
+    assert v["swap"] is None
+
+
+# ---------------------------------------------------------------------------
+# Word order
+# ---------------------------------------------------------------------------
+
+def test_shuffles_keep_exactly_the_original_words():
+    import random
+    from ordo import (shuffle_sentences, shuffle_within_sentences,
+                      shuffle_words, reverse_words)
+    text = "Gallia est omnis. Diuisa in partes tres! Quarum unam incolunt?"
+    for fn in (shuffle_sentences, shuffle_within_sentences, shuffle_words,
+               reverse_words):
+        out = fn(text, random.Random(3))
+        assert sorted(out.split()) == sorted(text.split()), fn.__name__
+
+
+def test_shuffling_within_sentences_keeps_each_sentence_together():
+    import random
+    from ordo import sentences, shuffle_within_sentences
+    text = "alpha beta gamma. delta epsilon zeta."
+    out = shuffle_within_sentences(text, random.Random(5))
+    got = [sorted(s.split()) for s in sentences(out)]
+    assert got == [sorted("alpha beta gamma.".split()),
+                   sorted("delta epsilon zeta.".split())]
+
+
+def test_sentence_splitting_follows_terminal_punctuation():
+    from ordo import sentences
+    assert sentences("Quo usque tandem? quam diu etiam! nihil.") == \
+        ["Quo usque tandem?", "quam diu etiam!", "nihil."]
+    assert sentences("one sentence with no end") == ["one sentence with no end"]
+
+
+# ---------------------------------------------------------------------------
+# Surprisal pieces
+# ---------------------------------------------------------------------------
+
+def test_a_word_remembers_the_pieces_it_was_scored_as():
+    from surprisal import to_words
+    tok = FakeTok(["<bos>", " rn", "erc", "atores", " in"])
+    words = to_words(tok, [0, 1, 2, 3, 4], [None, -2.0, -1.0, -0.5, -1.0],
+                     prefix_len=1)
+    assert words[0].text == "rnercatores"
+    assert [p for p, _ in words[0].pieces] == [" rn", "erc", "atores"]
+    assert sum(b for _, b in words[0].pieces) == pytest.approx(words[0].bits)

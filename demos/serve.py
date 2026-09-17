@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""A local HTTP front end for the three demos.
+"""A local HTTP front end for the demos.
 
 WHAT IT IS
-    One process holding one copy of the weights, exposing lacuna, surprisal and
-    aetas over JSON, plus a page that drives all three. The point is that the
-    model loads once: every CLI invocation pays 0.2s of load and, more
-    importantly, cannot keep a warm allocator between calls.
+    One process holding one copy of the weights, exposing lacuna, surprisal,
+    aetas, paria and ordo over JSON, plus a page that drives all five. The
+    point is that the model loads once: every CLI invocation pays 0.2s of
+    load and, more importantly, cannot keep a warm allocator between calls.
 
 WHAT IT IS NOT
     Not a service. It binds 127.0.0.1 by default, has no authentication, no
@@ -24,6 +24,7 @@ Usage:
 
 import argparse
 import json
+import math
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -34,10 +35,12 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from _common import (  # noqa: E402
-    DEFAULT_MODEL, PERIODS, Loaded, load, to_corpus_orthography,
+    DEFAULT_MODEL, PERIODS, Loaded, bits, load, pieces, to_corpus_orthography,
 )
 import aetas  # noqa: E402
 import lacuna  # noqa: E402
+import ordo  # noqa: E402
+import paria  # noqa: E402
 import surprisal  # noqa: E402
 from score import score_text  # noqa: E402
 
@@ -132,7 +135,6 @@ def api_lacuna(payload: Dict[str, Any]) -> Dict[str, Any]:
         blind = lacuna.rank(m, left, pool, "", period)
         best = rows[0]["logprob"]
         best_blind = blind[0]["logprob"]
-        import math
         gaps.append({
             "left": left, "right": right, "n_candidates": len(pool),
             "ranked": [{"fill": r["fill"], "tokens": r["fill_tokens"],
@@ -141,6 +143,7 @@ def api_lacuna(payload: Dict[str, Any]) -> Dict[str, Any]:
             "blind": [{"fill": r["fill"], "tokens": r["fill_tokens"],
                        "bits_worse": (best_blind - r["logprob"]) / math.log(2)}
                       for r in blind[:15]],
+            "explain": explain_gap(m, rows[:2]),
         })
         filled.append(rows[0]["fill"])
         filled.append(right)
@@ -150,6 +153,26 @@ def api_lacuna(payload: Dict[str, Any]) -> Dict[str, Any]:
         "gaps": gaps,
         "reconstruction": " ".join(" ".join(p for p in filled if p).split()),
     }
+
+
+def explain_gap(m: Loaded, rows: list) -> Dict[str, Any]:
+    """The top two candidates, token by token along the right context.
+
+    The same table lacuna.py --explain prints: what each candidate cost in
+    itself, then what every following token cost under each of them, so the
+    page can show WHERE the right context made its decision.
+    """
+    if len(rows) < 2:
+        return {}
+    tail = rows[0]["ids"][rows[0]["fill_tokens"]:]
+    fills = [r["fill"] for r in rows]
+    own = [sum(map(bits, r["logprobs"][:r["fill_tokens"]])) for r in rows]
+    steps = []
+    for t, piece in enumerate(pieces(m, tail)):
+        steps.append({"piece": piece,
+                      "bits": [bits(r["logprobs"][r["fill_tokens"] + t])
+                               for r in rows]})
+    return {"fills": fills, "fill_bits": own, "steps": steps}
 
 
 def api_surprisal(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -174,7 +197,8 @@ def api_surprisal(payload: Dict[str, Any]) -> Dict[str, Any]:
         "median_bits": per_word[len(per_word) // 2],
         "p90_bits": per_word[int(len(per_word) * 0.9)],
         "bands": [b[0] for b in surprisal.BANDS[:-1]],
-        "words": [{"text": w.text, "bits": w.bits, "tokens": w.tokens}
+        "words": [{"text": w.text, "bits": w.bits, "tokens": w.tokens,
+                   "pieces": [[p, b] for p, b in w.pieces]}
                   for w in words],
     }
 
@@ -210,11 +234,83 @@ def api_aetas(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def api_paria(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Two readings, and the token table that says where they part company."""
+    m = model()
+    period = period_of(payload)
+    raw = bool(payload.get("raw"))
+    a = (payload.get("a") or "").strip()
+    b = (payload.get("b") or "").strip()
+    if not a or not b:
+        raise ValueError("give two readings, a and b")
+    if max(len(a), len(b)) > MAX_CHARS:
+        raise ValueError(f"a reading is longer than {MAX_CHARS:,} characters")
+    folding: Dict[str, int] = {}
+    if not raw:
+        a, ca = to_corpus_orthography(a)
+        b, cb = to_corpus_orthography(b)
+        for what in set(ca) | set(cb):
+            folding[what] = ca.get(what, 0) + cb.get(what, 0)
+    result = paria.compare(m, a, b, period)
+    prefix, suffix = paria.align([p for p, _ in result["tokens_a"]],
+                                 [p for p, _ in result["tokens_b"]])
+    return {
+        "folding": folding,
+        "a": a, "b": b,
+        "bits_a": result["bits_a"], "bits_b": result["bits_b"],
+        "margin": result["margin"],
+        "tokens_a": result["tokens_a"], "tokens_b": result["tokens_b"],
+        "prefix": prefix, "suffix": suffix,
+    }
+
+
+def api_suite(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """The built-in minimal pairs, all at once."""
+    m = model()
+    period = period_of(payload)
+    margins = paria.run_suite(m, paria.SUITE, period)
+    return {
+        "pairs": [{"phenomenon": p.phenomenon, "a": p.a, "b": p.b,
+                   "note": p.note, "expected": p.expected, "margin": x}
+                  for p, x in zip(paria.SUITE, margins)],
+    }
+
+
+def api_ordo(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """The same words in different orders, and one text in another language."""
+    m = model()
+    text = clean(payload)
+    period = period_of(payload)
+    folding: Dict[str, int] = {}
+    if not payload.get("raw"):
+        text, folding = to_corpus_orthography(text)
+    trials = max(1, min(int(payload.get("trials") or 3), 8))
+    rows = ordo.ladder(m, text, trials, int(payload.get("seed") or 1), period)
+    against = (payload.get("against") or "").strip()
+    other = None
+    if against:
+        if len(against) > MAX_CHARS:
+            raise ValueError("the comparison text is too long")
+        if not payload.get("raw"):
+            against, _ = to_corpus_orthography(against)
+        other = ordo.measure(m, against, period)
+    return {
+        "folding": folding,
+        "n_words": len(text.split()),
+        "n_sentences": len(ordo.sentences(text)),
+        "rows": rows,
+        "against": other,
+    }
+
+
 ROUTES: Dict[str, Callable[[Dict[str, Any]], Dict[str, Any]]] = {
     "/api/model": api_model,
     "/api/lacuna": api_lacuna,
     "/api/surprisal": api_surprisal,
     "/api/aetas": api_aetas,
+    "/api/paria": api_paria,
+    "/api/suite": api_suite,
+    "/api/ordo": api_ordo,
 }
 
 

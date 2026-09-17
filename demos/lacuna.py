@@ -42,8 +42,8 @@ from typing import Dict, List, Optional, Tuple
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _common import (  # noqa: E402
-    DEFAULT_MODEL, PERIODS, ROOT, Loaded, announce_folding, encode, load,
-    prefix_ids, score_readings, to_corpus_orthography,
+    DEFAULT_MODEL, PERIODS, ROOT, Loaded, announce_folding, bits, encode,
+    load, pieces, prefix_ids, score_readings, to_corpus_orthography,
 )
 
 # The conventions an editor already writes: [...] for a gap of unknown length,
@@ -165,6 +165,64 @@ def show(rows: List[Dict], limit: int, answer: Optional[str],
     print()
 
 
+def explain(m: Loaded, rows: List[Dict], answer: Optional[str],
+            limit: int = 2) -> None:
+    """Token by token along the right context: where did the winner win?
+
+    Every candidate is scored over the same right-context tokens, so the
+    per-token bits line up and can be differenced. What this shows is the
+    mechanism the whole demo rests on: a supplement is not judged only on
+    how likely it is in itself, but on how much easier or harder it makes
+    the text after it. `duas` is a perfectly good word after `diuisa in`;
+    it is `tres`, two tokens later, that it cannot account for.
+    """
+    shown = rows[:limit]
+    if answer is not None and not any(r["fill"] == answer for r in shown):
+        hit = next((r for r in rows if r["fill"] == answer), None)
+        if hit:
+            shown = shown + [hit]
+    if len(shown) < 2:
+        return
+    tail = shown[0]["ids"][shown[0]["fill_tokens"]:]
+    if not tail:
+        print("  (no right context to explain with)\n")
+        return
+
+    labels = [f"{r['fill'][:14]!r}" for r in shown]
+    width = max(len(l) for l in labels)
+    print(f"  where the ranking was decided, in bits per token "
+          f"(lower is likelier)\n")
+    print(f"  {'':<16}" + "".join(f"{l:>{width + 2}}" for l in labels))
+    fill_bits = [sum(map(bits, r["logprobs"][:r["fill_tokens"]]))
+                 for r in shown]
+    print(f"  {'the fill itself':<16}"
+          + "".join(f"{b:>{width + 2}.1f}" for b in fill_bits))
+    running = list(fill_bits)
+    lead_at: List[float] = []
+    lines: List[str] = []
+    for t, piece in enumerate(pieces(m, tail)):
+        cells = []
+        for k, r in enumerate(shown):
+            b = bits(r["logprobs"][r["fill_tokens"] + t])
+            running[k] += b
+            cells.append(b)
+        # The winner's lead over the best of the rest, in bits, after this
+        # token. It starts at the fill's own cost and ends at the margin the
+        # ranking table printed.
+        lead_at.append(min(running[1:]) - running[0])
+        lines.append(f"  {piece!r:<16}"
+                     + "".join(f"{b:>{width + 2}.1f}" for b in cells)
+                     + f"   lead {lead_at[-1]:>+6.1f}")
+    gains = [lead_at[0] - (min(fill_bits[1:]) - fill_bits[0])] + [
+        lead_at[t] - lead_at[t - 1] for t in range(1, len(lead_at))]
+    decisive = max(range(len(gains)), key=lambda t: gains[t])
+    for t, line in enumerate(lines):
+        print(line + ("   <-- decisive" if t == decisive and gains[t] > 1
+                      else ""))
+    print(f"\n  lead after the fill alone {min(fill_bits[1:]) - fill_bits[0]:+.1f} "
+          f"bits; after the right context {lead_at[-1]:+.1f} bits.\n")
+
+
 def cmd_fill(args, m: Loaded) -> int:
     text = Path(args.file).read_text(encoding="utf-8") if args.file else args.text
     if not text:
@@ -233,6 +291,9 @@ def cmd_fill(args, m: Loaded) -> int:
         rows = rank(m, left, pool, right, args.period)
         show(rows, args.top, args.answer,
              f"{len(pool)} candidates, judged on the fill AND the text after it")
+
+        if args.explain:
+            explain(m, rows, args.answer)
 
         if args.blind:
             show(rank(m, left, pool, "", args.period), args.top, args.answer,
@@ -386,6 +447,9 @@ def main() -> int:
                          "to the corpus u/v spelling")
     ap.add_argument("--blind", action="store_true",
                     help="also rank without the right context, for comparison")
+    ap.add_argument("--explain", action="store_true",
+                    help="show, token by token along the right context, "
+                         "where the top candidates pulled apart")
     ap.add_argument("--top", type=int, default=10)
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--top-k", type=int, default=60)

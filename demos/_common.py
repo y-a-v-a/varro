@@ -8,6 +8,7 @@ checkpoint that is the right one, and a way to score a *reading* -- a text with
 one span swapped out -- rather than a whole document.
 """
 
+import math
 import sys
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple
@@ -198,8 +199,29 @@ def score_readings(m: Loaded, left: str, fills: List[str], right: str,
                 "fill_tokens": len(body),
                 "fill_logprob": sum(in_fill),
                 "perplexity": perplexity(varying),
+                # Per-token detail, so a demo can show WHERE two readings
+                # part company rather than only that they do. ids[t] was
+                # predicted with log-probability logprobs[t]; the first
+                # len(body) entries are the fill, the rest the right context.
+                "ids": row[start:],
+                "logprobs": varying,
             })
     return out
+
+
+def bits(logprob: float) -> float:
+    """Nats to bits. A token at 10 bits was given a 1-in-1024 chance."""
+    return -logprob / math.log(2)
+
+
+def pieces(m: Loaded, ids: List[int]) -> List[str]:
+    """Each token as the text it stands for, decoded one at a time.
+
+    Decoded singly rather than as a run so that the piece boundaries survive:
+    a byte-level BPE puts the word-initial space INSIDE the token, which is
+    what lets a reader see that `rnercatores` was scored as ` rn`+`erc`+...
+    """
+    return [m.tok.decode([i]) for i in ids]
 
 
 def score_reading(m: Loaded, left: str, fill: str, right: str,

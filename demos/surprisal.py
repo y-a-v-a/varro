@@ -35,7 +35,7 @@ import math
 import statistics
 import sys
 from pathlib import Path
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -63,6 +63,10 @@ class Word(NamedTuple):
     text: str
     bits: float
     tokens: int
+    # (piece, bits) per token, so a hot word can be opened up: an OCR scanno
+    # like `rnercatores` is not uniformly strange, it is one impossible
+    # piece followed by ordinary ones, and that is visible only here.
+    pieces: Tuple[Tuple[str, float], ...] = ()
 
 
 def to_words(tok, ids: List[int], logprobs: List[Optional[float]],
@@ -76,6 +80,7 @@ def to_words(tok, ids: List[int], logprobs: List[Optional[float]],
     """
     words: List[Word] = []
     buf, bits, count = "", 0.0, 0
+    parts: List[Tuple[str, float]] = []
 
     for i in range(prefix_len, len(ids)):
         lp = logprobs[i]
@@ -83,14 +88,15 @@ def to_words(tok, ids: List[int], logprobs: List[Optional[float]],
             continue
         piece = tok.decode([ids[i]])
         if (piece.startswith(" ") or piece.startswith("\n")) and buf:
-            words.append(Word(buf, bits, count))
-            buf, bits, count = "", 0.0, 0
+            words.append(Word(buf, bits, count, tuple(parts)))
+            buf, bits, count, parts = "", 0.0, 0, []
         buf += piece
         bits += -lp / math.log(2)
         count += 1
+        parts.append((piece, -lp / math.log(2)))
 
     if buf:
-        words.append(Word(buf, bits, count))
+        words.append(Word(buf, bits, count, tuple(parts)))
     return [w._replace(text=w.text.strip()) for w in words if w.text.strip()]
 
 
@@ -129,6 +135,9 @@ def main() -> int:
                          "to the corpus u/v spelling")
     ap.add_argument("--plain", action="store_true",
                     help="mark bands with punctuation instead of colour")
+    ap.add_argument("--pieces", action="store_true",
+                    help="open up each hot word into the tokens it was "
+                         "scored as, with the bits each one cost")
     ap.add_argument("--width", type=int, default=78)
     args = ap.parse_args()
 
@@ -172,7 +181,20 @@ def main() -> int:
     print(f"\n{'bits':>6}  {'toks':>4}  word")
     for word in hot:
         print(f"{word.bits:>6.1f}  {word.tokens:>4}  {word.text}")
+        if args.pieces:
+            print(f"{'':>14}{describe_pieces(word)}")
+    if args.pieces:
+        print("\nA word's bits are the sum of its pieces, and a damaged word "
+              "pays twice: the tokenizer\nhas no piece for a scanno, so the "
+              "word is cut into more pieces than its correct form\n(mercatores "
+              "is 2 tokens; rnercatores is 4), and every one of them is then "
+              "improbable.")
     return 0
+
+
+def describe_pieces(word: Word) -> str:
+    """`' rn' 21.3 + 'erc' 9.8 + 'at' 3.0 + 'ores' 8.8` -- the surprise, itemised."""
+    return " + ".join(f"{p!r} {b:.1f}" for p, b in word.pieces)
 
 
 if __name__ == "__main__":
