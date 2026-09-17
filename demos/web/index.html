@@ -109,6 +109,18 @@ input[type=number] { width: 4.2rem; font-family: var(--mono); }
   background: var(--accent); color: var(--on-accent); border: none;
   border-radius: var(--radius); padding: .48rem 1.1rem; margin-left: auto; }
 .run:disabled { opacity: .5; cursor: progress; }
+.run.alt { background: var(--sunken); color: var(--ink); border: 1px solid var(--line);
+           margin-left: auto; }
+.run.alt + .run { margin-left: 0; }
+textarea.short { min-height: 4.2rem; }
+tr.miss td { background: color-mix(in srgb, var(--bad) 12%, transparent); }
+td.diff { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+td.pos { color: var(--good); } td.neg { color: var(--bad); }
+.pieces { font-family: var(--mono); font-size: .74rem; color: var(--ink-3); }
+.expl td.lead { font-family: var(--mono); font-variant-numeric: tabular-nums;
+                text-align: right; color: var(--ink-2); }
+.expl tr.decisive td { background: var(--accent-2); }
+.muted { color: var(--ink-3); }
 .run:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 .out { margin-top: 1rem; }
@@ -180,6 +192,8 @@ footer code { font-family: var(--mono); }
   <button role="tab" aria-selected="true"  data-tab="lacuna">Lacuna</button>
   <button role="tab" aria-selected="false" data-tab="surprisal">Surprisal</button>
   <button role="tab" aria-selected="false" data-tab="aetas">Era</button>
+  <button role="tab" aria-selected="false" data-tab="paria">Pairs</button>
+  <button role="tab" aria-selected="false" data-tab="ordo">Order</button>
 </nav>
 
 <!-- ── Lacuna ─────────────────────────────────────────────────────────── -->
@@ -188,7 +202,9 @@ footer code { font-family: var(--mono); }
     <p class="lede">Mark a hole with <code>[...]</code>. The model proposes
     supplements reading forward, then every candidate is re-scored across the
     text <em>after</em> the gap &mdash; which is what a left-to-right model
-    cannot do by generating. The two columns are that difference.</p>
+    cannot do by generating. The two columns are that difference, and the
+    table under them shows, token by token, where the text after the gap
+    made up its mind.</p>
     <textarea id="lac-text">Gallia est omnis divisa in [...] tres, quarum unam incolunt Belgae, aliam Aquitani, tertiam qui ipsorum lingua Celtae, nostra Galli appellantur.</textarea>
     <div class="controls">
       <label>words in gap <input type="number" id="lac-words" value="1" min="1" max="8"></label>
@@ -234,6 +250,53 @@ footer code { font-family: var(--mono); }
   </div>
 </section>
 
+<!-- ── Pairs ──────────────────────────────────────────────────────────── -->
+<section id="tab-paria" hidden>
+  <div class="panel">
+    <p class="lede">Two readings that differ in one thing. The margin, in
+    bits, is the model's judgement about that one thing, and the token table
+    says where the cost was paid &mdash; on the changed form, or on the text
+    after it that the wrong form made harder to predict. The built-in suite
+    runs two dozen such pairs across agreement, case, mood and voice, and
+    keeps the ones the model gets wrong.</p>
+    <div class="cols">
+      <div><h3>reading A</h3>
+        <textarea id="pa-a" class="short">puella rosam amat</textarea></div>
+      <div><h3>reading B</h3>
+        <textarea id="pa-b" class="short">puella rosam amant</textarea></div>
+    </div>
+    <div class="controls">
+      <label>era <select id="pa-period"></select></label>
+      <label><input type="checkbox" id="pa-raw"> raw spelling</label>
+      <button class="run alt" data-run="suite">Run the suite</button>
+      <button class="run" data-run="paria">Compare</button>
+    </div>
+    <div class="out" id="pa-out"></div>
+  </div>
+</section>
+
+<!-- ── Order ──────────────────────────────────────────────────────────── -->
+<section id="tab-ordo" hidden>
+  <div class="panel">
+    <p class="lede">The same words, rearranged. Every rung below the first
+    has exactly the vocabulary and word frequencies of the original, so a
+    bag of words would score them all alike. How far the model's number
+    moves is how much it knows about Latin word order &mdash; syntax &mdash;
+    over and above which words Latin has. Paste a translation into the
+    second box to see a language it has never read on the same scale.</p>
+    <textarea id="or-text">Quo usque tandem abutere, Catilina, patientia nostra? quam diu etiam furor iste tuus nos eludet? quem ad finem sese effrenata iactabit audacia? Nihilne te nocturnum praesidium Palati, nihil urbis vigiliae, nihil timor populi, nihil concursus bonorum omnium, nihil hic munitissimus habendi senatus locus, nihil horum ora vultusque moverunt?</textarea>
+    <h3 style="margin-top:.8rem">for comparison (optional)</h3>
+    <textarea id="or-against" class="short">How long, Catiline, will you abuse our patience? How long will that madness of yours mock us? To what end will your unbridled audacity fling itself? Does the night guard on the Palatine, the watches of the city, the fear of the people, the gathering of all good men, this most fortified place for holding the senate, the faces and expressions of these men, move you not at all?</textarea>
+    <div class="controls">
+      <label>shuffles <input type="number" id="or-trials" value="3" min="1" max="8"></label>
+      <label>era <select id="or-period"></select></label>
+      <label><input type="checkbox" id="or-raw"> raw spelling</label>
+      <button class="run" data-run="ordo">Rearrange it</button>
+    </div>
+    <div class="out" id="or-out"></div>
+  </div>
+</section>
+
 <footer>
   Served by <code>demos/serve.py</code> on localhost. One model, one lock,
   no network calls &mdash; this page has no external assets by design.
@@ -269,7 +332,7 @@ document.querySelectorAll('nav button').forEach(btn => {
   btn.onclick = () => {
     document.querySelectorAll('nav button').forEach(b =>
       b.setAttribute('aria-selected', String(b === btn)));
-    ['lacuna', 'surprisal', 'aetas'].forEach(name =>
+    ['lacuna', 'surprisal', 'aetas', 'paria', 'ordo'].forEach(name =>
       $('tab-' + name).hidden = (name !== btn.dataset.tab));
   };
 });
@@ -286,7 +349,7 @@ document.querySelectorAll('nav button').forEach(btn => {
       (MODEL.calibrated
         ? `<span class="badge">era ${pct(MODEL.era_accuracy)} measured</span>`
         : `<span class="badge">era uncalibrated</span>`);
-    for (const sel of [$('lac-period'), $('sur-period')]) {
+    for (const sel of [$('lac-period'), $('sur-period'), $('pa-period'), $('or-period')]) {
       sel.innerHTML = '<option value="">(none)</option>' +
         MODEL.periods.map(p => `<option value="${p}">${p}</option>`).join('');
       sel.disabled = !MODEL.period_tags;
@@ -300,7 +363,8 @@ document.querySelectorAll('nav button').forEach(btn => {
 document.querySelectorAll('.run').forEach(btn => {
   btn.onclick = async () => {
     const which = btn.dataset.run;
-    const out = {lacuna: $('lac-out'), surprisal: $('sur-out'), aetas: $('ae-out')}[which];
+    const out = {lacuna: $('lac-out'), surprisal: $('sur-out'), aetas: $('ae-out'),
+                 paria: $('pa-out'), suite: $('pa-out'), ordo: $('or-out')}[which];
     btn.disabled = true;
     out.innerHTML = '<p class="note">scoring&hellip;</p>';
     try {
@@ -312,6 +376,41 @@ document.querySelectorAll('.run').forEach(btn => {
     }
   };
 });
+
+/* Where the right context decided it: the top two candidates, token by
+   token, with the winner's running lead. The row where that lead grew most
+   is the decisive token -- for the Caesar sentence it is ` tres`. */
+function explain(e) {
+  if (!e || !e.steps || !e.steps.length) return '';
+  const [a, b] = e.fills;
+  let lead = e.fill_bits[1] - e.fill_bits[0];
+  const start = lead;
+  const rows = [];
+  let bestGain = 0, bestAt = -1;
+  e.steps.forEach((s, i) => {
+    const gain = s.bits[1] - s.bits[0];
+    lead += gain;
+    if (gain > bestGain) { bestGain = gain; bestAt = i; }
+    rows.push({piece: s.piece, a: s.bits[0], b: s.bits[1], lead});
+  });
+  const tr = rows.map((r, i) =>
+    `<tr${i === bestAt && bestGain > 1 ? ' class="decisive"' : ''}>
+       <td class="f">${esc(JSON.stringify(r.piece))}</td>
+       <td class="n">${fixed(r.a, 1)}</td><td class="n">${fixed(r.b, 1)}</td>
+       <td class="lead">${r.lead >= 0 ? '+' : ''}${fixed(r.lead, 1)}</td></tr>`).join('');
+  return `<h3>where the ranking was decided &mdash; bits per token, lower is likelier</h3>
+    <div class="scroll"><table class="expl">
+      <tr><th>token after the gap</th><th class="n">${esc(a)}</th>
+          <th class="n">${esc(b)}</th><th class="n">lead of ${esc(a)}</th></tr>
+      <tr><td class="muted">the fill itself</td>
+          <td class="n">${fixed(e.fill_bits[0], 1)}</td>
+          <td class="n">${fixed(e.fill_bits[1], 1)}</td>
+          <td class="lead">${start >= 0 ? '+' : ''}${fixed(start, 1)}</td></tr>
+      ${tr}</table></div>
+    <p class="note">On the fill alone <b>${esc(a)}</b> led by ${fixed(start, 1)} bits;
+      after the text that follows, by ${fixed(lead, 1)}. The highlighted row is
+      where most of that came from.</p>`;
+}
 
 const RUN = {
   async lacuna() {
@@ -338,7 +437,7 @@ const RUN = {
             <div class="scroll"><table>${head}${rows(gap.ranked)}</table></div></div>
           <div><h3>left context only (plain generation)</h3>
             <div class="scroll"><table>${head}${rows(gap.blind)}</table></div></div>
-        </div>`;
+        </div>` + explain(gap.explain);
     });
     return html + `<div class="recon">${esc(d.reconstruction)}</div>`;
   },
@@ -360,17 +459,114 @@ const RUN = {
     ).join(' ');
     const hot = [...d.words].sort((a, b) => b.bits - a.bits).slice(0, 12).map(w =>
       `<tr><td class="n">${fixed(w.bits, 1)}</td><td class="n">${w.tokens}</td>
-       <td class="f">${esc(w.text)}</td></tr>`).join('');
+       <td class="f">${esc(w.text)}<br><span class="pieces">${
+         w.pieces.map(([p, b]) => `${esc(JSON.stringify(p))} ${fixed(b, 1)}`).join(' + ')
+       }</span></td></tr>`).join('');
     return folding(d.folding) +
       `<div class="key">${key}</div><p class="text">${body}</p>
        <p class="note">${d.n_tokens.toLocaleString()} tokens,
          perplexity ${fixed(d.perplexity, 1)},
          median ${fixed(d.median_bits, 1)} bits/word,
          90th percentile ${fixed(d.p90_bits, 1)}</p>
-       <h3>hottest words</h3>
+       <h3>hottest words, and the pieces they were scored as</h3>
        <div class="scroll"><table>
          <tr><th class="n">bits</th><th class="n">tok</th><th>word</th></tr>
-         ${hot}</table></div>`;
+         ${hot}</table></div>
+       <p class="note">A damaged word pays twice: the tokenizer has no piece
+         for a scanno, so the word is cut into more pieces than its correct
+         form, and every one of them is then improbable.</p>`;
+  },
+
+  async paria() {
+    const d = await api('/api/paria', {
+      a: $('pa-a').value, b: $('pa-b').value,
+      period: $('pa-period').value || null, raw: $('pa-raw').checked,
+    });
+    const ta = d.tokens_a, tb = d.tokens_b;
+    const midA = ta.slice(d.prefix, ta.length - d.suffix);
+    const midB = tb.slice(d.prefix, tb.length - d.suffix);
+    const cell = (t) => t ? `<td class="f">${esc(JSON.stringify(t[0]))}</td>
+                             <td class="n">${fixed(t[1], 1)}</td>` : '<td></td><td></td>';
+    const diff = (x) => `<td class="diff ${x > 0.05 ? 'pos' : x < -0.05 ? 'neg' : ''}">${
+      x === null ? '' : (x >= 0 ? '+' : '') + fixed(x, 1)}</td>`;
+    let rows = '';
+    for (let i = 0; i < d.prefix; i++)
+      rows += `<tr>${cell(ta[i])}${cell(tb[i])}${diff(tb[i][1] - ta[i][1])}</tr>`;
+    const n = Math.max(midA.length, midB.length);
+    for (let i = 0; i < n; i++)
+      rows += `<tr${i === 0 ? ' class="hit"' : ''}>${cell(midA[i])}${cell(midB[i])}${diff(null)}</tr>`;
+    const sum = (xs) => xs.reduce((s, t) => s + t[1], 0);
+    if (n) rows += `<tr><td colspan="4" class="muted">on the changed span</td>
+                    ${diff(sum(midB) - sum(midA))}</tr>`;
+    for (let i = 0; i < d.suffix; i++) {
+      const x = ta[ta.length - d.suffix + i], y = tb[tb.length - d.suffix + i];
+      rows += `<tr>${cell(x)}${cell(y)}${diff(y[1] - x[1])}</tr>`;
+    }
+    if (d.suffix) rows += `<tr><td colspan="4" class="muted">on the text after it</td>
+      ${diff(sum(tb.slice(tb.length - d.suffix)) - sum(ta.slice(ta.length - d.suffix)))}</tr>`;
+    const who = d.margin >= 0 ? 'A' : 'B';
+    return folding(d.folding) +
+      `<p class="verdict"><b>${who}</b> is preferred by ${fixed(Math.abs(d.margin), 2)} bits
+         &mdash; ${Math.pow(2, Math.abs(d.margin)).toLocaleString(undefined, {maximumFractionDigits: 0})}&times; as likely.
+         <span class="muted">A ${fixed(d.bits_a, 1)} bits, B ${fixed(d.bits_b, 1)} bits.</span></p>
+       <div class="scroll"><table>
+         <tr><th>A token</th><th class="n">bits</th><th>B token</th><th class="n">bits</th>
+             <th class="n">B &minus; A</th></tr>${rows}</table></div>
+       <p class="note">Positive means B paid more. Cost on the text <em>after</em>
+         the change is the model using context: the wrong form makes what follows
+         harder to predict.</p>`;
+  },
+
+  async suite() {
+    const d = await api('/api/suite', {period: $('pa-period').value || null});
+    let right = 0, judged = 0;
+    const rows = d.pairs.map(p => {
+      const ok = p.expected === null ? null : p.margin > 0;
+      if (ok !== null) { judged++; if (ok) right++; }
+      return `<tr${ok === false ? ' class="miss"' : ''}>
+        <td>${esc(p.phenomenon)}<br><span class="pieces">${esc(p.note)}</span></td>
+        <td class="f">${esc(p.a)}</td><td class="f">${esc(p.b)}</td>
+        <td class="diff ${p.margin > 0 ? 'pos' : 'neg'}">${p.margin >= 0 ? '+' : ''}${fixed(p.margin, 2)}</td>
+        <td class="n">${ok === null ? '&mdash;' : ok ? '&#10003;' : '&#10007;'}</td></tr>`;
+    }).join('');
+    return `<p class="verdict"><b>${right}/${judged}</b> pairs with a right answer went
+        the right way. <span class="muted">Positive bits: the model prefers the reading a
+        grammar would print. Word-order pairs have no right answer.</span></p>
+      <div class="scroll"><table>
+        <tr><th>phenomenon</th><th>reading</th><th>alternative</th>
+            <th class="n">bits</th><th class="n"></th></tr>${rows}</table></div>`;
+  },
+
+  async ordo() {
+    const d = await api('/api/ordo', {
+      text: $('or-text').value, against: $('or-against').value,
+      trials: +$('or-trials').value,
+      period: $('or-period').value || null, raw: $('or-raw').checked,
+    });
+    const base = d.rows[0].perplexity;
+    const row = (label, r, spread) =>
+      `<tr><td>${esc(label)}</td><td class="n">${fixed(r.perplexity, 1)}</td>
+       <td class="n">${fixed(r.perplexity / base, 2)}&times;</td>
+       <td class="n">${fixed(r.tokens_per_word, 2)}</td>
+       <td class="n">${fixed(r.bits_per_word, 1)}</td>
+       <td class="pieces">${spread}</td></tr>`;
+    let rows = d.rows.map(r => row(r.label, r,
+      r.trials > 1 ? `&plusmn;${fixed(r.spread / 2, 1)} over ${r.trials} shuffles` : '')).join('');
+    if (d.against) rows += row('the comparison text', d.against, 'another language');
+    const worst = d.rows.reduce((a, b) => b.perplexity > a.perplexity ? b : a);
+    return folding(d.folding) +
+      `<p class="note">${d.n_words} words, ${d.n_sentences} sentences. Every rung
+         below the first has the same words and the same word frequencies.</p>
+       <div class="scroll"><table>
+         <tr><th>text</th><th class="n">perplexity</th><th class="n">&times; as written</th>
+             <th class="n">tok/word</th><th class="n">bits/word</th><th></th></tr>
+         ${rows}</table></div>
+       <p class="verdict">A bag of words scores every rung the same. This model is
+         <b>${fixed(worst.perplexity / base, 1)}&times;</b> more surprised by
+         &lsquo;${esc(worst.label)}&rsquo; than by the text as written.</p>
+       <p class="note">Perplexity is per token, and a text the tokenizer was not fitted
+         on is cut into more, smaller pieces, each easy to guess from the last. For the
+         comparison text read the bits per word, which does not depend on the cutting.</p>`;
   },
 
   async aetas() {
