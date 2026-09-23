@@ -1,0 +1,487 @@
+{
+ "seed": 20260923,
+ "pages_per_book": 40,
+ "corpus": "corpus-b",
+ "books": [
+  {
+   "book": "A First Latin Reader.pdf",
+   "ia": "firstlatinreader00nuttrich",
+   "status": "read again",
+   "tier2": "dev",
+   "engine": "archive.org module 0.0.21",
+   "passages": 26,
+   "cer_old": 0.1585986061405161,
+   "cer_new": 0.03136183838764362
+  },
+  {
+   "book": "Agricola De re metallica.djvu",
+   "ia": "georgiiagricolae00agri",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "archive.org module 0.0.14",
+   "passages": 57,
+   "cer_old": 0.15297629056667228,
+   "cer_new": 0.15297629056667228
+  },
+  {
+   "book": "Alighieri, Giuliani - Opere latine vol I - 1878.djvu",
+   "ia": "operelatine00giulgoog",
+   "status": "same reading",
+   "tier2": "dev",
+   "engine": "ABBYY FineReader 8.0",
+   "passages": 113,
+   "cer_old": 0.03059111843495162,
+   "cer_new": 0.03059111843495162
+  },
+  {
+   "book": "Arra aeternae salutis (1495) by Lambsheim.pdf",
+   "ia": "Arraaeternaesalutis",
+   "status": "read again",
+   "tier2": "test",
+   "engine": "tesseract 5.3.0-3-g9920",
+   "passages": 13,
+   "cer_old": 0.1846670397313934,
+   "cer_new": 0.16489460921469876
+  },
+  {
+   "book": "Athanasius Kircher - Turris Babel - 1679.djvu",
+   "ia": "turrisbabelsivea00kirc",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "archive.org module 0.0.21",
+   "passages": 185,
+   "cer_old": 0.12209165541921024,
+   "cer_new": 0.12134870416919477
+  },
+  {
+   "book": "Centurio.djvu",
+   "ia": "centuriocarmenj00pascgoog",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": null,
+   "passages": 12,
+   "cer_old": 0.05839563548191554,
+   "cer_new": 0.05839563548191554
+  },
+  {
+   "book": "Codex Amiatinus novum testamentum latine (1854).djvu",
+   "ia": "codexamiatinus00jero",
+   "status": "same reading",
+   "tier2": "dev",
+   "engine": "archive.org module 0.0.21",
+   "passages": 223,
+   "cer_old": 0.04987265570733966,
+   "cer_new": 0.04987265570733966
+  },
+  {
+   "book": "Columellae opera.djvu",
+   "ia": "scriptoresreirus02garg",
+   "status": "same reading",
+   "tier2": null,
+   "engine": "ABBYY FineReader 8.0",
+   "passages": 113,
+   "cer_old": 0.11556727128182598,
+   "cer_new": 0.11556727128182598
+  },
+  {
+   "book": "Cornelii Taciti - Agricola.djvu",
+   "ia": "corneliitacitia02tacigoog",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "ABBYY FineReader 8.0",
+   "passages": 212,
+   "cer_old": 0.014164138061824389,
+   "cer_new": 0.014164138061824389
+  },
+  {
+   "book": "Cothvrnvlvs three short Latin historical plays for the use of beginners.djvu",
+   "ia": "cothvrnvlvsthree00arnorich",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "archive.org module 0.0.21",
+   "passages": 76,
+   "cer_old": 0.025596036742697906,
+   "cer_new": 0.025596036742697906
+  },
+  {
+   "book": "Cuerpo del derecho civil romano a doble texto (IA cuerpodelderechocivilromanoP1T1).pdf",
+   "ia": "cuerpodelderechocivilromanoP1T1",
+   "status": "read again",
+   "tier2": null,
+   "engine": "tesseract 5.3.0-6-g76ae",
+   "passages": 71,
+   "cer_old": 0.10657736561909668,
+   "cer_new": 0.03063712862785506
+  },
+  {
+   "book": "Easy Latin Stories.djvu",
+   "ia": "easylatinstorie00benngoog",
+   "status": "same reading",
+   "tier2": "dev",
+   "engine": null,
+   "passages": 127,
+   "cer_old": 0.027447705098515622,
+   "cer_new": 0.027447705098515622
+  },
+  {
+   "book": "Eclogae latinae.djvu",
+   "ia": "eclogaelatinaee00wolfgoog",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "ABBYY FineReader 8.0",
+   "passages": 143,
+   "cer_old": 0.014847133135805685,
+   "cer_new": 0.014847133135805685
+  },
+  {
+   "book": "Erasmi Colloquia Familiaria Et Encomium Moriae.djvu",
+   "ia": "ErasmiColloquiaFamiliariaEtEncomiumMoriae",
+   "status": "same reading",
+   "tier2": "dev",
+   "engine": "ABBYY FineReader 9.0",
+   "passages": 139,
+   "cer_old": 0.03129696755370878,
+   "cer_new": 0.03126160374856334
+  },
+  {
+   "book": "Exercises on Latin syntax, adapted to Zumpt's grammar; to which are added extracts from the writings of Muretus.djvu",
+   "ia": "keyexercisesonla01kenr",
+   "status": "same reading",
+   "tier2": "dev",
+   "engine": "archive.org module 0.0.21",
+   "passages": 54,
+   "cer_old": 0.011927524355822635,
+   "cer_new": 0.011927524355822635
+  },
+  {
+   "book": "Gauss, Carl Friedrich - Werke (1870).djvu",
+   "ia": "werkecarlf01gausrich",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "archive.org module 0.0.21",
+   "passages": 66,
+   "cer_old": 0.07293916151612183,
+   "cer_new": 0.0728646958075806
+  },
+  {
+   "book": "Gesta Romanorum - Oesterley 1872.djvu",
+   "ia": "gestaromanorum00oestuoft",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "ABBYY FineReader 8.0",
+   "passages": 212,
+   "cer_old": 0.026899040790621064,
+   "cer_new": 0.02670526111810871
+  },
+  {
+   "book": "Histoire anonyme de la première croisade, trad. Bréhier, 1924.djvu",
+   "ia": "histoireanonymedelapremiere",
+   "status": "same reading",
+   "tier2": null,
+   "engine": "archive.org module 0.0.21",
+   "passages": 93,
+   "cer_old": 0.020339605805317167,
+   "cer_new": 0.020208382542057056
+  },
+  {
+   "book": "Historia diplomatica Friderici secundi 1-1.djvu",
+   "ia": "historiadiplomat11huil",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "archive.org module 0.0.21",
+   "passages": 94,
+   "cer_old": 0.01814300960512273,
+   "cer_new": 0.01814300960512273
+  },
+  {
+   "book": "Horace - Œuvres, trad. Leconte de Lisle, I.djvu",
+   "ia": "uvresdehoracetra01horauoft",
+   "status": "same reading",
+   "tier2": null,
+   "engine": "archive.org module 0.0.21",
+   "passages": 34,
+   "cer_old": 0.09718159115233678,
+   "cer_new": 0.09732429539778809
+  },
+  {
+   "book": "Horace - Œuvres, trad. Leconte de Lisle, II.djvu",
+   "ia": "uvresdehoracetra02horauoft",
+   "status": "same reading",
+   "tier2": null,
+   "engine": "archive.org module 0.0.21",
+   "passages": 38,
+   "cer_old": 0.10737982396750169,
+   "cer_new": 0.10731211916046039
+  },
+  {
+   "book": "Hymni Ecclesiae.djvu",
+   "ia": "hymniecc00newmuoft",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": null,
+   "passages": 48,
+   "cer_old": 0.0033459736783403972,
+   "cer_new": 0.005743921481151015
+  },
+  {
+   "book": "Hymnus in Romam.djvu",
+   "ia": "hymnusinromamann00pascuoft",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "archive.org module 0.0.21",
+   "passages": 16,
+   "cer_old": 0.014217300209518108,
+   "cer_new": 0.014217300209518108
+  },
+  {
+   "book": "Ioannes Baptista a Vico - Opera latina tomus I - Mediolani, 1835.djvu",
+   "ia": "bub_gb_2xAGObtqSGEC",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "ABBYY FineReader 11.0",
+   "passages": 168,
+   "cer_old": 0.0402563752897859,
+   "cer_new": 0.0402563752897859
+  },
+  {
+   "book": "Johannes Kepler - Harmonices Mundi Libri V.pdf",
+   "ia": "ioanniskepplerih00kepl",
+   "status": "read again",
+   "tier2": "test",
+   "engine": "archive.org module 0.0.21",
+   "passages": 52,
+   "cer_old": 0.18360433604336043,
+   "cer_new": 0.14932249322493224
+  },
+  {
+   "book": "Leçons latines modernes de littérature et de morale vol 1.djvu",
+   "ia": "LeonsLatinesModernesDeLittrature_201906",
+   "status": "same reading",
+   "tier2": "dev",
+   "engine": "ABBYY FineReader 11.0 (Extended OCR)",
+   "passages": 140,
+   "cer_old": 0.02395439804754104,
+   "cer_new": 0.02395439804754104
+  },
+  {
+   "book": "Marcus Terentius Varro - De Lingua Latina - ex Typographeo Adami Sartorii - 1605.djvu",
+   "ia": "bub_gb_yHWflPAmG1sC",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "ABBYY FineReader 11.0",
+   "passages": 33,
+   "cer_old": 0.1840857875514803,
+   "cer_new": 0.1145388142046779
+  },
+  {
+   "book": "Nicolai Klimii Iter Subterraneum.djvu",
+   "ia": "bub_gb_oWsAAAAAcAAJ",
+   "status": "same reading",
+   "tier2": null,
+   "engine": "ABBYY FineReader 9.0",
+   "passages": 45,
+   "cer_old": 0.18569246435845213,
+   "cer_new": 0.18569246435845213
+  },
+  {
+   "book": "Nos in schola latine loquimur - Ars latine loquendi.pdf",
+   "ia": "rcin.org.pl.WA248_114639_F-24-111_ars-latine-loquendi_o_98246",
+   "status": "read again",
+   "tier2": "test",
+   "engine": "tesseract 5.3.0-6-g76ae",
+   "passages": 124,
+   "cer_old": 0.08264396594892338,
+   "cer_new": 0.009534301452178267
+  },
+  {
+   "book": "Opera Latine Conscripta, Volume 2 (Bruno).djvu",
+   "ia": "operalatineconsc02brun",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "archive.org module 0.0.21",
+   "passages": 78,
+   "cer_old": 0.02766501278003308,
+   "cer_new": 0.02766501278003308
+  },
+  {
+   "book": "Ora Maritima.djvu",
+   "ia": "oramaritimalatin00sonnuoft",
+   "status": "same reading",
+   "tier2": "dev",
+   "engine": "archive.org module 0.0.21",
+   "passages": 60,
+   "cer_old": 0.06998063776820643,
+   "cer_new": 0.06998063776820643
+  },
+  {
+   "book": "P. Terenti Afri Comoediae (Kauer-Lindsay 1926).djvu",
+   "ia": "comoediae00tere_1",
+   "status": "read again",
+   "tier2": "test",
+   "engine": "archive.org module 0.0.21",
+   "passages": 19,
+   "cer_old": 0.044481264338516444,
+   "cer_new": 0.037216416008157026
+  },
+  {
+   "book": "PRAETORIUS, Michael - Syntagma musicum 1.djvu",
+   "ia": "SyntagmaMusicumBd.11615",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "ABBYY FineReader 11.0",
+   "passages": 120,
+   "cer_old": 0.16454956359102244,
+   "cer_new": 0.14820370947630923
+  },
+  {
+   "book": "Poesie italiane.djvu",
+   "ia": "poesieitalianec00toregoog",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "ABBYY FineReader 8.0",
+   "passages": 42,
+   "cer_old": 0.06868304977945809,
+   "cer_new": 0.06868304977945809
+  },
+  {
+   "book": "Prisciani Institutionum grammaticarum libri II (v. 1, ed Hertz).djvu",
+   "ia": "PriscianiInstitutionumGrammaticarumLibri",
+   "status": "same reading",
+   "tier2": null,
+   "engine": "tesseract 5.1.0-1-ge935",
+   "passages": 82,
+   "cer_old": 0.07413907189504876,
+   "cer_new": 0.07721741131793204
+  },
+  {
+   "book": "Pro Patria A Latin Story for Beginners.pdf",
+   "ia": "cu31924031167160",
+   "status": "read again",
+   "tier2": "test",
+   "engine": "ABBYY FineReader 8.0",
+   "passages": 58,
+   "cer_old": 0.14288076048770407,
+   "cer_new": 0.04038024385203554
+  },
+  {
+   "book": "Ribbeck - Scaenicae Romanorum Poesis Fragmenta, Vol 1, 1897.djvu",
+   "ia": "fragscaenicaeromr01ribbuoft",
+   "status": "same reading",
+   "tier2": "dev",
+   "engine": "archive.org module 0.0.21",
+   "passages": 44,
+   "cer_old": 0.07621809744779583,
+   "cer_new": 0.07633410672853828
+  },
+  {
+   "book": "Rivista italiana di numismatica 1898.djvu",
+   "ia": "rivistaitalianad11sociuoft",
+   "status": "same reading",
+   "tier2": "dev",
+   "engine": "archive.org module 0.0.14",
+   "passages": 64,
+   "cer_old": 0.006730958472741586,
+   "cer_new": 0.006730958472741586
+  },
+  {
+   "book": "Sal Terrae, sive Apologia pro Ministerio Evangelico.pdf",
+   "ia": "sal-terrae-thomas-hall",
+   "status": "read again",
+   "tier2": "test",
+   "engine": "tesseract 5.3.0-6-g76ae",
+   "passages": 19,
+   "cer_old": 0.12079357106981416,
+   "cer_new": 0.13636363636363635
+  },
+  {
+   "book": "Satire (Giovenale).djvu",
+   "ia": "lesatiredidecimo00juveuoft",
+   "status": "same reading",
+   "tier2": null,
+   "engine": "archive.org module 0.0.14",
+   "passages": 36,
+   "cer_old": 0.03369263100806725,
+   "cer_new": 0.03369263100806725
+  },
+  {
+   "book": "Satire (Persio).djvu",
+   "ia": "satirediapersio01montgoog",
+   "status": "same reading",
+   "tier2": "dev",
+   "engine": "ABBYY FineReader 8.0",
+   "passages": 60,
+   "cer_old": 0.06728791504008731,
+   "cer_new": 0.06728791504008731
+  },
+  {
+   "book": "Sixtus V - Aeternus Ille.djvu",
+   "ia": "aeternusille",
+   "status": "same reading",
+   "tier2": null,
+   "engine": "ABBYY FineReader 11.0 (Extended OCR)",
+   "passages": 50,
+   "cer_old": 0.03697545180063887,
+   "cer_new": 0.03697545180063887
+  },
+  {
+   "book": "The poems of Gaius Valerius Catullus - Francis Warre Cornish.djvu",
+   "ia": "poemsofcaiusvale00catuuoft",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "archive.org module 0.0.21",
+   "passages": 74,
+   "cer_old": 0.038094598226283256,
+   "cer_new": 0.03796022574576727
+  },
+  {
+   "book": "The seven great hymns of the mediaeval church - 1902.djvu",
+   "ia": "seven00nottgreathymnsorich",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "archive.org module 0.0.21",
+   "passages": 15,
+   "cer_old": 0.046027213169830335,
+   "cer_new": 0.046027213169830335
+  },
+  {
+   "book": "Thomae Vallaurii Epitome historiae Romanae.djvu",
+   "ia": "bub_gb_8Ti8swEVYLkC",
+   "status": "same reading",
+   "tier2": "test",
+   "engine": "ABBYY FineReader 11.0",
+   "passages": 38,
+   "cer_old": 0.008043061312875086,
+   "cer_new": 0.008043061312875086
+  },
+  {
+   "book": "Virgile - Géorgiques, traduction Desportes, 1846, 4.djvu",
+   "ia": "VirgileGeorgiquesLiv4V1JUXTA",
+   "status": "same reading",
+   "tier2": null,
+   "engine": "ABBYY FineReader 9.0",
+   "passages": 29,
+   "cer_old": 0.03719315645921151,
+   "cer_new": 0.03719315645921151
+  },
+  {
+   "book": "Werkecarlf02gausrich.djvu",
+   "ia": "werkecarlf02gausrich",
+   "status": "read again",
+   "tier2": "dev",
+   "engine": "tesseract 5.0.0-rc2-1-gf788",
+   "passages": 38,
+   "cer_old": 0.04433719433719434,
+   "cer_new": 0.03674388674388675
+  },
+  {
+   "book": "Werkecarlf03gausrich.djvu",
+   "ia": "werkecarlf03gausrich",
+   "status": "same reading",
+   "tier2": "dev",
+   "engine": "archive.org module 0.0.14",
+   "passages": 38,
+   "cer_old": 0.05786006765177141,
+   "cer_new": 0.057800723992641384
+  }
+ ]
+}

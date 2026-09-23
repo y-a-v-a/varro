@@ -430,3 +430,26 @@ def test_letter_templates_are_letters_and_typography_is_not_damage():
     assert tier2.clean_wikitext("uenit{{Pg|153}} {{versus|5}}Roma").split() == ["uenit", "Roma"]
     assert tier2.tidy("conueniat , et con¬ suetudines ( ut aiunt )") == \
         "conueniat, et consuetudines (ut aiunt)"
+
+
+def test_archive_org_djvu_xml_is_read_page_by_page():
+    import ia
+    xml = ('<BODY><OBJECT data="a"><HIDDENTEXT><PAGECOLUMN><REGION><PARAGRAPH>'
+           '<LINE><WORD coords="1">Gallia</WORD> <WORD coords="2">est</WORD></LINE>'
+           '<LINE><WORD coords="3">omnis&amp;</WORD></LINE>'
+           '</PARAGRAPH></REGION></PAGECOLUMN></HIDDENTEXT></OBJECT>'
+           '<OBJECT data="b"></OBJECT>'
+           '<OBJECT data="c"><LINE><WORD>diuisa</WORD></LINE></OBJECT></BODY>')
+    assert ia.pages_of_djvu_xml(xml) == ["Gallia est\nomnis&", "", "diuisa"]
+
+
+def test_archive_org_page_is_found_by_content_near_where_it_should_be():
+    import ia
+    pages = [set(ia.words(t)) for t in (
+        "cover colour card", "gallia est omnis diuisa in partes tres",
+        "quarum unam incolunt belgae", "gallia est omnis diuisa in partes tres")]
+    # Two pages carry the same words; the one nearer the expected place wins.
+    assert ia.best_page("Gallia est omnis diuisa in partes tres", pages, 1) == 1
+    assert ia.best_page("Gallia est omnis diuisa in partes tres", pages, 3) == 3
+    assert ia.best_page("quarum unam incolunt Belgae", pages, 0) == 2
+    assert ia.best_page("nihil horum", pages, 1) is None
