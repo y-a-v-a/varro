@@ -1,0 +1,218 @@
+{
+  "rules": {
+    "fim:latin-lii-fim": {
+      "capital": 4.0,
+      "join": 0.0,
+      "known": 2.0,
+      "margin": 6,
+      "repeated": 0.0,
+      "seen": 1.0,
+      "short": 4,
+      "split": 2.0,
+      "unknown": 0.0,
+      "weight": 1.5
+    },
+    "fim:latin-lii-fim#tier2": {
+      "capital": 2.0,
+      "join": 8,
+      "known": 0.0,
+      "margin": 6,
+      "short": 2.0,
+      "split": 2.0,
+      "unknown": 0.0,
+      "weight": 1.0
+    },
+    "fim:latin-lii-fim+samples#tier2": {
+      "capital": 8,
+      "join": 8,
+      "known": 0.0,
+      "margin": 6,
+      "short": 0.0,
+      "split": 2.0,
+      "unknown": 0.0,
+      "weight": 1.0
+    },
+    "lii:latin-lii-latinitas": {
+      "capital": 8,
+      "join": 0.0,
+      "known": 4.0,
+      "margin": 6,
+      "repeated": 0.0,
+      "seen": 1.0,
+      "short": 4,
+      "split": 0.0,
+      "unknown": 0.0,
+      "weight": 1.5
+    },
+    "lii:latin-lii-latinitas#tier2": {
+      "capital": 8,
+      "join": 2.0,
+      "known": 2.0,
+      "margin": 6,
+      "short": 2.0,
+      "split": 2.0,
+      "unknown": 0.0,
+      "weight": 1.0
+    },
+    "lii:latin-lii-latinitas:left-only": {
+      "capital": 8,
+      "join": 0.0,
+      "known": 6,
+      "margin": 4.0,
+      "short": 0.0,
+      "split": 2.0,
+      "unknown": 0.0,
+      "weight": 1.5
+    },
+    "unigram": {
+      "capital": 2.0,
+      "join": 4.0,
+      "known": 4.0,
+      "margin": 2.0,
+      "repeated": 0.0,
+      "seen": 0.0,
+      "short": 4,
+      "split": 0.0,
+      "unknown": 0.0,
+      "weight": 1.5
+    },
+    "unigram#tier2": {
+      "capital": 0.0,
+      "join": 4.0,
+      "known": 0.0,
+      "margin": 6,
+      "short": 4,
+      "split": 0.0,
+      "unknown": 0.0,
+      "weight": 1.5
+    }
+  },
+  "tuned_on": {
+    "fim:latin-lii-fim": {
+      "clean": "d8bd83530a964e5e",
+      "dev": "49c6f86cf5d44c49",
+      "replayed": {
+        "broken_clean": 59,
+        "clean_words": 39600,
+        "harm_clean": 1.4898989898989898,
+        "harm_damaged": 1.6621156357592306,
+        "harm_pooled": 1.5201049497115966,
+        "precision": 0.9107538802660754,
+        "recall": 0.6912074042911233,
+        "recall_real": 0.5355871886120996,
+        "standing_words": 48023
+      },
+      "target": 1.5
+    },
+    "fim:latin-lii-fim#tier2": {
+      "clean": null,
+      "dev": "05b146989fdc8b7a",
+      "replayed": {
+        "broken_clean": 8,
+        "clean_words": 3060,
+        "harm_clean": 2.6143790849673203,
+        "harm_damaged": 1.3575428474461224,
+        "harm_pooled": 1.4757878554957724,
+        "precision": 0.9067451335445903,
+        "recall": 0.30371493555724033,
+        "recall_real": 0.15808491418247517,
+        "standing_words": 32525
+      },
+      "target": 1.5
+    },
+    "fim:latin-lii-fim+samples#tier2": {
+      "clean": null,
+      "dev": "05b146989fdc8b7a",
+      "replayed": {
+        "broken_clean": 8,
+        "clean_words": 3060,
+        "harm_clean": 2.6143790849673203,
+        "harm_damaged": 1.3575428474461224,
+        "harm_pooled": 1.4757878554957724,
+        "precision": 0.896244131455399,
+        "recall": 0.289461713419257,
+        "recall_real": 0.17073170731707318,
+        "standing_words": 32525
+      },
+      "target": 1.5
+    },
+    "lii:latin-lii-latinitas": {
+      "clean": "d8bd83530a964e5e",
+      "dev": "49c6f86cf5d44c49",
+      "replayed": {
+        "broken_clean": 59,
+        "clean_words": 39600,
+        "harm_clean": 1.4898989898989898,
+        "harm_damaged": 1.3059479995251098,
+        "harm_pooled": 1.4576348832850925,
+        "precision": 0.9274700171330669,
+        "recall": 0.6832141354648716,
+        "recall_real": 0.5142348754448398,
+        "standing_words": 48023
+      },
+      "target": 1.5
+    },
+    "lii:latin-lii-latinitas#tier2": {
+      "clean": null,
+      "dev": "05b146989fdc8b7a",
+      "replayed": {
+        "broken_clean": 11,
+        "clean_words": 3060,
+        "harm_clean": 3.5947712418300655,
+        "harm_damaged": 1.2217885627015104,
+        "harm_pooled": 1.445042275172944,
+        "precision": 0.9076224129227662,
+        "recall": 0.2726307808946171,
+        "recall_real": 0.13414634146341464,
+        "standing_words": 32525
+      },
+      "target": 1.5
+    },
+    "lii:latin-lii-latinitas:left-only": {
+      "clean": "d8bd83530a964e5e",
+      "dev": "49c6f86cf5d44c49",
+      "replayed": {
+        "broken_clean": 59,
+        "clean_words": 39600,
+        "harm_clean": 1.4898989898989898,
+        "harm_damaged": 1.1872254541137361,
+        "precision": 0.9086845466155811,
+        "recall": 0.5986537652503156,
+        "recall_real": 0.40391459074733094
+      },
+      "target": 1.5
+    },
+    "unigram": {
+      "clean": "d8bd83530a964e5e",
+      "dev": "49c6f86cf5d44c49",
+      "replayed": {
+        "broken_clean": 59,
+        "clean_words": 39600,
+        "harm_clean": 1.4898989898989898,
+        "harm_damaged": 1.1872254541137361,
+        "harm_pooled": 1.4368115278095912,
+        "precision": 0.9225,
+        "recall": 0.4657130837189735,
+        "recall_real": 0.36476868327402134,
+        "standing_words": 48023
+      },
+      "target": 1.5
+    },
+    "unigram#tier2": {
+      "clean": null,
+      "dev": "05b146989fdc8b7a",
+      "replayed": {
+        "broken_clean": 5,
+        "clean_words": 3060,
+        "harm_clean": 1.6339869281045751,
+        "harm_damaged": 1.4254199898184285,
+        "harm_pooled": 1.445042275172944,
+        "precision": 0.8148622677770659,
+        "recall": 0.19287338893100833,
+        "recall_real": 0.18879855465221318,
+        "standing_words": 32525
+      },
+      "target": 1.5
+    }
+  }
+}

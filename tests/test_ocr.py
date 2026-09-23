@@ -8,6 +8,7 @@ bookkeeping around the model, and a benchmark with wrong bookkeeping reports a
 confident number about nothing.
 """
 
+import json
 import random
 import sys
 from collections import Counter
@@ -330,3 +331,102 @@ def test_per_passage_counts_survive_the_report():
     assert back[1]["broken"] == 1 and back[1]["fixed"] == 0
     # Error classes are a Tier 1 luxury and stay out of the packed form.
     assert "class:shape:fixed" not in back[0]
+
+
+# ---------------------------------------------------------------------------
+# The decision rule
+# ---------------------------------------------------------------------------
+
+FLAGS = {"known": False, "capital": False, "short": False, "halves_known": False}
+
+
+def test_the_raw_rule_takes_whatever_scores_highest():
+    pool = [("urbern", 0.0, 1), ("urbem", -4.0, 1)]
+    assert repairers.decide(repairers.Rule(), pool, [-20.0, -10.0], FLAGS) == 1
+    # ... unless the channel's prior against change outweighs the gain.
+    assert repairers.decide(repairers.Rule(), pool, [-20.0, -17.0], FLAGS) == 0
+
+
+def test_a_margin_is_evidence_demanded_not_a_penalty_on_the_winner():
+    pool = [("eum", 0.0, 1), ("cum", -4.0, 1)]
+    lang = [-12.0, -6.0]                       # a gain of 2 nats after the channel
+    assert repairers.decide(repairers.Rule(), pool, lang, FLAGS) == 1
+    assert repairers.decide(repairers.Rule(margin=3), pool, lang, FLAGS) == 0
+    # `known` applies only when the word on the page is itself a word.
+    rule = repairers.Rule(known=3)
+    assert repairers.decide(rule, pool, lang, FLAGS) == 1
+    assert repairers.decide(rule, pool, lang, {**FLAGS, "known": True}) == 0
+
+
+def test_weight_sets_the_exchange_rate_between_scorer_and_channel():
+    pool = [("eum", 0.0, 1), ("cum", -4.0, 1)]
+    assert repairers.decide(repairers.Rule(weight=0.5), pool, [-12.0, -6.0], FLAGS) == 0
+    assert repairers.decide(repairers.Rule(weight=2.0), pool, [-12.0, -9.0], FLAGS) == 1
+
+
+def test_a_join_of_two_known_words_needs_more_than_a_join_of_fragments():
+    pool = [("rei", 0.0, 1), ("reipublicae", -5.0, 2)]
+    rule = repairers.Rule(join=8)
+    assert repairers.decide(rule, pool, [-20.0, -10.0], FLAGS) == 1
+    assert repairers.decide(rule, pool, [-20.0, -10.0],
+                            {**FLAGS, "halves_known": True}) == 0
+
+
+def test_numerals_are_never_touched():
+    u = _unigram()
+    assert u.repair("anno 5. et XL III uenit") == "anno 5. et XL III uenit"
+    assert repairers.NUMERAL.match("XLUIII")     # forty-eight, v folded to u
+    assert not repairers.NUMERAL.match("uenit")
+
+
+def test_a_recorded_run_replays_to_the_same_text():
+    sys.path.insert(0, str(ROOT / "src"))
+    import tune
+    u = _unigram()
+    noisy = "in urbern uenit eum arnico de the sauro"
+    u.trace = []
+    repaired = u.repair(noisy)
+    passage = {"noisy": noisy, "entries": json.loads(json.dumps(u.trace))}
+    assert tune.replay(passage, u.rule) == repaired
+    # And under a rule that believes nothing, the text comes back untouched.
+    assert tune.replay(passage, repairers.Rule(margin=1e9)) == noisy
+
+
+# ---------------------------------------------------------------------------
+# Tier 2: finding a passage in a page, and reading a transcription
+# ---------------------------------------------------------------------------
+
+def test_locate_finds_a_damaged_passage_inside_a_longer_page():
+    page = "LIBER PRIMUS 114 in urbern uenit curn amico et dixit ei 1) cf. Verg."
+    start, end, distance = metrics.locate("in urbem uenit cum amico", page)
+    assert page[start:end] == "in urbern uenit curn amico"
+    assert distance == 4
+
+
+def test_locate_costs_nothing_for_what_surrounds_the_match():
+    assert metrics.locate("uenit", "x" * 500 + "uenit" + "y" * 500)[2] == 0
+
+
+def test_wikitext_is_read_as_the_words_on_the_page():
+    import tier2
+    text = ('<noinclude><pagequality level="4" user="x" />{{Rh|114|COLUMELLAE|}}'
+            "</noinclude>{{Pt|pes|stirpes}} ''insitae'' intra [[biennium|biennium]]"
+            "<ref>nota</ref> {{Center|DE VINEIS}}<noinclude>{{ref|a}}</noinclude>")
+    assert tier2.clean_wikitext(text).split() == [
+        "pes", "insitae", "intra", "biennium", "DE", "VINEIS"]
+
+
+def test_error_bands_put_a_perfect_read_in_the_control():
+    import tier2
+    assert tier2.band(0.0) == "0"
+    assert tier2.band(0.01) == "<2%"
+    assert tier2.band(0.2) == ">6%"
+
+
+def test_letter_templates_are_letters_and_typography_is_not_damage():
+    import tier2
+    assert tier2.clean_wikitext("depa{{s}}cere c{{ae}}lum at{{que}}").split() == [
+        "depascere", "caelum", "atque"]
+    assert tier2.clean_wikitext("uenit{{Pg|153}} {{versus|5}}Roma").split() == ["uenit", "Roma"]
+    assert tier2.tidy("conueniat , et con¬ suetudines ( ut aiunt )") == \
+        "conueniat, et consuetudines (ut aiunt)"

@@ -439,3 +439,41 @@ def bootstrap(tallies: Sequence[Counter],
         out[name] = (vs[int(0.025 * len(vs))],
                      vs[min(len(vs) - 1, int(0.975 * len(vs)))])
     return out
+
+
+# ---------------------------------------------------------------------------
+# Finding a passage inside a page
+# ---------------------------------------------------------------------------
+
+def locate(pattern: str, text: str) -> Tuple[int, int, int]:
+    """Where in `text` does `pattern` occur, approximately? (start, end, distance)
+
+    Sellers' variant of the edit-distance table: the top row is all zeros, so
+    a match may begin anywhere in the text for free, and the answer is the
+    smallest value in the bottom row, so it may end anywhere too. Real scans
+    need this where `align` will not do: a page of OCR carries a running head,
+    footnotes and an apparatus that the transcription leaves out, and a global
+    alignment would have to pay for every character of them.
+
+    The start is recovered by carrying it through the table rather than by a
+    backtrace, which keeps memory at two rows however long the page is.
+    """
+    m, n = len(pattern), len(text)
+    if not m:
+        return 0, 0, 0
+    prev = [0] * (n + 1)
+    prev_start = list(range(n + 1))
+    for i in range(1, m + 1):
+        cur = [i] + [0] * n
+        cur_start = [0] * (n + 1)
+        pc = pattern[i - 1]
+        for j in range(1, n + 1):
+            best, start = prev[j - 1] + (pc != text[j - 1]), prev_start[j - 1]
+            if prev[j] + 1 < best:
+                best, start = prev[j] + 1, prev_start[j]
+            if cur[j - 1] + 1 < best:
+                best, start = cur[j - 1] + 1, cur_start[j - 1]
+            cur[j], cur_start[j] = best, start
+        prev, prev_start = cur, cur_start
+    end = min(range(n + 1), key=lambda j: prev[j])
+    return prev_start[end], end, prev[end]

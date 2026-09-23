@@ -10,12 +10,14 @@
   "lexicon_words": 535722,
   "n": 800,
   "passages": {
+    "clean": 600,
     "dev": 240,
     "test": 560
   },
   "per_doc": 4,
   "seed": 20260917,
   "sha256": {
+    "clean": "d8bd83530a964e5e",
     "dev": "49c6f86cf5d44c49",
     "test": "65a7724f2b24a1d5"
   },

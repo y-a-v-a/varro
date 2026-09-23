@@ -1,0 +1,934 @@
+{
+  "against": {
+    "difference95": {
+      "cer_reduction": [
+        0.19894222945484136,
+        0.240566037735849
+      ],
+      "harm_per_1000": [
+        -0.4192872117400419,
+        1.410671313583935
+      ],
+      "precision": [
+        -0.025346753833936364,
+        0.008607131664204237
+      ],
+      "recall": [
+        0.19837537409149214,
+        0.23738532110091737
+      ],
+      "recall_nonword": [
+        0.21238938053097345,
+        0.2575356953992596
+      ],
+      "recall_real_word": [
+        0.12103174603174605,
+        0.20326678765880218
+      ]
+    },
+    "system": "unigram"
+  },
+  "benchmark": {
+    "channel": "7b17d89bbda177f6",
+    "limit": null,
+    "passages": 240,
+    "sha256": "49c6f86cf5d44c49",
+    "split": "dev",
+    "tier": 1
+  },
+  "by_class": {
+    "digit": {
+      "damaged": 128,
+      "recall": 0.8046875
+    },
+    "drop": {
+      "damaged": 376,
+      "recall": 0.5132978723404256
+    },
+    "letter": {
+      "damaged": 857,
+      "recall": 0.7304550758459744
+    },
+    "merge": {
+      "damaged": 515,
+      "recall": 0.5029126213592233
+    },
+    "random": {
+      "damaged": 271,
+      "recall": 0.5350553505535055
+    },
+    "shape": {
+      "damaged": 213,
+      "recall": 0.8028169014084507
+    },
+    "speck": {
+      "damaged": 168,
+      "recall": 0.7380952380952381
+    },
+    "split": {
+      "damaged": 268,
+      "recall": 0.5410447761194029
+    }
+  },
+  "by_level": {
+    "0.0": {
+      "cer_after": 0.0004421755034771074,
+      "cer_before": 0.0,
+      "cer_reduction": null,
+      "harm_per_1000": 2.5,
+      "harm_per_1000_inlex": 0.28735632183908044,
+      "harm_per_1000_oov": 66.66666666666667,
+      "interval95": {
+        "cer_reduction": null,
+        "harm_per_1000": [
+          0.8333333333333334,
+          4.444444444444445
+        ]
+      },
+      "passages": 60,
+      "precision": 0.0,
+      "recall": null,
+      "recall_nonword": null,
+      "recall_real_word": null,
+      "silent_per_1000_after": 2.5,
+      "silent_per_1000_before": 0.0,
+      "word_error_after": 0.0025,
+      "word_error_before": 0.0
+    },
+    "0.01": {
+      "cer_after": 0.002547920504880248,
+      "cer_before": 0.009760495472541257,
+      "cer_reduction": 0.7389558232931727,
+      "harm_per_1000": 2.084574151280524,
+      "harm_per_1000_inlex": 0.0,
+      "harm_per_1000_oov": 51.851851851851855,
+      "interval95": {
+        "cer_reduction": [
+          0.6473029045643154,
+          0.823321554770318
+        ],
+        "harm_per_1000": [
+          0.29770765108663294,
+          4.47227191413238
+        ]
+      },
+      "passages": 60,
+      "precision": 0.9257425742574258,
+      "recall": 0.7727272727272727,
+      "recall_nonword": 0.8052631578947368,
+      "recall_real_word": 0.6538461538461539,
+      "silent_per_1000_after": 8.88888888888889,
+      "silent_per_1000_before": 14.444444444444445,
+      "word_error_after": 0.017222222222222222,
+      "word_error_before": 0.06722222222222222
+    },
+    "0.03": {
+      "cer_after": 0.008513008194764898,
+      "cer_before": 0.02987508950592728,
+      "cer_reduction": 0.715046604527297,
+      "harm_per_1000": 1.7199862401100792,
+      "harm_per_1000_inlex": 0.7140307033202428,
+      "harm_per_1000_oov": 28.30188679245283,
+      "interval95": {
+        "cer_reduction": [
+          0.6802244039270687,
+          0.7530364372469636
+        ],
+        "harm_per_1000": [
+          0.3441156228492774,
+          3.4411562284927735
+        ]
+      },
+      "passages": 60,
+      "precision": 0.9460500963391136,
+      "recall": 0.7085137085137085,
+      "recall_nonword": 0.7644859813084112,
+      "recall_real_word": 0.5189873417721519,
+      "silent_per_1000_after": 27.77777777777778,
+      "silent_per_1000_before": 43.888888888888886,
+      "word_error_after": 0.0575,
+      "word_error_before": 0.1925
+    },
+    "0.08": {
+      "cer_after": 0.02950593766465367,
+      "cer_before": 0.07489968791796701,
+      "cer_reduction": 0.6060606060606061,
+      "harm_per_1000": 0.9267840593141798,
+      "harm_per_1000_inlex": 0.477326968973747,
+      "harm_per_1000_oov": 15.873015873015873,
+      "interval95": {
+        "cer_reduction": [
+          0.571351058057515,
+          0.6425462459194777
+        ],
+        "harm_per_1000": [
+          0.0,
+          2.3408239700374533
+        ]
+      },
+      "passages": 60,
+      "precision": 0.8925541941564562,
+      "recall": 0.6567267683772539,
+      "recall_nonword": 0.7018348623853211,
+      "recall_real_word": 0.5170454545454546,
+      "silent_per_1000_after": 75.0,
+      "silent_per_1000_before": 97.77777777777777,
+      "word_error_after": 0.13805555555555554,
+      "word_error_before": 0.40055555555555555
+    }
+  },
+  "code": {
+    "commit": "7d1baf8",
+    "dirty": true
+  },
+  "corpus": {
+    "group_by": "author",
+    "period_filter": null,
+    "records": 11706,
+    "seed": 20260815,
+    "track": "B",
+    "train_words": 127843324,
+    "validation_words": 6723257,
+    "words": 134566581
+  },
+  "corpus_name": "corpus-b",
+  "counts": {
+    "broken": 23,
+    "chars": 100199,
+    "dist_after": 1018,
+    "dist_before": 2848,
+    "fixed": 1625,
+    "kept": 12000,
+    "miscorrected": 143,
+    "missed": 609,
+    "silent_after": 411,
+    "silent_before": 562,
+    "words": 14400
+  },
+  "detection": {
+    "average_precision": 0.7917603391403903,
+    "passages_unscored": 0,
+    "prevalence": 0.1657646405772967,
+    "real_word_average_precision": 0.20403106475338847,
+    "real_word_prevalence": 0.06268028377640913,
+    "words": 14412
+  },
+  "examples": {
+    "broken": [
+      {
+        "noisy": "illoc",
+        "passage": "vicifons/Baldus/XV#26",
+        "repaired": "illac",
+        "truth": "illoc"
+      },
+      {
+        "noisy": "trustes",
+        "passage": "vicifons/Capitula_missorum_(Carolus_II_Calvus)#4",
+        "repaired": "tristes",
+        "truth": "trustes"
+      },
+      {
+        "noisy": "fugatisue",
+        "passage": "vicifons/De_viris_illustribus_(Pius_II)/30#1",
+        "repaired": "fugatisque",
+        "truth": "fugatisue"
+      },
+      {
+        "noisy": "sacro",
+        "passage": "vicifons/Sermones_de_S._Iacobo#129",
+        "repaired": "sacrosancta",
+        "truth": "sacro"
+      },
+      {
+        "noisy": "poblo",
+        "passage": "vicifons/Pactum_Argentoratense_(Carolus_II_Calvus)#4",
+        "repaired": "populo",
+        "truth": "poblo"
+      },
+      {
+        "noisy": "saluaraeio",
+        "passage": "vicifons/Pactum_Argentoratense_(Carolus_II_Calvus)#4",
+        "repaired": "salua ratio",
+        "truth": "saluaraeio"
+      },
+      {
+        "noisy": "coppulauit",
+        "passage": "vicifons/De_viris_illustribus_(Pius_II)/30#2",
+        "repaired": "copulauit",
+        "truth": "coppulauit"
+      },
+      {
+        "noisy": "alnnos",
+        "passage": "edcs-sdam/Syria-01#114",
+        "repaired": "annos",
+        "truth": "alnnos"
+      },
+      {
+        "noisy": "robaramini",
+        "passage": "vicifons/Navigatio_Sancti_Brendani_Abbatis#150",
+        "repaired": "roboramini",
+        "truth": "robaramini"
+      },
+      {
+        "noisy": "obitiant",
+        "passage": "vicifons/De_rerum_naturis_(Rabanus)/VII#257",
+        "repaired": "obiciant",
+        "truth": "obitiant"
+      },
+      {
+        "noisy": "posueTrunt",
+        "passage": "edcs-sdam/Syria-01#204",
+        "repaired": "posuerunt",
+        "truth": "posueTrunt"
+      },
+      {
+        "noisy": "inchinant",
+        "passage": "vicifons/Baldus/XV#30",
+        "repaired": "inclinant",
+        "truth": "inchinant"
+      },
+      {
+        "noisy": "aripis",
+        "passage": "vicifons/Moldaviae_quae_olim_Daciae_pars_chorographia#28",
+        "repaired": "a ripis",
+        "truth": "aripis"
+      },
+      {
+        "noisy": "piacere",
+        "passage": "vicifons/De_viris_illustribus_(Pius_II)/38#7",
+        "repaired": "placere",
+        "truth": "piacere"
+      },
+      {
+        "noisy": "acidens,",
+        "passage": "vicifons/Baldus/XXV#52",
+        "repaired": "accidens,",
+        "truth": "acidens,"
+      },
+      {
+        "noisy": "multi",
+        "passage": "vicifons/Vita_S._Othmari#35",
+        "repaired": "multis",
+        "truth": "multi"
+      },
+      {
+        "noisy": "Autipho",
+        "passage": "vicifons/De_compendiosa_doctrina/II._De_honestis_et_nove_veterum_dictis_per_litteras#420",
+        "repaired": "Antipho",
+        "truth": "Autipho"
+      },
+      {
+        "noisy": "f6rs",
+        "passage": "vicifons/De_compendiosa_doctrina/II._De_honestis_et_nove_veterum_dictis_per_litteras#420",
+        "repaired": "fors",
+        "truth": "f6rs"
+      },
+      {
+        "noisy": "fortuoa!",
+        "passage": "vicifons/De_compendiosa_doctrina/II._De_honestis_et_nove_veterum_dictis_per_litteras#420",
+        "repaired": "fortuna!",
+        "truth": "fortuoa!"
+      },
+      {
+        "noisy": "hicum",
+        "passage": "vicifons/Vita_S._Adalberti_(Joannes_Canaparius)#6",
+        "repaired": "hircum",
+        "truth": "hicum"
+      },
+      {
+        "noisy": "aduefbium",
+        "passage": "vicifons/De_compendiosa_doctrina/II._De_honestis_et_nove_veterum_dictis_per_litteras#1264",
+        "repaired": "aduerbium",
+        "truth": "aduefbium"
+      },
+      {
+        "noisy": "auctotre",
+        "passage": "vicifons/De_compendiosa_doctrina/II._De_honestis_et_nove_veterum_dictis_per_litteras#1264",
+        "repaired": "auctore",
+        "truth": "auctotre"
+      },
+      {
+        "noisy": "scariuimus",
+        "passage": "vicifons/Capitulare_Carisiacense_(Carolus_II_Calvus)#16",
+        "repaired": "scribimus",
+        "truth": "scariuimus"
+      }
+    ],
+    "miscorrected": [
+      {
+        "noisy": "Uespas ian o",
+        "passage": "edcs-sdam/Roma-35#199",
+        "repaired": "Uespasian o",
+        "truth": "Uespasiano"
+      },
+      {
+        "noisy": "Quodsf",
+        "passage": "vicifons/Edictum_Pitense_(Carolus_II_Calvus)#62",
+        "repaired": "Quodsi",
+        "truth": "Quod"
+      },
+      {
+        "noisy": "Quodsf",
+        "passage": "vicifons/Edictum_Pitense_(Carolus_II_Calvus)#62",
+        "repaired": "Quodsi",
+        "truth": "si"
+      },
+      {
+        "noisy": "mecato ribus",
+        "passage": "vicifons/Regesta_sive_epistolae_1/VB#149",
+        "repaired": "mercato ribus",
+        "truth": "mercatoribus"
+      },
+      {
+        "noisy": "oblidatonas",
+        "passage": "vicifons/Regesta_sive_epistolae_1/VB#149",
+        "repaired": "obligationes",
+        "truth": "obligatorias"
+      },
+      {
+        "noisy": "mercatoibuset",
+        "passage": "vicifons/Regesta_sive_epistolae_1/VB#149",
+        "repaired": "mercatoribus",
+        "truth": "et"
+      },
+      {
+        "noisy": "denarumreicere,",
+        "passage": "vicifons/Edictum_Carisiacense_(Carolus_II_Calvus)#4",
+        "repaired": "denarum",
+        "truth": "denarium"
+      },
+      {
+        "noisy": "priualo rurnqge",
+        "passage": "vicifons/In_Consistoriali#13",
+        "repaired": "priuato ruinae",
+        "truth": "priuatorumque"
+      },
+      {
+        "noisy": "Eeclesi ae",
+        "passage": "vicifons/In_Consistoriali#13",
+        "repaired": "Eeclesiae",
+        "truth": "Ecclesiae"
+      },
+      {
+        "noisy": "ccSanctae",
+        "passage": "vicifons/In_Consistoriali#13",
+        "repaired": "cc",
+        "truth": "et"
+      },
+      {
+        "noisy": "Archiepis coiim",
+        "passage": "vicifons/In_Consistoriali#13",
+        "repaired": "Archiepis copiam",
+        "truth": "Archiepiscopum"
+      },
+      {
+        "noisy": "marty risde",
+        "passage": "vicifons/De_Trinitate_confessio#1",
+        "repaired": "marty iisdem",
+        "truth": "martyris"
+      },
+      {
+        "noisy": "risde",
+        "passage": "vicifons/De_Trinitate_confessio#1",
+        "repaired": "iisdem",
+        "truth": "de"
+      },
+      {
+        "noisy": "acc ipe.re",
+        "passage": "vicifons/Edictum_de_tributo_Nordmannico_(Carolus_II_Calvus)#2",
+        "repaired": "acc pere",
+        "truth": "accipere"
+      },
+      {
+        "noisy": "receleren.",
+        "passage": "vicifons/Edictum_de_tributo_Nordmannico_(Carolus_II_Calvus)#2",
+        "repaired": "recedere.",
+        "truth": "recederent."
+      },
+      {
+        "noisy": "quardamque",
+        "passage": "vicifons/De_viris_illustribus_(Pius_II)/30#0",
+        "repaired": "quandamque",
+        "truth": "quasdamque"
+      },
+      {
+        "noisy": "uidean",
+        "passage": "vicifons/Acta_conventus_Attiniacensis_(Carolus_II_Calvus)#6",
+        "repaired": "uideat",
+        "truth": "uideant"
+      },
+      {
+        "noisy": "cauiata",
+        "passage": "vicifons/Baldus/XXV#23",
+        "repaired": "cauata",
+        "truth": "cauiatam"
+      },
+      {
+        "noisy": "sancta",
+        "passage": "vicifons/Sermones_de_S._Iacobo#129",
+        "repaired": "sacrosancta",
+        "truth": "sancto"
+      },
+      {
+        "noisy": "funtu",
+        "passage": "edcs-sdam/Aemilia_/_Regio_VIII-03#74",
+        "repaired": "functus",
+        "truth": "fundum"
+      },
+      {
+        "noisy": "dcdtto",
+        "passage": "edcs-sdam/Aemilia_/_Regio_VIII-03#74",
+        "repaired": "dedito",
+        "truth": "deducto"
+      },
+      {
+        "noisy": "CCXCIImili6us",
+        "passage": "edcs-sdam/Aemilia_/_Regio_VIII-03#74",
+        "repaired": "CCXCII milibus",
+        "truth": "CCXCIImilibus"
+      },
+      {
+        "noisy": "ua",
+        "passage": "vicifons/Vita_S._Sturmii#9",
+        "repaired": "sua",
+        "truth": "suam"
+      },
+      {
+        "noisy": "etim",
+        "passage": "vicifons/De_Trinitate_confessio#58",
+        "repaired": "enim",
+        "truth": "etiam"
+      },
+      {
+        "noisy": "tllo",
+        "passage": "vicifons/De_laude_novae_militiae_ad_Milites_Templi#26",
+        "repaired": "illo",
+        "truth": "bello"
+      },
+      {
+        "noisy": "proccto",
+        "passage": "vicifons/De_laude_novae_militiae_ad_Milites_Templi#26",
+        "repaired": "proiecto",
+        "truth": "profecto"
+      },
+      {
+        "noisy": "collig ltnr,",
+        "passage": "vicifons/De_Trinitate_confessio#53",
+        "repaired": "collig itur,",
+        "truth": "colligitur,"
+      },
+      {
+        "noisy": "EcciesiinBethlehem",
+        "passage": "vicifons/Tractatus_super_psalmos/40#49",
+        "repaired": "Ecclesi",
+        "truth": "Ecclesia"
+      },
+      {
+        "noisy": "inEphr ata.",
+        "passage": "vicifons/Tractatus_super_psalmos/40#49",
+        "repaired": "Ephr ata.",
+        "truth": "Ephrata."
+      },
+      {
+        "noisy": "Morc ello",
+        "passage": "edcs-sdam/Roma-38#184",
+        "repaired": "Marc ello",
+        "truth": "Marcello"
+      },
+      {
+        "noisy": "int clligentiam",
+        "passage": "vicifons/Epistola_ad_Fratres_Augienses_(Gunzo_Grammaticus_Novariensis)#33",
+        "repaired": "int diligentiam",
+        "truth": "intelligentiam"
+      },
+      {
+        "noisy": "obsidi0nerue",
+        "passage": "vicifons/De_viris_illustribus_(Pius_II)/43#12",
+        "repaired": "obsidione rue",
+        "truth": "obsidioneque"
+      },
+      {
+        "noisy": "tixeo;",
+        "passage": "vicifons/De_viris_illustribus_(Pius_II)/43#12",
+        "repaired": "uixero;",
+        "truth": "timeo;"
+      },
+      {
+        "noisy": "statrreest,nigcr,",
+        "passage": "vicifons/De_viris_illustribus_(Pius_II)/43#12",
+        "repaired": "est",
+        "truth": "est,"
+      },
+      {
+        "noisy": "rcinit",
+        "passage": "vicifons/De_viris_illustribus_(Pius_II)/36#1",
+        "repaired": "recinit",
+        "truth": "rediuit"
+      },
+      {
+        "noisy": "adquc",
+        "passage": "vicifons/De_viris_illustribus_(Pius_II)/36#1",
+        "repaired": "atque",
+        "truth": "adhuc"
+      },
+      {
+        "noisy": "uimcre",
+        "passage": "vicifons/De_viris_illustribus_(Pius_II)/36#1",
+        "repaired": "timore",
+        "truth": "uigere"
+      },
+      {
+        "noisy": "ox plere,",
+        "passage": "vicifons/Capitula_missa_ad_Francos_et_Aquitanos_(Carolus_II_Calvus)#4",
+        "repaired": "ex plere,",
+        "truth": "explere,"
+      },
+      {
+        "noisy": "Bereugarium.1.",
+        "passage": "vicifons/Capitula_missa_ad_Francos_et_Aquitanos_(Carolus_II_Calvus)#4",
+        "repaired": "Berengarium.",
+        "truth": "Berengarium."
+      },
+      {
+        "noisy": "Bereugarium.1.",
+        "passage": "vicifons/Capitula_missa_ad_Francos_et_Aquitanos_(Carolus_II_Calvus)#4",
+        "repaired": "Berengarium.",
+        "truth": "1."
+      }
+    ]
+  },
+  "generated": "2026-09-18T23:22:52+00:00",
+  "interval95": {
+    "cer_reduction": [
+      0.6154657293497364,
+      0.6712328767123288
+    ],
+    "harm_per_1000": [
+      1.0793756227167055,
+      2.9140359397765905
+    ],
+    "precision": [
+      0.8911268372346217,
+      0.9227467811158798
+    ],
+    "recall": [
+      0.6579939668174962,
+      0.7092260603410582
+    ],
+    "recall_nonword": [
+      0.7026558891454965,
+      0.7624867162592986
+    ],
+    "recall_real_word": [
+      0.48044692737430167,
+      0.5807770961145194
+    ]
+  },
+  "overall": {
+    "cer_after": 0.010159782033752831,
+    "cer_before": 0.02842343735965429,
+    "cer_reduction": 0.6425561797752809,
+    "harm_per_1000": 1.9130000831739167,
+    "harm_per_1000_inlex": 0.3448573152858005,
+    "harm_per_1000_oov": 44.81132075471698,
+    "precision": 0.9073143495254048,
+    "recall": 0.6836348338241481,
+    "recall_nonword": 0.731129476584022,
+    "recall_real_word": 0.5302491103202847,
+    "silent_per_1000_after": 28.541666666666668,
+    "silent_per_1000_before": 39.02777777777778,
+    "word_error_after": 0.05381944444444445,
+    "word_error_before": 0.16506944444444444
+  },
+  "per_passage": {
+    "keys": [
+      "broken",
+      "chars",
+      "dist_after",
+      "dist_before",
+      "fixed",
+      "inlex:broken",
+      "inlex:fixed",
+      "inlex:kept",
+      "inlex:miscorrected",
+      "inlex:missed",
+      "kept",
+      "miscorrected",
+      "missed",
+      "nonword:fixed",
+      "nonword:miscorrected",
+      "nonword:missed",
+      "oov:broken",
+      "oov:kept",
+      "oov:miscorrected",
+      "oov:missed",
+      "real:fixed",
+      "real:miscorrected",
+      "real:missed",
+      "silent_after",
+      "silent_before",
+      "words"
+    ],
+    "rows": [
+      "0 434 0 0 0 0 0 57 0 0 60 0 0 0 0 0 0 3 0 0 0 0 0 0 0 60",
+      "0 355 0 6 5 0 5 54 0 0 55 0 0 5 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 431 9 19 9 0 9 43 1 6 43 1 7 5 0 5 0 0 0 1 4 1 2 3 7 60",
+      "0 401 13 40 21 0 21 28 2 8 29 2 8 14 2 3 0 1 0 0 7 0 5 7 12 60",
+      "0 440 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 422 1 3 2 0 2 55 0 1 57 0 1 2 0 0 0 2 0 0 0 0 1 1 1 60",
+      "0 404 2 10 9 0 9 46 0 1 50 0 1 8 0 0 0 4 0 0 1 0 1 1 2 60",
+      "0 437 11 35 22 0 22 31 3 4 31 3 4 18 3 2 0 0 0 0 4 0 2 5 6 60",
+      "0 378 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 466 0 3 4 0 4 52 0 0 56 0 0 4 0 0 0 4 0 0 0 0 0 0 0 60",
+      "0 418 4 11 8 0 8 48 1 2 48 1 3 8 1 2 0 0 0 1 0 0 1 2 1 60",
+      "0 479 17 41 16 0 16 32 4 6 33 4 7 13 4 0 0 1 0 1 3 0 7 11 10 60",
+      "0 452 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 419 5 6 2 0 2 52 2 2 54 2 2 2 2 2 0 2 0 0 0 0 0 1 0 60",
+      "0 444 8 25 16 0 16 36 0 6 37 0 7 16 0 6 0 1 0 1 0 0 1 1 1 60",
+      "0 428 21 38 13 0 13 31 2 14 31 2 14 10 2 6 0 0 0 0 3 0 8 10 11 60",
+      "0 397 0 0 0 0 0 57 0 0 60 0 0 0 0 0 0 3 0 0 0 0 0 0 0 60",
+      "0 423 0 0 0 0 0 57 0 0 60 0 0 0 0 0 0 3 0 0 0 0 0 0 0 60",
+      "0 381 5 15 8 0 8 41 0 6 45 0 7 7 0 2 0 4 0 1 1 0 5 5 6 60",
+      "0 458 15 41 24 0 24 29 0 7 29 0 7 17 0 5 0 0 0 0 7 0 2 2 9 60",
+      "1 434 1 0 0 1 0 56 0 0 59 0 0 0 0 0 0 3 0 0 0 0 0 1 0 60",
+      "0 427 0 3 4 0 4 53 0 0 56 0 0 4 0 0 0 3 0 0 0 0 0 0 0 60",
+      "0 405 2 13 12 0 12 45 0 2 46 0 2 10 0 0 0 1 0 0 2 0 2 2 4 60",
+      "0 436 9 25 13 0 13 38 1 7 39 1 7 12 1 6 0 1 0 0 1 0 1 2 2 60",
+      "1 448 1 0 0 0 0 58 0 0 59 0 0 0 0 0 1 1 0 0 0 0 0 1 0 60",
+      "0 421 0 4 4 0 4 56 0 0 56 0 0 4 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 418 2 13 10 0 10 49 0 1 49 0 1 8 0 0 0 0 0 0 2 0 1 1 3 60",
+      "0 438 6 27 18 0 18 36 1 5 36 1 5 17 0 3 0 0 0 0 1 1 2 3 4 60",
+      "0 426 0 0 0 0 0 57 0 0 60 0 0 0 0 0 0 3 0 0 0 0 0 0 0 60",
+      "1 442 2 1 0 0 0 57 0 1 58 0 1 0 0 0 1 1 0 0 0 0 1 2 1 60",
+      "0 445 2 6 5 0 5 52 0 2 53 0 2 4 0 1 0 1 0 0 1 0 1 1 2 60",
+      "0 407 12 27 12 0 12 37 0 9 37 0 11 8 0 6 0 0 0 2 4 0 5 5 9 60",
+      "0 401 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 470 0 6 5 0 5 54 0 0 55 0 0 5 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 442 6 12 6 0 6 46 0 1 49 1 4 6 1 3 0 3 1 3 0 0 1 2 1 60",
+      "1 429 5 18 12 1 12 44 1 2 44 1 2 12 0 0 0 0 0 0 0 1 2 4 3 60",
+      "2 313 4 0 0 0 0 45 0 0 58 0 0 0 0 0 2 13 0 0 0 0 0 2 0 60",
+      "0 402 0 2 3 0 3 56 0 0 57 0 0 2 0 0 0 1 0 0 1 0 0 0 1 60",
+      "0 446 2 14 11 0 11 47 0 2 47 0 2 8 0 0 0 0 0 0 3 0 2 2 5 60",
+      "0 387 17 30 12 0 12 34 2 6 37 3 8 11 3 7 0 3 1 2 1 0 1 4 2 60",
+      "0 477 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 450 0 2 2 0 2 58 0 0 58 0 0 1 0 0 0 0 0 0 1 0 0 0 1 60",
+      "0 475 6 20 10 0 10 41 1 6 43 1 6 9 0 5 0 2 0 0 1 1 1 2 3 60",
+      "0 389 20 33 14 0 14 33 1 12 33 1 12 10 0 9 0 0 0 0 4 1 3 4 8 60",
+      "1 435 1 0 0 0 0 58 0 0 59 0 0 0 0 0 1 1 0 0 0 0 0 1 0 60",
+      "0 419 0 3 2 0 2 57 0 0 58 0 0 2 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 429 3 12 9 0 9 46 0 3 48 0 3 7 0 2 0 2 0 0 2 0 1 1 3 60",
+      "0 367 6 30 21 0 21 31 0 5 34 0 5 14 0 1 0 3 0 0 7 0 4 4 11 60",
+      "0 424 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 422 0 3 3 0 3 57 0 0 57 0 0 3 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 436 1 9 6 0 6 52 0 1 53 0 1 4 0 0 0 1 0 0 2 0 1 1 3 60",
+      "0 377 11 24 10 0 10 41 2 6 42 2 6 9 2 1 0 1 0 0 1 0 5 7 6 60",
+      "0 384 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 388 1 1 0 0 0 56 0 2 58 0 2 0 0 2 0 2 0 0 0 0 0 0 0 60",
+      "0 388 2 7 5 0 5 52 0 1 54 0 1 4 0 1 0 2 0 0 1 0 0 0 1 60",
+      "0 397 4 19 14 0 14 42 1 3 42 1 3 11 1 1 0 0 0 0 3 0 2 2 5 60",
+      "0 388 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 469 0 2 3 0 3 57 0 0 57 0 0 2 0 0 0 0 0 0 1 0 0 0 1 60",
+      "0 408 4 22 14 0 14 37 2 4 40 2 4 10 2 4 0 3 0 0 4 0 0 2 4 60",
+      "0 395 21 31 10 0 10 31 1 18 31 1 18 8 1 10 0 0 0 0 2 0 8 9 10 60",
+      "0 438 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "1 392 3 2 0 0 0 58 0 0 58 0 1 0 0 1 1 0 0 1 0 0 0 1 0 60",
+      "0 402 2 8 6 0 6 50 0 3 51 0 3 3 0 2 0 1 0 0 3 0 1 1 4 60",
+      "0 450 13 42 23 0 23 32 1 4 32 1 4 18 1 3 0 0 0 0 5 0 1 2 6 60",
+      "0 386 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 418 0 3 4 0 4 53 0 0 56 0 0 4 0 0 0 3 0 0 0 0 0 0 0 60",
+      "0 443 2 4 2 0 2 50 0 1 56 0 2 2 0 1 0 6 0 1 0 0 1 1 1 60",
+      "0 392 18 32 14 0 14 30 3 7 34 3 9 11 3 6 0 4 0 2 3 0 3 6 6 60",
+      "1 393 1 0 0 0 0 59 0 0 59 0 0 0 0 0 1 0 0 0 0 0 0 1 0 60",
+      "0 452 3 8 5 0 5 52 0 3 52 0 3 5 0 2 0 0 0 0 0 0 1 1 1 60",
+      "0 401 2 17 12 0 12 46 0 2 46 0 2 8 0 0 0 0 0 0 4 0 2 2 6 60",
+      "0 448 21 34 14 0 14 31 3 12 31 3 12 13 3 8 0 0 0 0 1 0 4 7 5 60",
+      "0 505 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 371 0 1 1 0 1 54 0 0 59 0 0 1 0 0 0 5 0 0 0 0 0 0 0 60",
+      "0 393 5 16 8 0 8 49 0 3 49 0 3 8 0 1 0 0 0 0 0 0 2 2 2 60",
+      "0 443 17 35 18 0 18 30 5 5 30 6 6 14 5 4 0 0 1 1 4 1 2 8 7 60",
+      "0 434 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 409 1 2 1 0 1 54 0 2 57 0 2 1 0 2 0 3 0 0 0 0 0 0 0 60",
+      "0 430 1 12 12 0 12 47 0 1 47 0 1 12 0 0 0 0 0 0 0 0 1 1 1 60",
+      "0 394 6 20 14 0 14 40 1 5 40 1 5 13 1 2 0 0 0 0 1 0 3 4 4 60",
+      "0 431 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 383 2 8 6 0 6 52 0 2 52 0 2 5 0 1 0 0 0 0 1 0 1 1 2 60",
+      "0 373 1 11 11 0 11 48 0 1 48 0 1 8 0 1 0 0 0 0 3 0 0 0 3 60",
+      "0 430 5 20 15 0 15 40 1 1 43 1 1 14 1 1 0 3 0 0 1 0 0 1 1 60",
+      "0 415 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 416 1 4 2 0 2 56 0 1 57 0 1 2 0 1 0 1 0 0 0 0 0 0 0 60",
+      "0 434 0 9 8 0 8 51 0 0 52 0 0 7 0 0 0 1 0 0 1 0 0 0 1 60",
+      "1 456 20 38 16 0 16 34 3 5 34 3 6 14 3 6 1 0 0 1 2 0 0 4 2 60",
+      "0 428 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 439 0 4 4 0 4 53 0 0 56 0 0 3 0 0 0 3 0 0 1 0 0 0 1 60",
+      "0 505 3 15 12 0 12 46 0 0 47 0 1 11 0 1 0 1 0 1 1 0 0 0 1 60",
+      "0 401 5 25 18 0 18 35 1 4 36 1 5 15 1 5 0 1 0 1 3 0 0 1 3 60",
+      "0 443 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 395 4 6 4 0 4 52 0 1 52 1 3 4 1 3 0 0 1 2 0 0 0 1 0 60",
+      "0 466 1 10 7 0 7 48 0 1 52 0 1 4 0 0 0 4 0 0 3 0 1 1 4 60",
+      "0 437 22 38 13 0 13 29 3 14 30 3 14 13 3 11 0 1 0 0 0 0 3 6 3 60",
+      "0 390 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 404 0 3 2 0 2 55 0 0 58 0 0 2 0 0 0 3 0 0 0 0 0 0 0 60",
+      "0 437 5 11 6 0 6 46 0 7 47 0 7 6 0 5 0 1 0 0 0 0 2 2 2 60",
+      "0 417 14 36 15 0 15 33 3 7 35 3 7 14 2 4 0 2 0 0 1 1 3 6 5 60",
+      "0 413 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 393 0 7 6 0 6 54 0 0 54 0 0 4 0 0 0 0 0 0 2 0 0 0 2 60",
+      "1 475 5 22 13 0 13 42 1 2 43 1 2 13 1 0 1 1 0 0 0 0 2 4 2 60",
+      "0 434 9 32 18 0 18 37 3 2 37 3 2 12 3 1 0 0 0 0 6 0 1 4 7 60",
+      "0 398 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 408 2 8 5 0 5 54 0 1 54 0 1 3 0 1 0 0 0 0 2 0 0 0 2 60",
+      "0 378 5 9 4 0 4 51 0 5 51 0 5 4 0 1 0 0 0 0 0 0 4 4 4 60",
+      "0 409 13 27 10 0 10 40 2 7 40 2 8 9 2 4 0 0 0 1 1 0 4 6 5 60",
+      "0 378 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 407 1 3 2 0 2 55 0 1 57 0 1 1 0 0 0 2 0 0 1 0 1 1 2 60",
+      "0 394 4 13 7 0 7 49 0 2 50 0 3 6 0 2 0 1 0 1 1 0 1 1 2 60",
+      "0 407 23 38 14 0 14 33 6 7 33 6 7 9 6 7 0 0 0 0 5 0 0 6 5 60",
+      "0 377 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 401 1 3 2 0 2 54 0 0 57 0 1 1 0 1 0 3 0 1 1 0 0 0 1 60",
+      "0 396 2 9 6 0 6 52 0 1 53 0 1 6 0 0 0 1 0 0 0 0 1 1 1 60",
+      "0 422 2 21 16 0 16 41 0 1 43 0 1 10 0 0 0 2 0 0 6 0 1 1 7 60",
+      "0 423 0 0 0 0 0 56 0 0 60 0 0 0 0 0 0 4 0 0 0 0 0 0 0 60",
+      "0 440 0 3 3 0 3 57 0 0 57 0 0 1 0 0 0 0 0 0 2 0 0 0 2 60",
+      "0 412 7 18 11 0 11 40 2 2 42 2 5 8 1 3 0 2 0 3 3 1 2 4 6 60",
+      "0 404 8 34 19 0 19 33 0 7 34 0 7 16 0 3 0 1 0 0 3 0 4 4 7 60",
+      "0 453 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 441 2 8 5 0 5 48 0 2 53 0 2 4 0 0 0 5 0 0 1 0 2 2 3 60",
+      "0 437 4 12 8 0 8 48 0 0 50 0 2 7 0 2 0 2 0 2 1 0 0 0 1 60",
+      "0 392 12 26 15 0 15 37 4 3 37 4 4 10 4 3 0 0 0 1 5 0 1 5 6 60",
+      "0 366 0 0 0 0 0 56 0 0 60 0 0 0 0 0 0 4 0 0 0 0 0 0 0 60",
+      "0 451 5 4 0 0 0 46 1 0 57 2 1 0 2 1 0 11 1 1 0 0 0 2 0 60",
+      "0 422 3 9 7 0 7 50 1 2 50 1 2 6 1 0 0 0 0 0 1 0 2 3 3 60",
+      "0 404 24 35 14 0 14 27 5 10 30 6 10 11 5 7 0 3 1 0 3 1 3 9 7 60",
+      "0 396 0 0 0 0 0 52 0 0 60 0 0 0 0 0 0 8 0 0 0 0 0 0 0 60",
+      "0 411 0 2 2 0 2 56 0 0 58 0 0 2 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 428 3 8 4 0 4 47 0 5 51 0 5 4 0 4 0 4 0 0 0 0 1 1 1 60",
+      "0 438 14 38 16 0 16 34 1 8 35 1 8 15 0 7 0 1 0 0 1 1 1 2 3 60",
+      "0 393 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 438 1 5 3 0 3 54 0 1 56 0 1 2 0 0 0 2 0 0 1 0 1 1 2 60",
+      "1 428 12 23 8 0 8 43 1 4 45 1 5 7 1 4 1 2 0 1 1 0 1 3 2 60",
+      "0 437 20 42 16 0 16 32 3 9 32 3 9 13 3 8 0 0 0 0 3 0 1 4 4 60",
+      "0 426 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 449 1 6 4 0 4 55 1 0 55 1 0 4 1 0 0 0 0 0 0 0 0 1 0 60",
+      "0 404 3 12 8 0 8 50 2 0 50 2 0 7 2 0 0 0 0 0 1 0 0 2 1 60",
+      "0 423 10 31 16 0 16 36 5 2 37 5 2 15 5 0 0 1 0 0 1 0 2 7 3 60",
+      "0 403 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 391 1 6 4 0 4 50 0 1 55 0 1 2 0 1 0 5 0 0 2 0 0 0 2 60",
+      "0 314 4 9 4 0 4 44 0 6 50 0 6 4 0 4 0 6 0 0 0 0 2 2 2 60",
+      "0 410 8 24 15 0 15 37 0 6 39 0 6 13 0 2 0 2 0 0 2 0 4 4 6 60",
+      "0 429 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 453 0 2 2 0 2 57 0 0 58 0 0 2 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 434 4 14 9 0 9 47 0 4 47 0 4 6 0 1 0 0 0 0 3 0 3 3 6 60",
+      "0 420 16 34 13 0 13 38 1 8 38 1 8 12 1 4 0 0 0 0 1 0 4 5 5 60",
+      "1 426 1 0 0 0 0 52 0 0 59 0 0 0 0 0 1 7 0 0 0 0 0 1 0 60",
+      "0 503 6 5 2 0 2 48 0 3 53 1 4 2 1 4 0 5 1 1 0 0 0 1 0 60",
+      "0 404 4 14 8 0 8 46 1 3 47 2 3 6 1 2 0 1 1 0 2 1 1 3 4 60",
+      "0 381 11 27 15 0 15 36 2 3 40 2 3 14 2 2 0 4 0 0 1 0 1 3 2 60",
+      "0 388 0 0 0 0 0 57 0 0 60 0 0 0 0 0 0 3 0 0 0 0 0 0 0 60",
+      "0 362 2 6 2 0 2 52 0 2 55 0 3 1 0 2 0 3 0 1 1 0 1 1 2 60",
+      "0 378 2 15 8 0 8 45 1 1 50 1 1 6 1 0 0 5 0 0 2 0 1 2 3 60",
+      "0 422 11 34 18 0 18 30 1 6 35 1 6 18 1 1 0 5 0 0 0 0 5 6 5 60",
+      "0 447 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 432 3 4 1 0 1 53 0 2 56 0 3 1 0 1 0 3 0 1 0 0 2 2 2 60",
+      "0 386 3 13 9 0 9 47 1 2 48 1 2 8 1 0 0 1 0 0 1 0 2 3 3 60",
+      "0 364 4 21 12 0 12 44 0 4 44 0 4 10 0 2 0 0 0 0 2 0 2 2 4 60",
+      "0 427 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 438 1 7 5 0 5 51 0 0 54 0 1 5 0 1 0 3 0 1 0 0 0 0 0 60",
+      "1 443 6 15 10 1 10 43 1 4 44 1 4 9 1 2 0 1 0 0 1 0 2 4 3 60",
+      "0 374 14 27 8 0 8 41 1 8 41 2 9 8 2 6 0 0 1 1 0 0 3 5 3 60",
+      "0 359 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 430 0 4 4 0 4 56 0 0 56 0 0 2 0 0 0 0 0 0 2 0 0 0 2 60",
+      "0 392 7 15 9 0 9 46 0 4 46 0 5 7 0 1 0 0 0 1 2 0 4 4 6 60",
+      "0 443 10 25 12 0 12 40 4 2 42 4 2 9 4 1 0 2 0 0 3 0 1 4 4 60",
+      "0 414 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 432 0 1 1 0 1 55 0 0 59 0 0 1 0 0 0 4 0 0 0 0 0 0 0 60",
+      "0 394 3 9 4 0 4 52 1 2 52 1 3 1 1 3 0 0 0 1 3 0 0 1 3 60",
+      "0 432 19 36 16 0 16 32 1 7 33 1 10 10 1 9 0 1 0 3 6 0 1 2 7 60",
+      "0 364 0 0 0 0 0 54 0 0 60 0 0 0 0 0 0 6 0 0 0 0 0 0 0 60",
+      "0 484 0 6 5 0 5 53 0 0 55 0 0 4 0 0 0 2 0 0 1 0 0 0 1 60",
+      "0 404 4 14 10 0 10 44 0 2 47 1 2 8 1 2 0 3 1 0 2 0 0 1 2 60",
+      "0 402 8 30 21 0 21 33 2 4 33 2 4 16 2 0 0 0 0 0 5 0 4 6 9 60",
+      "0 451 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 403 0 7 8 0 8 51 0 0 52 0 0 7 0 0 0 1 0 0 1 0 0 0 1 60",
+      "0 413 2 12 9 0 9 45 0 2 49 0 2 8 0 2 0 4 0 0 1 0 0 0 1 60",
+      "0 432 8 33 16 0 16 37 1 5 37 1 6 14 1 2 0 0 0 1 2 0 4 5 6 60",
+      "0 424 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 422 1 6 4 0 4 52 0 1 55 0 1 2 0 1 0 3 0 0 2 0 0 0 2 60",
+      "0 447 1 11 9 0 9 48 0 1 50 0 1 6 0 1 0 2 0 0 3 0 0 0 3 60",
+      "0 390 10 33 21 0 21 31 3 5 31 3 5 18 2 0 0 0 0 0 3 1 5 7 9 60",
+      "0 419 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 385 0 1 1 0 1 58 0 0 59 0 0 1 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 397 2 12 11 0 11 44 0 2 47 0 2 10 0 1 0 3 0 0 1 0 1 1 2 60",
+      "0 444 22 46 21 0 21 28 2 9 28 2 9 16 2 5 0 0 0 0 5 0 4 6 9 60",
+      "0 443 0 0 0 0 0 56 0 0 60 0 0 0 0 0 0 4 0 0 0 0 0 0 0 60",
+      "0 434 1 9 8 0 8 50 0 1 51 0 1 7 0 0 0 1 0 0 1 0 1 1 2 60",
+      "0 409 1 9 7 0 7 46 0 2 51 0 2 5 0 2 0 5 0 0 2 0 0 0 2 60",
+      "0 394 10 32 20 0 20 32 0 5 34 1 5 14 1 4 0 2 1 0 6 0 1 2 7 60",
+      "0 452 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 419 2 3 1 0 1 56 0 1 57 0 2 0 0 1 0 1 0 1 1 0 1 1 2 60",
+      "0 442 2 18 10 0 10 47 0 0 49 0 1 9 0 1 0 2 0 1 1 0 0 0 1 60",
+      "0 499 16 38 17 0 17 30 0 5 34 1 8 17 1 5 0 4 1 3 0 0 3 3 3 60",
+      "1 434 1 0 0 0 0 53 0 0 59 0 0 0 0 0 1 6 0 0 0 0 0 1 0 60",
+      "0 397 1 7 4 0 4 53 0 1 55 0 1 2 0 0 0 2 0 0 2 0 1 1 3 60",
+      "0 399 3 9 7 0 7 49 0 3 50 0 3 6 0 1 0 1 0 0 1 0 2 2 3 60",
+      "0 154 3 3 0 0 0 54 0 6 54 0 6 0 0 2 0 0 0 0 0 0 4 4 4 60",
+      "0 423 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 464 3 8 5 0 5 48 0 3 51 0 4 5 0 0 0 3 0 1 0 0 4 4 4 60",
+      "1 460 5 15 11 1 11 42 0 6 42 0 6 9 0 2 0 0 0 0 2 0 4 5 6 60",
+      "0 406 15 34 16 0 16 34 1 9 34 1 9 12 1 7 0 0 0 0 4 0 2 3 6 60",
+      "0 397 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 508 0 5 5 0 5 55 0 0 55 0 0 5 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 430 0 10 10 0 10 49 0 0 50 0 0 10 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 432 4 26 19 0 19 37 0 3 37 0 4 16 0 2 0 0 0 1 3 0 2 2 5 60",
+      "0 418 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "3 417 3 2 2 0 2 48 0 0 55 0 0 1 0 0 3 7 0 0 1 0 0 3 1 60",
+      "0 427 4 8 5 0 5 43 0 1 51 1 3 4 1 2 0 8 1 2 1 0 1 2 2 60",
+      "0 412 7 23 14 0 14 41 1 2 42 2 2 11 2 0 0 1 1 0 3 0 2 4 5 60",
+      "1 431 1 0 0 0 0 54 0 0 59 0 0 0 0 0 1 5 0 0 0 0 0 1 0 60",
+      "2 380 5 3 1 0 1 40 0 1 55 1 1 1 1 1 2 15 1 0 0 0 0 3 0 60",
+      "0 429 2 10 6 0 6 50 0 4 50 0 4 5 0 4 0 0 0 0 1 0 0 0 1 60",
+      "0 391 4 26 19 0 19 36 1 3 37 1 3 12 1 0 0 1 0 0 7 0 3 4 10 60",
+      "0 438 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 382 0 5 4 0 4 56 0 0 56 0 0 3 0 0 0 0 0 0 1 0 0 0 1 60",
+      "0 421 5 12 6 0 6 47 0 5 48 0 6 5 0 4 0 1 0 1 1 0 2 2 3 60",
+      "0 350 12 27 12 0 12 33 1 9 38 1 9 10 1 2 0 5 0 0 2 0 7 8 9 60",
+      "0 393 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "0 399 0 1 1 0 1 59 0 0 59 0 0 0 0 0 0 0 0 0 1 0 0 0 1 60",
+      "0 503 5 12 7 0 7 42 0 5 46 0 7 7 0 7 0 4 0 2 0 0 0 0 0 60",
+      "0 460 14 41 20 0 20 33 3 3 34 3 3 18 3 2 0 1 0 0 2 0 1 4 3 60",
+      "0 419 0 0 0 0 0 56 0 0 60 0 0 0 0 0 0 4 0 0 0 0 0 0 0 60",
+      "0 416 0 0 0 0 0 58 0 0 60 0 0 0 0 0 0 2 0 0 0 0 0 0 0 60",
+      "1 421 2 9 10 0 10 48 0 0 49 0 0 7 0 0 1 1 0 0 3 0 0 1 3 60",
+      "0 425 8 30 19 0 19 36 0 4 36 0 5 15 0 5 0 0 0 1 4 0 0 0 4 60",
+      "0 411 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 531 0 7 7 0 7 52 0 0 53 0 0 6 0 0 0 1 0 0 1 0 0 0 1 60",
+      "0 395 3 7 4 0 4 54 1 0 54 1 1 4 1 1 0 0 0 1 0 0 0 1 0 60",
+      "0 390 15 31 17 0 17 29 3 7 33 3 7 6 3 4 0 4 0 0 11 0 3 5 14 60",
+      "0 385 0 0 0 0 0 60 0 0 60 0 0 0 0 0 0 0 0 0 0 0 0 0 0 60",
+      "0 443 0 4 4 0 4 55 0 0 56 0 0 3 0 0 0 1 0 0 1 0 0 0 1 60",
+      "0 325 6 9 2 0 2 53 0 5 53 0 5 2 0 3 0 0 0 0 0 0 2 2 2 60",
+      "0 414 11 38 22 0 22 33 2 3 33 2 3 20 1 3 0 0 0 0 2 1 0 2 3 60",
+      "0 365 0 0 0 0 0 59 0 0 60 0 0 0 0 0 0 1 0 0 0 0 0 0 0 60",
+      "0 473 0 5 6 0 6 54 0 0 54 0 0 5 0 0 0 0 0 0 1 0 0 0 1 60",
+      "0 443 6 14 8 0 8 44 1 2 47 1 4 6 1 3 0 3 0 2 2 0 1 2 3 60",
+      "0 369 4 26 18 0 18 37 1 3 38 1 3 13 1 2 0 1 0 0 5 0 1 2 6 60"
+    ]
+  },
+  "rule": {
+    "capital": 4.0,
+    "join": 0.0,
+    "known": 2.0,
+    "margin": 6,
+    "repeated": 0.0,
+    "seen": 1.0,
+    "short": 4,
+    "split": 2.0,
+    "unknown": 0.0,
+    "weight": 1.5
+  },
+  "schema_version": 1,
+  "seconds": 851.2,
+  "system": "fim:latin-lii-fim",
+  "tokenizer": {
+    "sha256": "f64b7246a477af75",
+    "vocab": 4000
+  }
+}

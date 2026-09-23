@@ -271,6 +271,31 @@ sources:
   # EVAL — never mixed into pretraining
   # -------------------------------------------------------------------------
 
+  - id: wikisource-scan-ocr
+    name: OCR text layers of the scans behind Latin Wikisource (Wikimedia Commons)
+    url: https://commons.wikimedia.org/w/api.php
+    method: manual
+    pin: null
+    license: public-domain
+    tier: eval
+    include: false
+    format: txt
+    text_provenance: ocr    # the scanner's own output, untouched; that is the point
+    period: MIXED
+    lang_filter: lat
+    est_words: 0
+    notes: >
+      EVALUATION ONLY, and the one source here that must never be cleaned:
+      it is the noise half of ocr/ Tier 2. Each DjVu or PDF that a Vicifons
+      `Pagina:` transcription was proofread against carries the text layer
+      its scanner produced (Google Books, Internet Archive), and the Commons
+      API returns it page by page. Fetched by `python ocr/tier2.py fetch`,
+      not by fetch.py -- hence method: manual and include: false -- and
+      pinned by each file's sha1 in ocr/tier2.lock.json. The scans are of
+      public-domain printings and a machine's reading of them carries no
+      new copyright. The truth half is the vicifons dump already declared
+      above, CC-BY-SA-4.0, which is the licence the benchmark passages carry.
+
   - id: ud-latin-perseus
     name: Universal Dependencies — Latin-Perseus treebank
     url: https://github.com/UniversalDependencies/UD_Latin-Perseus

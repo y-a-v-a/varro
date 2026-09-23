@@ -81,6 +81,32 @@ STATS = {
 # Lexicon
 # ---------------------------------------------------------------------------
 
+def capitalised(corpus: str) -> Dict[str, int]:
+    """How often each lexicon form carries an initial capital in training.
+
+    Keyed lowercase like the lexicon, so a proposer can ask what share of a
+    word's appearances were `Roma` rather than `roma`, and offer the other
+    case where the corpus says the page probably had it.
+    """
+    cache = OUT / f"capitalised-{corpus}.json"
+    if cache.exists():
+        return json.loads(cache.read_text(encoding="utf-8"))
+    source = PROCESSED / f"{corpus}.train.jsonl"
+    lex = lexicon(corpus)
+    counts: Counter = Counter()
+    with source.open(encoding="utf-8") as fh:
+        for line in fh:
+            record = json.loads(line)
+            if record.get("text_provenance") == "ocr":
+                continue
+            for w in ALPHA.findall(record["text"]):
+                if w[0].isupper():
+                    counts[w.lower()] += 1
+    kept = {w: n for w, n in counts.items() if w in lex}
+    cache.write_text(json.dumps(kept), encoding="utf-8")
+    return kept
+
+
 def lexicon(corpus: str) -> Dict[str, int]:
     """Word counts from the TRAINING split, minus what came from OCR.
 
@@ -158,6 +184,46 @@ def draw(corpus: str, n: int, width: int, per_doc: int, seed: int) -> List[Dict[
     return found[:n]
 
 
+def draw_clean(corpus: str, width: int, seed: int, groups: set, taken: set,
+               per_doc: int, n: int) -> List[Dict[str, Any]]:
+    """More undamaged passages, from DEV authors only, for measuring harm.
+
+    Harm is a rare event: two words in a thousand is seven words in dev's
+    sixty clean passages, and a rule with eight margins can be tuned to spare
+    any seven words. Clean text costs nothing to get more of -- it needs no
+    noise, only truth -- so the rule is tuned against ten times as much, and
+    the limit then means something. Dev authors only, so test stays unseen.
+    """
+    import random
+    path = PROCESSED / f"{corpus}.validation.jsonl"
+    found: List[Dict[str, Any]] = []
+    with path.open(encoding="utf-8") as fh:
+        for line in fh:
+            record = json.loads(line)
+            if record.get("text_provenance") != "transcribed":
+                continue
+            if (record.get("author") or record["id"]) not in groups:
+                continue
+            words = record["text"].split()
+            slots = [k for k in range(len(words) // width)
+                     if f"{record['id']}#{k}" not in taken]
+            rng = random.Random(f"{seed}:clean:{record['id']}")
+            for slot in rng.sample(slots, min(per_doc, len(slots))):
+                passage = words[slot * width:(slot + 1) * width]
+                if latinate(passage):
+                    text = " ".join(passage)
+                    found.append({"id": f"{record['id']}#{slot}", "doc": record["id"],
+                                  "author": record.get("author"),
+                                  "period": record.get("period"),
+                                  "source": record.get("source"),
+                                  "license": record.get("license"),
+                                  "split": "clean", "level": 0.0, "truth": text,
+                                  "noisy": text, "classes": [[] for _ in passage],
+                                  "cer": 0.0})
+    found.sort(key=lambda p: _order(seed, "clean:" + p["id"]))
+    return found[:n]
+
+
 def cmd_build(args) -> int:
     import random
     lex = lexicon(args.corpus)
@@ -188,6 +254,14 @@ def cmd_build(args) -> int:
         hashes[split] = hashlib.sha256(body.encode()).hexdigest()[:16]
         (OUT / f"bench-{args.corpus}.{split}.jsonl").write_text(body, encoding="utf-8")
 
+    dev_groups = {p["author"] or p["doc"] for p in splits["dev"]}
+    clean = draw_clean(args.corpus, args.words, args.seed, dev_groups,
+                       {p["id"] for p in passages}, args.clean_per_doc, args.clean)
+    splits["clean"] = clean
+    body = "".join(json.dumps(p, ensure_ascii=False, sort_keys=True) + "\n" for p in clean)
+    hashes["clean"] = hashlib.sha256(body.encode()).hexdigest()[:16]
+    (OUT / f"bench-{args.corpus}.clean.jsonl").write_text(body, encoding="utf-8")
+
     lock = {
         "corpus": args.corpus, "seed": args.seed, "n": args.n,
         "words": args.words, "per_doc": args.per_doc, "levels": list(LEVELS),
@@ -198,7 +272,10 @@ def cmd_build(args) -> int:
     }
     if LOCK.exists() and not args.relock:
         old = json.loads(LOCK.read_text(encoding="utf-8"))
-        if old.get("corpus") == args.corpus and old.get("sha256") != hashes:
+        was = old.get("sha256", {})
+        # A split the old lock never had is an addition, not a drift.
+        if old.get("corpus") == args.corpus and any(
+                was[k] != hashes.get(k) for k in was):
             sys.exit(
                 f"this build does not match {LOCK.relative_to(ROOT)}:\n"
                 f"  locked {old.get('sha256')}\n  built  {hashes}\n"
@@ -209,6 +286,10 @@ def cmd_build(args) -> int:
 
     for split, rows in splits.items():
         print(f"{split:<5} {len(rows):>4} passages  sha256 {hashes[split]}")
+        if split == "clean":
+            print(f"      undamaged, dev authors only, "
+                  f"{sum(len(p['truth'].split()) for p in rows):,} words")
+            continue
         for level in LEVELS:
             at = [p for p in rows if p["level"] == level]
             chars = sum(len(p["truth"]) for p in at)
@@ -224,14 +305,20 @@ def cmd_build(args) -> int:
 # Run
 # ---------------------------------------------------------------------------
 
-def load_split(corpus: str, split: str) -> Tuple[List[Dict[str, Any]], str]:
-    path = OUT / f"bench-{corpus}.{split}.jsonl"
+def load_split(corpus: str, split: str, tier: int = 1) -> Tuple[List[Dict[str, Any]], str]:
+    """A split and its hash, refused if it is not the one the lock records."""
+    if tier == 2:
+        path, lock, how = OUT / f"bench-tier2.{split}.jsonl", HERE / "tier2.lock.json", \
+            "python ocr/tier2.py build"
+    else:
+        path, lock, how = OUT / f"bench-{corpus}.{split}.jsonl", LOCK, \
+            "python ocr/bench.py build"
     if not path.exists():
-        sys.exit(f"missing {path.relative_to(ROOT)} -- run `python ocr/bench.py build`")
+        sys.exit(f"missing {path.relative_to(ROOT)} -- run `{how}`")
     body = path.read_text(encoding="utf-8")
     digest = hashlib.sha256(body.encode()).hexdigest()[:16]
-    if LOCK.exists():
-        locked = json.loads(LOCK.read_text(encoding="utf-8")).get("sha256", {})
+    if lock.exists():
+        locked = json.loads(lock.read_text(encoding="utf-8")).get("sha256", {})
         if locked.get(split) not in (None, digest):
             sys.exit(f"{path.name} is {digest} but the lock says {locked[split]} -- "
                      "rebuild, do not report against a benchmark nobody else has")
@@ -283,7 +370,7 @@ def judge(system, rows: List[Dict[str, Any]], lex: set,
     # answers is a yes or no -- is repair worth running on text this clean? --
     # and a point estimate of +4% on 60 passages cannot answer it.
     by_level = {}
-    for level in sorted({p["level"] for p in rows}):
+    for level in sorted({p["level"] for p in rows}, key=str):
         mine = [t for p, t in zip(rows, tallies) if p["level"] == level]
         part: Counter = Counter()
         for t in mine:
@@ -295,6 +382,11 @@ def judge(system, rows: List[Dict[str, Any]], lex: set,
                 "cer_reduction": metrics.cer_reduction,
                 "harm_per_1000": metrics.harm}),
         }
+
+    # Cleanest first. Tier 1's levels are numbers and sort themselves; Tier
+    # 2's are labels, and "2-6%" sorts before "<2%".
+    by_level = dict(sorted(by_level.items(),
+                           key=lambda kv: kv[1]["cer_before"] or 0.0))
 
     classes = sorted({key.split(":")[1] for key in total if key.startswith("class:")})
     by_class = {c: {"damaged": metrics.damaged(total, f"class:{c}:"),
@@ -329,6 +421,7 @@ def judge(system, rows: List[Dict[str, Any]], lex: set,
         "detection": detection,
         "examples": examples,
         "_tallies": tallies,
+        "_system": system,
     }
 
 
@@ -388,7 +481,8 @@ def show(results: List[Dict[str, Any]]) -> None:
     for r in results:
         cells = []
         for level, s in r["by_level"].items():
-            cells.append(f"{(s['cer_before'] or 0):5.1%}->{(s['cer_after'] or 0):5.1%} "
+            cells.append(f"[{level}] {(s['cer_before'] or 0):5.1%}->"
+                         f"{(s['cer_after'] or 0):5.1%} "
                          f"({fmt(s['harm_per_1000'], False).strip()})")
         print(f"  {r['system']:<28} " + "   ".join(cells))
     for r in results:
@@ -406,9 +500,13 @@ def cmd_run(args) -> int:
     from repairers import make
 
     lex = lexicon(args.corpus)
+    caps = capitalised(args.corpus)
     known = set(lex)
-    dev, _ = load_split(args.corpus, "dev")
-    rows, digest = load_split(args.corpus, args.split)
+    # A repairer learns its channel from the dev split OF THE TIER IT IS RUN
+    # ON. A channel fitted to Tier 1's invented noise and carried to real
+    # scans would be answering a question about the wrong scanner.
+    dev, _ = load_split(args.corpus, "dev", args.tier)
+    rows, digest = load_split(args.corpus, args.split, args.tier)
     if args.limit:
         rows = rows[:args.limit]
     pairs = [(p["truth"], p["noisy"]) for p in dev]
@@ -419,8 +517,8 @@ def cmd_run(args) -> int:
 
     results = []
     for spec in args.system:
-        system = make(spec)
-        system.fit(pairs, lex)
+        system = make(spec, tuned=not args.untuned, tier=args.tier)
+        system.fit(pairs, lex, caps)
         print(f"  {system.name}: {len(rows)} passages from {args.split}", file=sys.stderr)
         results.append(judge(system, rows, known, not args.quiet))
 
@@ -446,12 +544,16 @@ def cmd_run(args) -> int:
     if not args.no_report:
         for r in results:
             tallies = r.pop("_tallies")
+            r_system = r.pop("_system", None)
             r["per_passage"] = pack(tallies)
             slug = re.sub(r"[^a-z0-9]+", "-", r["system"].lower()).strip("-")
-            path = write_report(f"ocr-{slug}-{args.split}", {
-                "benchmark": {"tier": 1, "split": args.split, "sha256": digest,
+            stem = "ocr-" if args.tier == 1 else "ocr-t2-"
+            path = write_report(f"{stem}{slug}-{args.split}", {
+                "benchmark": {"tier": args.tier, "split": args.split, "sha256": digest,
                               "passages": len(tallies), "limit": args.limit or None,
-                              "channel": channel.table_fingerprint()},
+                              "channel": channel.table_fingerprint()
+                              if args.tier == 1 else "real"},
+                "rule": r_system.rule._asdict() if hasattr(r_system, "rule") else None,
                 "code": commit(),
                 **r,
             }, corpus=args.corpus)
@@ -470,15 +572,23 @@ def main() -> int:
     b.add_argument("--words", type=int, default=60, help="words per passage")
     b.add_argument("--per-doc", type=int, default=4,
                    help="most passages any one document may contribute")
+    b.add_argument("--clean", type=int, default=600,
+                   help="extra undamaged passages from dev authors, for harm")
+    b.add_argument("--clean-per-doc", type=int, default=12)
     b.add_argument("--seed", type=int, default=20260917)
     b.add_argument("--relock", action="store_true",
                    help="replace a locked benchmark; earlier reports stop comparing")
 
     r = sub.add_parser("run", help="judge one or more repairers")
     r.add_argument("system", nargs="+",
-                   help="identity | unigram | lii[:checkpoint] | lii-left[:checkpoint]")
+                   help="identity | unigram | lii | lii-left | fim, with optional "
+                        ":checkpoint and @right-context-words")
     r.add_argument("--corpus", default="corpus-b")
-    r.add_argument("--split", choices=("dev", "test"), default="dev")
+    r.add_argument("--split", choices=("dev", "test", "clean"), default="dev")
+    r.add_argument("--untuned", action="store_true",
+                   help="ignore ocr/rules.json; decide on the raw sum")
+    r.add_argument("--tier", type=int, choices=(1, 2), default=1,
+                   help="1: synthetic damage. 2: real scans (ocr/tier2.py build)")
     r.add_argument("--limit", type=int, help="first N passages only; a smoke test")
     r.add_argument("--no-report", action="store_true")
     r.add_argument("--quiet", action="store_true")

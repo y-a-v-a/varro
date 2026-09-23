@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCR Repair Status</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    /* Light palette — complete. Later blocks redefine these tokens only. */
+    --paper:      #f4f5f3;
+    --surface:    #ffffff;
+    --sunken:     #eaece9;
+    --ink:        #16191c;
+    --ink-soft:   #414a52;
+    --muted:      #737d85;   /* grey pulled cool, toward the drawing-blue */
+    --rule:       #d9ddda;
+    --rule-soft:  #e6e9e6;
+    --blue:       #235a75;   /* blueprint ink: the one accent */
+    --blue-soft:  #e2ecf1;
+    --keep:       #4a6b3d;   /* essential */
+    --keep-soft:  #e6eee2;
+    --drop:       #8a7a5c;   /* scaffolding */
+    --drop-soft:  #f0ece2;
+
+    --body: "Spectral", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0f1215;
+      --surface:    #171b1f;
+      --sunken:     #0a0d0f;
+      --ink:        #e6e9ea;
+      --ink-soft:   #b3bcc2;
+      --muted:      #869097;
+      --rule:       #282e33;
+      --rule-soft:  #1f2428;
+      --blue:       #74b4d2;
+      --blue-soft:  #16262e;
+      --keep:       #94c081;
+      --keep-soft:  #182118;
+      --drop:       #c3ad83;
+      --drop-soft:  #201d15;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0f1215;
+    --surface:    #171b1f;
+    --sunken:     #0a0d0f;
+    --ink:        #e6e9ea;
+    --ink-soft:   #b3bcc2;
+    --muted:      #869097;
+    --rule:       #282e33;
+    --rule-soft:  #1f2428;
+    --blue:       #74b4d2;
+    --blue-soft:  #16262e;
+    --keep:       #94c081;
+    --keep-soft:  #182118;
+    --drop:       #c3ad83;
+    --drop-soft:  #201d15;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17.5px;
+    line-height: 1.62;
+    margin: 0;
+    padding: clamp(1.75rem, 5vw, 4rem) clamp(1.1rem, 5vw, 2rem) 5rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 58rem; margin: 0 auto; display: flex; flex-direction: column; gap: 3rem; }
+  /* A width constraint, nothing more. This carried display:flex once, which
+     made every inline child of a paragraph its own flex item — so an inline
+     code span broke onto a line of its own mid-sentence. Vertical rhythm comes
+     from the gap on `section`, and `ul` sets its own flex, so nothing here
+     needed it. */
+  .prose { max-width: 33em; }
+  p { margin: 0; }
+
+  h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 600; }
+  h1 { font-size: clamp(2rem, 5.5vw, 3rem); line-height: 1.1; letter-spacing: -.02em; }
+  h2 { font-size: 1.35rem; letter-spacing: -.01em; }
+  h3 { font-size: 1rem; }
+
+  .label {
+    font-family: var(--mono);
+    font-size: .68rem;
+    font-weight: 500;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--blue);
+  }
+  .lede { font-size: 1.15rem; color: var(--ink-soft); max-width: 34em; }
+  code, .m { font-family: var(--mono); font-size: .88em; }
+  code { background: var(--sunken); padding: .1em .32em; border-radius: 2px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header { display: flex; flex-direction: column; gap: 1rem; }
+  .subtitle { font-family: var(--mono); font-size: .8rem; color: var(--muted); letter-spacing: .02em; }
+
+  /* ---- headline quantity ---- */
+  /* Align on the TOP edge, not the bottom: the number is the first child, so
+     this is what puts the numbers on a shared line. Aligning bottoms instead
+     lets a label that wraps to two lines shove its number up out of line with
+     the rest. */
+  .figure-row { display: flex; flex-wrap: wrap; gap: 1.4rem 3rem; align-items: flex-start; }
+  .figure { display: flex; flex-direction: column; gap: .1rem; }
+  .figure .v {
+    font-family: var(--mono); font-weight: 600;
+    font-size: clamp(1.6rem, 4vw, 2.2rem); line-height: 1;
+    letter-spacing: -.03em; color: var(--blue); font-variant-numeric: tabular-nums;
+  }
+  .figure .k {
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  /* ---- the inventory ---- */
+  section { display: flex; flex-direction: column; gap: 1.1rem; }
+
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { padding: .5rem .7rem; text-align: left; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  th {
+    font-family: var(--mono); font-size: .66rem; font-weight: 500;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  }
+  td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.f { font-family: var(--mono); font-size: .85rem; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+
+  .tag {
+    font-family: var(--mono); font-size: .64rem; letter-spacing: .08em;
+    text-transform: uppercase; padding: .18rem .45rem; border-radius: 2px; white-space: nowrap;
+  }
+  .tag.keep { color: var(--keep); background: var(--keep-soft); border: 1px solid var(--keep); }
+  .tag.scaffold { color: var(--drop); background: var(--drop-soft); border: 1px solid var(--drop); }
+
+  /* ---- panels ---- */
+  .panel {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 3px; padding: 1.3rem 1.45rem;
+    display: flex; flex-direction: column; gap: .85rem;
+  }
+  .note {
+    border-left: 2px solid var(--blue); background: var(--blue-soft);
+    padding: .7rem .9rem; border-radius: 0 3px 3px 0;
+    font-size: .93rem; color: var(--ink-soft); max-width: 40em;
+  }
+  .note b { color: var(--ink); }
+
+  pre {
+    margin: 0; font-family: var(--mono); font-size: .84rem; line-height: 1.6;
+    background: var(--sunken); padding: .9rem 1rem; border-radius: 3px;
+    overflow-x: auto; color: var(--ink);
+  }
+
+  /* ---- proportion bar ---- */
+  .prop { display: flex; flex-direction: column; gap: .55rem; }
+  .prop-row { display: grid; grid-template-columns: minmax(6.5rem, 8rem) 1fr auto; gap: .8rem; align-items: center; }
+  .prop-row .who { font-family: var(--mono); font-size: .76rem; color: var(--ink-soft); }
+  .prop-row .track { height: 14px; background: var(--sunken); border-radius: 1px; overflow: hidden; }
+  .prop-row .fill { height: 100%; background: var(--blue); }
+  .prop-row .amt { font-family: var(--mono); font-size: .76rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* ---- pipeline of a single word ---- */
+  .steps { display: flex; flex-direction: column; gap: .55rem; }
+  .step { display: grid; grid-template-columns: 8.5rem 1fr; gap: .9rem; align-items: baseline; }
+  .step .what { font-family: var(--mono); font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .step .val { font-family: var(--mono); font-size: .9rem; color: var(--ink); }
+
+  ul { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: .5rem; }
+  li { color: var(--ink-soft); }
+  li::marker { color: var(--blue); }
+
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+  footer { color: var(--muted); font-size: .85rem; display: flex; flex-direction: column; gap: .3rem; }
+  a { color: var(--blue); text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  /* ---- additions for this page ---- */
+  :root { --warn: #9a5b2e; --warn-soft: #f4e9df; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --warn: #dba27a; --warn-soft: #251b14; }
+  }
+  :root[data-theme="dark"] { --warn: #dba27a; --warn-soft: #251b14; }
+
+  .tag.mid { color: var(--blue); background: var(--blue-soft); border: 1px solid var(--blue); }
+  .tag.warn { color: var(--warn); background: var(--warn-soft); border: 1px solid var(--warn); }
+  .figure .v.warn { color: var(--warn); }
+  th .dir { color: var(--blue); letter-spacing: 0; }
+  .legend-line { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+  tr.best td { color: var(--ink); font-weight: 600; }
+
+  /* stacked bar: where the damage goes */
+  .stack { display: flex; height: 30px; border-radius: 2px; overflow: hidden; gap: 2px; background: var(--paper); }
+  .stack > div { height: 100%; }
+  .s-fixed   { background: var(--keep); }
+  .s-decl    { background: var(--blue); }
+  .s-other   { background: var(--muted); }
+  .s-none    { background: var(--sunken); outline: 1px solid var(--rule); outline-offset: -1px; }
+  .stack-key { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .6rem 1.4rem; }
+  .stack-key .k { display: grid; grid-template-columns: 12px 1fr; gap: .55rem; align-items: baseline; font-size: .9rem; color: var(--ink-soft); }
+  .stack-key .sw { width: 12px; height: 12px; border-radius: 1px; transform: translateY(1px); }
+  .stack-key b { font-family: var(--mono); font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* two-tier comparison bars */
+  .prop-row .fill.t1 { background: var(--muted); }
+  .prop-row .ceil { position: relative; }
+  .group { display: flex; flex-direction: column; gap: .45rem; }
+  .group h3 { font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+
+  /* next steps */
+  .stepcard { display: grid; grid-template-columns: 2rem 1fr; gap: .2rem 1rem; padding: 1.1rem 0; border-top: 1px solid var(--rule); }
+  .stepcard:first-of-type { border-top: 0; }
+  .stepcard .no { font-family: var(--mono); font-size: 1.1rem; color: var(--blue); font-weight: 600; }
+  .stepcard .body { display: flex; flex-direction: column; gap: .5rem; }
+  .stepcard .head { display: flex; flex-wrap: wrap; gap: .5rem .8rem; align-items: baseline; }
+  .stepcard .head h3 { font-size: 1.05rem; }
+  .stepcard .meta { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+  .stepcard p { color: var(--ink-soft); max-width: 36em; }
+  .stepcard .verdict { color: var(--ink); }
+
+  dl.gloss { margin: 0; display: grid; grid-template-columns: minmax(8rem, 11rem) 1fr; gap: .55rem 1.2rem; max-width: 44em; }
+  dl.gloss dt { font-family: var(--mono); font-size: .82rem; color: var(--ink); }
+  dl.gloss dd { margin: 0; color: var(--ink-soft); font-size: .95rem; }
+  @media (max-width: 560px) {
+    dl.gloss { grid-template-columns: 1fr; gap: .15rem; }
+    dl.gloss dd { margin-bottom: .6rem; }
+    .prop-row { grid-template-columns: 5.5rem 1fr auto; }
+  }
+</style>
+
+<div class="page">
+
+  <header>
+    <div class="label">Varro · OCR sub-project · where it stands</div>
+    <h1>Can the model mend a bad scan?</h1>
+    <p class="lede">
+      Old Latin books reach us through OCR — software that reads a page image and
+      guesses the letters. It guesses wrong often enough (<code>loue</code> for
+      <code>Ioue</code>, <code>femen</code> for <code>semen</code>) that a lot of
+      digitised Latin is quietly damaged. The question here is whether LATIN-LII,
+      which has read 134 million words of Latin, can put some of that right without
+      breaking the text that was already correct.
+    </p>
+    <p class="lede">
+      Short answer: <b>yes, measurably better than simple word counting — but on real
+      scans it repairs about a quarter of the damage</b>, and every number below is
+      from the practice set. The final exam has not been sat yet.
+    </p>
+    <div class="subtitle">branch ocr/evaluation · state of 23 September 2026 · from HANDOVER.md and reports/ocr-*.json</div>
+  </header>
+
+  <div class="figure-row" aria-label="Headline figures">
+    <div class="figure">
+      <div class="v num">27%</div>
+      <div class="k">of real-scan damage repaired ↑</div>
+    </div>
+    <div class="figure">
+      <div class="v num">1.2</div>
+      <div class="k">correct words broken per 1,000 ↓</div>
+    </div>
+    <div class="figure">
+      <div class="v num">16.9 → 12.4%</div>
+      <div class="k">words wrong, before → after ↓</div>
+    </div>
+    <div class="figure">
+      <div class="v warn">Not run</div>
+      <div class="k">The test split</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="label">The question</div>
+    <h2>Does reading the context beat counting words?</h2>
+    <p class="prose">
+      Nearly anything fixes <code>cu1tu</code>. The interesting claim is narrower:
+      the model should earn its keep where <em>word order</em> carries the answer, and
+      lose wherever a frequency table already knows it. So the benchmark gives a plain
+      word-frequency repairer every advantage except order — the same list of
+      candidate corrections, the same model of how OCR goes wrong, the same rule for
+      when to change a word — and measures the gap. The systems differ in one term
+      only: how likely each candidate looks.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>System</th><th>How it judges a candidate word</th></tr></thead>
+        <tbody>
+          <tr><td class="f">identity</td><td>Changes nothing. A sanity check: must score zero everywhere.</td></tr>
+          <tr><td class="f">unigram</td><td>How common is this word in Latin? The yardstick.</td></tr>
+          <tr><td class="f">lii</td><td>LATIN-LII reads the words before and asks how likely this word, and the words after it, are.</td></tr>
+          <tr><td class="f">fim</td><td>A version of LATIN-LII given 3.6 h of extra training to see the text on <em>both</em> sides of a gap at once (“fill in the middle”).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose">
+      Harm is fixed in advance: a system may break at most <b>2 correct words in every
+      1,000</b>. That is deliberately strict — a proofreader who introduced one error
+      per two pages would be let go — and every result below is tuned to sit under it.
+    </p>
+  </section>
+
+  <section>
+    <div class="label">Words used on this page</div>
+    <h2>A small glossary</h2>
+    <dl class="gloss">
+      <dt>recall ↑</dt><dd>Of the words the scan got wrong, the share the system put right.</dd>
+      <dt>precision ↑</dt><dd>Of the changes the system made, the share that were correct.</dd>
+      <dt>broken / 1,000 ↓</dt><dd>Correct words the system damaged, per thousand it left standing. The harm limit is 2.</dd>
+      <dt>non-word error</dt><dd>The OCR produced something that isn't Latin (<code>Almafalutiferam</code>). Easy to spot.</dd>
+      <dt>real-word error</dt><dd>The OCR produced a <em>different real word</em> (<code>femen</code>/<code>semen</code> from a long-s). Only context can catch it.</dd>
+      <dt>proposer</dt><dd>The step that lists possible corrections for a word. If the right one isn't on the list, no judge can pick it.</dd>
+      <dt>ceiling</dt><dd>Recall if a perfect judge always picked the right candidate from the list. The limit the proposer sets.</dd>
+      <dt>Tier 1 / Tier 2</dt><dd>Tier 1: clean text with damage <em>simulated</em> by a noise table. Tier 2: real OCR output from scans on Wikimedia Commons, against the checked Wikisource transcription of the same page.</dd>
+      <dt>dev / test</dt><dd>Practice set, used for all tuning; exam set, run once at the end so the tuning can't have leaked into it.</dd>
+    </dl>
+  </section>
+
+  <section>
+    <div class="label">Results · practice set, all under the harm limit</div>
+    <h2>Context wins clearly on invented damage, modestly on real scans</h2>
+    <p class="prose">
+      On simulated damage the model repairs two-thirds of the errors; the
+      frequency count under half. On real scans everything drops by roughly 2.5×,
+      and the model's lead narrows to 6–8 points. Real OCR is harder than any noise
+      table anyone writes by hand, which is why only Tier 2 figures should ever be
+      quoted as “OCR performance”.
+    </p>
+
+    <div class="panel">
+      <div class="group">
+        <h3>Recall ↑ — share of damage repaired</h3>
+        <div class="prop">
+          <div class="prop-row"><div class="who">unigram · T1</div><div class="track"><div class="fill t1" style="width:46.7%"></div></div><div class="amt">46.7%</div></div>
+          <div class="prop-row"><div class="who">unigram · T2</div><div class="track"><div class="fill" style="width:19.3%"></div></div><div class="amt">19.3%</div></div>
+          <div class="prop-row"><div class="who">lii · T1</div><div class="track"><div class="fill t1" style="width:67.1%"></div></div><div class="amt">67.1%</div></div>
+          <div class="prop-row"><div class="who">lii · T2</div><div class="track"><div class="fill" style="width:25.0%"></div></div><div class="amt">25.0%</div></div>
+          <div class="prop-row"><div class="who">fim · T1</div><div class="track"><div class="fill t1" style="width:68.4%"></div></div><div class="amt">68.4%</div></div>
+          <div class="prop-row"><div class="who">fim · T2</div><div class="track"><div class="fill" style="width:27.3%"></div></div><div class="amt">27.3%</div></div>
+        </div>
+        <div class="legend-line">grey = Tier 1 (simulated) · blue = Tier 2 (real scans) · bar length out of 100%</div>
+      </div>
+    </div>
+
+    <h3>Tier 2 — real scans, 652 passages from 31 books</h3>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>System</th><th class="n">Recall <span class="dir">↑</span></th><th class="n">Real-word <span class="dir">↑</span></th><th class="n">Non-word <span class="dir">↑</span></th><th class="n">Precision <span class="dir">↑</span></th><th class="n">Broken /1,000 <span class="dir">↓</span></th><th class="n">Char. errors <span class="dir">↓</span></th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="f">identity</td><td class="n">0.0%</td><td class="n">0.0%</td><td class="n">0.0%</td><td class="n">—</td><td class="n">0</td><td class="n">5.20%</td></tr>
+          <tr><td class="f">unigram</td><td class="n">19.3%</td><td class="n">18.9%</td><td class="n">19.5%</td><td class="n">81.2%</td><td class="n">1.45</td><td class="n">4.66%</td></tr>
+          <tr><td class="f">lii</td><td class="n">25.0%</td><td class="n">11.6%</td><td class="n">31.9%</td><td class="n">90.7%</td><td class="n">1.26</td><td class="n">4.40%</td></tr>
+          <tr class="best"><td class="f">fim</td><td class="n">27.3%</td><td class="n">13.3%</td><td class="n">34.4%</td><td class="n">90.8%</td><td class="n">1.23</td><td class="n">4.32%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="legend-line">↑ higher is better · ↓ lower is better · “Char. errors” = share of characters wrong after repair; the scans start at 5.20%.</p>
+
+    <h3>Tier 1 — simulated damage, 240 passages</h3>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>System</th><th class="n">Recall <span class="dir">↑</span></th><th class="n">Real-word <span class="dir">↑</span></th><th class="n">Non-word <span class="dir">↑</span></th><th class="n">Precision <span class="dir">↑</span></th><th class="n">Broken /1,000 <span class="dir">↓</span></th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="f">unigram</td><td class="n">46.7%</td><td class="n">36.7%</td><td class="n">49.8%</td><td class="n">91.7%</td><td class="n">1.41</td></tr>
+          <tr><td class="f">lii</td><td class="n">67.1%</td><td class="n">49.6%</td><td class="n">72.5%</td><td class="n">92.2%</td><td class="n">1.58</td></tr>
+          <tr class="best"><td class="f">fim</td><td class="n">68.4%</td><td class="n">53.0%</td><td class="n">73.1%</td><td class="n">90.7%</td><td class="n">1.91</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="legend-line">↑ higher is better · ↓ lower is better</p>
+
+    <div class="note">
+      <b>The awkward column is real-word damage on real scans.</b> There the plain
+      frequency count beats the model, 18.9% to 13.3%. The model gains all its lead on
+      non-words (34% vs 20%). That is the opposite of the pitch — “context catches what
+      a dictionary can't” — and it is mostly long-s: <code>femen</code> is a real word,
+      so the model needs strong evidence to overrule it, and the harm limit rarely lets
+      it. The model is better at <em>finding</em> damage, though: it ranks damaged words
+      above sound ones far more reliably (average precision 62.8% vs 42.7% ↑).
+    </div>
+  </section>
+
+  <section>
+    <div class="label">Where the other 73% goes</div>
+    <h2>The limit is now the caution, not the candidates</h2>
+    <p class="prose">
+      Every damaged word in Tier 2, for the best system (<code>fim</code>), ends up in
+      one of four places. Until 18 September the widest band was “right answer never
+      offered”; a rebuilt proposer raised the ceiling from 48% to 57%. But the extra
+      candidates mostly landed in the second band: offered, and declined.
+    </p>
+    <div class="panel">
+      <div class="stack" role="img" aria-label="Fixed 27%, offered but declined 24%, offered but wrong pick or other 6%, never offered 43%">
+        <div class="s-fixed" style="width:27.3%"></div>
+        <div class="s-decl"  style="width:24.0%"></div>
+        <div class="s-other" style="width:6.1%"></div>
+        <div class="s-none"  style="width:42.6%"></div>
+      </div>
+      <div class="stack-key">
+        <div class="k"><span class="sw s-fixed"></span><span><b>27%</b> repaired</span></div>
+        <div class="k"><span class="sw s-decl"></span><span><b>24%</b> right answer offered, system declined to change the word (1,756 words)</span></div>
+        <div class="k"><span class="sw s-other"></span><span><b>~6%</b> offered, but a wrong candidate won or the word was otherwise missed</span></div>
+        <div class="k"><span class="sw s-none"></span><span><b>43%</b> right answer never offered — out of reach for any judge</span></div>
+      </div>
+      <div class="legend-line">Derived from the proposer ceiling (57.4%), recall (27.3%) and the 1,756 declined words in HANDOVER.md; the middle split is approximate.</div>
+    </div>
+    <p class="prose">
+      Why so cautious? Because on real scans the harm budget is being spent on
+      <em>errors in the answer key</em>. Wikisource's “proofread” pages still contain
+      typos. Of the 48 words <code>fim</code> “broke” in 32,500, about 35 look like
+      cases where the model was right and the transcription was wrong
+      (<code>cceperis → coeperis</code>, <code>fyncerus</code>, <code>oetatem</code>).
+      Genuine harm is closer to 10 (<code>muticus → musicus</code>,
+      <code>benefitio → beneficio</code>). To stay under 2 per 1,000 anyway, the tuned
+      rule demands so much evidence that it leaves 1,756 correctly-offered fixes on the
+      table.
+    </p>
+    <div class="note">
+      <b>This is the most important thing on the page.</b> Relaxed to a lower margin,
+      the same system reaches <b>40.5%</b> recall while breaking 1.02 per 1,000 of the
+      words the lexicon recognises. That is a bigger gain than all the proposer work
+      combined — and it costs a decision, not engineering. But “~35 of 48 were the
+      key's fault” is an eyeball read of one run, not a measurement.
+    </div>
+  </section>
+
+  <section>
+    <div class="label">What was learned</div>
+    <h2>Nine findings, in the order they arrived</h2>
+    <ul class="prose" style="max-width:40em">
+      <li><b>Safety comes from the decision rule, not the model.</b> Picking the most
+        likely candidate broke 6 words per 1,000; a rule that asks for more evidence the
+        riskier the change brings it to ~1.4, at a cost of ~10 points of recall.</li>
+      <li><b>Simulated damage flatters everyone by about 2.5×.</b> Tier 1 is useful for
+        development, useless as a headline.</li>
+      <li><b>The candidate list was the first wall.</b> Rebuilt: keeps capitals, searches
+        up to 3 edits away, splits run-together words, handles symbols. Ceiling 48 → 57%,
+        still 0.7 s per passage.</li>
+      <li><b>…but the harm limit swallowed that gain on real scans</b> (27.1 → 27.3%),
+        while Tier 1 showed it in full (60 → 67%).</li>
+      <li><b>The harm budget on real scans is mostly the answer key's typos</b> (above).</li>
+      <li><b>Fill-in-the-middle training worked as a judge, not as a writer.</b> +2 points
+        recall on both tiers without hurting ordinary reading. But asked to <em>generate</em>
+        the missing word, it ignores the text after the gap and never knows when to stop,
+        so its suggestions add almost nothing (ceiling +0.1).</li>
+      <li><b>The model loses to word counts on real-word errors in real scans</b> and wins by
+        10–17 points on non-words.</li>
+      <li><b>Page-level clues</b> (“this word appears correctly elsewhere on the page”) are
+        built but do nothing, because passages are only 60 words long.</li>
+      <li><b>More right-hand context doesn't help</b> — 12 words is no better than the default.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="label">Next steps · honestly rated</div>
+    <h2>What is worth doing, and what mostly isn't</h2>
+    <p class="prose">
+      Rated by what each step would change about what you know or can do — not by how
+      interesting it is. Roughly in the order they should happen.
+    </p>
+
+    <div>
+      <div class="stepcard">
+        <div class="no">1</div>
+        <div class="body">
+          <div class="head"><h3>Commit the work</h3><span class="tag keep">Do now</span><span class="meta">minutes</span></div>
+          <p>Everything since 17 September — the Tier 2 benchmark, the new proposer, the
+            tuner, the FIM training script and 52 tests — is uncommitted. Nothing here
+            is a research question; it's a week of work sitting in one working tree.</p>
+        </div>
+      </div>
+
+      <div class="stepcard">
+        <div class="no">2</div>
+        <div class="body">
+          <div class="head"><h3>Decide what “harm” means on real scans</h3><span class="tag keep">High value</span><span class="meta">a decision, plus an afternoon if you adjudicate</span></div>
+          <p>Three choices: keep counting every disagreement with the key as harm; apply
+            the 2‰ limit only to words the lexicon knows and report the rest separately
+            as an upper bound; or look at the ~50 “broken” words per run by hand and mark
+            which are the key's fault.</p>
+          <p class="verdict"><b>Honest take:</b> this is worth more recall (plausibly 27%
+            → ~40%) than any remaining engineering. The trap is choosing the definition
+            <em>because</em> it flatters the system. Hand-adjudicating one run is the only
+            option that turns “about 35 of 48” into a fact; I would do that first and let
+            it decide between the other two. Settle it before step 3, never after.</p>
+        </div>
+      </div>
+
+      <div class="stepcard">
+        <div class="no">3</div>
+        <div class="body">
+          <div class="head"><h3>Freeze the rules, sit the exam once, fix the README</h3><span class="tag keep">High value</span><span class="meta">~1–2 h compute</span></div>
+          <p>Run <code>--split test</code> on both tiers with the tuned rules, then update
+            the <code>ocr/README.md</code> tables, which still show the numbers from before
+            the proposer rebuild.</p>
+          <p class="verdict"><b>Honest take:</b> until this happens, no number on this page
+            can be quoted outside the repo. It is cheap. It is also one-way — after it,
+            the hypotheses are frozen — which is exactly why step 2 goes first.</p>
+        </div>
+      </div>
+
+      <div class="stepcard">
+        <div class="no">4</div>
+        <div class="body">
+          <div class="head"><h3>Decide what the repair is <em>for</em></h3><span class="tag keep">High value</span><span class="meta">a conversation</span></div>
+          <p>The sub-project has answered its research question: context helps, at equal
+            harm. It has not answered whether to <em>use</em> it. The obvious use is cleaning
+            the OCR-derived text in the training corpus (5.85% of corpus-b, from CSEL)
+            before the next model. At today's numbers that removes about one in six
+            character errors from that slice.</p>
+          <p class="verdict"><b>Honest take:</b> that is a real improvement to a small slice
+            of the corpus, and nobody knows yet whether it would change the next model at
+            all. If the answer to “what for?” is “the corpus”, step 5 (the ablation) becomes
+            the test of whether any of this matters; if it's “a tool people use on their
+            own scans”, steps 6 and 9 matter more. Worth deciding before investing further.</p>
+        </div>
+      </div>
+
+      <div class="stepcard">
+        <div class="no">5</div>
+        <div class="body">
+          <div class="head"><h3>Ablation: train without the OCR-derived text</h3><span class="tag mid">Medium value</span><span class="meta">one retrain</span></div>
+          <p>Retrain with the CSEL OCR text left out and rerun both tiers. It tells you two
+            things: whether the model has learned some OCR mistakes <em>as Latin</em> (which
+            would make it reluctant to fix them), and whether that 5.85% of noisy text
+            hurts the model in general.</p>
+          <p class="verdict"><b>Honest take:</b> good hygiene and a credible answer to an
+            obvious reviewer question. If removing the text changes nothing, the case for
+            cleaning the corpus weakens considerably — which is itself worth knowing.</p>
+        </div>
+      </div>
+
+      <div class="stepcard">
+        <div class="no">6</div>
+        <div class="body">
+          <div class="head"><h3>Speed: score several words per model call</h3><span class="tag mid">Conditional</span><span class="meta">a day of engineering</span></div>
+          <p>The model is currently asked about one word at a time; recording decisions
+            for 650 passages takes ~30 minutes.</p>
+          <p class="verdict"><b>Honest take:</b> changes no result. Worth it only if you
+            mean to run repair over a real corpus or iterate on the rule many more times.
+            Otherwise it's comfort.</p>
+        </div>
+      </div>
+
+      <div class="stepcard">
+        <div class="no">7</div>
+        <div class="body">
+          <div class="head"><h3>Whole-page context</h3><span class="tag mid">Speculative</span><span class="meta">re-cut Tier 2 by page · re-lock</span></div>
+          <p>Not in the handover's list, but it follows from findings 7 and 8. The model's
+            weakest spot is long-s (<code>femen</code>/<code>semen</code>), and the way a
+            human proofreader settles those is by seeing the word printed correctly
+            elsewhere on the page. The code for that clue exists; the 60-word passages
+            starve it.</p>
+          <p class="verdict"><b>Honest take:</b> the only idea on this list aimed at the
+            model's actual weakness. Unproven, and re-cutting Tier 2 means re-locking it, so
+            it must happen before the exam in step 3 or become a second benchmark.</p>
+        </div>
+      </div>
+
+      <div class="stepcard">
+        <div class="no">8</div>
+        <div class="body">
+          <div class="head"><h3>Replace Tier 1's noise table with the one learned from real scans</h3><span class="tag scaffold">Low value</span><span class="meta">re-locks Tier 1</span></div>
+          <p class="verdict"><b>Honest take:</b> it would make Tier 1 more realistic, and
+            change every Tier 1 number, in order to improve a benchmark that is no longer
+            the judge. Simpler to state plainly that Tier 1 is a development check and
+            quote only Tier 2.</p>
+        </div>
+      </div>
+
+      <div class="stepcard">
+        <div class="no">9</div>
+        <div class="body">
+          <div class="head"><h3>Retrain fill-in-the-middle so it can generate</h3><span class="tag scaffold">Low value now</span><span class="meta">4+ h GPU · uncertain</span></div>
+          <p>Weight the training on the gap and on a proper “fill ends here” signal, so the
+            model can propose words the lexicon doesn't contain — mostly names, about 30%
+            of what is never offered.</p>
+          <p class="verdict"><b>Honest take:</b> it raises the ceiling, and the ceiling is
+            not what's binding — the system already declines a quarter of all damage it
+            <em>was</em> offered. At best ~13 points of ceiling, of which the harm limit would
+            let through a fraction. The first attempt failed at exactly this. Revisit after
+            step 2 changes the picture.</p>
+        </div>
+      </div>
+
+      <div class="stepcard">
+        <div class="no">10</div>
+        <div class="body">
+          <div class="head"><h3>Option 2: a model that rewrites the whole passage</h3><span class="tag warn">Not yet</span><span class="meta">large</span></div>
+          <p class="verdict"><b>Honest take:</b> the approach most likely to look impressive
+            in a demo and most likely to damage text silently — changing correct Latin into
+            other plausible Latin that no one catches. Only with Tier 2 as the judge, and only
+            once the cheaper routes are exhausted.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>One thing this project hasn't measured:</b> how much of the damage a modern OCR
+      engine would avoid by simply re-reading the same scans. The Commons text layers
+      are whatever OCR produced them, often years ago. If a fresh OCR pass removes more
+      errors than repair does, that changes the value of every step above — and the
+      Tier 2 benchmark could answer the question in an afternoon.
+    </div>
+  </section>
+
+  <section>
+    <div class="label">In one paragraph</div>
+    <h2>Where it stands</h2>
+    <p class="prose">
+      The evaluation is sound and the scientific answer is in: reading context repairs
+      more scanned Latin than counting words, at the same strict harm limit, and the
+      fill-in-the-middle variant is the best of the three. On real scans that means
+      about a quarter of the damage fixed and one or two correct words broken per
+      thousand. The biggest remaining lever is not the model but how harm is counted
+      against an imperfect answer key. Commit, settle that, sit the exam once — and then
+      decide whether the goal is a cleaner corpus or a tool, because the right next
+      investment depends on which.
+    </p>
+  </section>
+
+  <footer>
+    <div>Varro · an openly licensed Latin corpus, and a language model trained only on Latin.</div>
+    <div>Figures from HANDOVER.md and reports/ocr-*.json (dev splits), 23 September 2026. The test splits have not been run.</div>
+  </footer>
+
+</div>

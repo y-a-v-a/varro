@@ -1,0 +1,489 @@
+{
+  "corpus": "corpus-b",
+  "dropped": {
+    "markup left in the transcription": 604,
+    "not Latin enough": 107,
+    "not found in the OCR": 2170,
+    "not running prose": 610,
+    "over the per-book cap": 3830,
+    "page has no OCR": 2462,
+    "shares 8 words running with the training split": 2994
+  },
+  "dump": "84f9a480b1d748f7",
+  "max_cer": 0.25,
+  "min_level": 3,
+  "passages": {
+    "dev": 652,
+    "test": 1326
+  },
+  "per_book": 24,
+  "scans": {
+    "28233-pdf.pdf": {
+      "sha1": "4a5b171b7c06d6489f63dd1c29a35bd3416e2014",
+      "uploaded": "2011-12-12T19:50:07Z"
+    },
+    "A First Latin Reader.pdf": {
+      "sha1": "145b4d2a24657bd0336d988ed3790b765c34a4f0",
+      "uploaded": "2021-11-08T04:26:12Z"
+    },
+    "A History and Defence of Magna Charta.djvu": {
+      "sha1": "4ca163093f73deb4b36821ab4a0d9445d9367c01",
+      "uploaded": "2021-07-01T13:28:56Z"
+    },
+    "Agricola De re metallica.djvu": {
+      "sha1": "392118e8dce29b61e9c2007727c95c2e36fd12ed",
+      "uploaded": "2013-07-05T09:21:59Z"
+    },
+    "Alberti, Leon Battista – Opere volgari, Vol. II, 1966 – BEIC 9707880.djvu": {
+      "sha1": "590132cc7dc02d280f7cb12edcb10b0bcb4378e8",
+      "uploaded": "2017-12-02T10:55:24Z"
+    },
+    "Alberti, Leon Battista – Opere volgari, Vol. III, 1973 – BEIC 1724974.djvu": {
+      "sha1": "4314e81b23f3c7d793b679ffc5d5157cef2a00dd",
+      "uploaded": "2017-12-02T12:30:16Z"
+    },
+    "Alegrii opera minora Castellana et Latina.pdf": {
+      "sha1": "e14fe41e13c2ef0c72bbd8d0a048f4bb1d23a276",
+      "uploaded": "2026-02-13T20:12:17Z"
+    },
+    "Alighieri, Giuliani - Opere latine vol I - 1878.djvu": {
+      "sha1": "26e36cf7583b94762d05c48eb6328eac08de99ad",
+      "uploaded": "2022-04-07T12:40:30Z"
+    },
+    "Arcana Coelestia Vol I.djvu": {
+      "sha1": "6b2bbf540a9eb2c89262552ee4020bb0ad401ad0",
+      "uploaded": "2015-07-18T03:52:00Z"
+    },
+    "Arra aeternae salutis (1495) by Lambsheim.pdf": {
+      "sha1": "2a65d79cf27717eb2960cdd13be14dbabeb34040",
+      "uploaded": "2026-05-01T12:10:02Z"
+    },
+    "Athanasius Kircher - Turris Babel - 1679.djvu": {
+      "sha1": "a818fec7bfb673e5a991d9d60ef31d4d1f4ec68a",
+      "uploaded": "2020-03-12T15:19:43Z"
+    },
+    "Boccaccio, Giovanni – Opere latine minori, 1924 – BEIC 1767789.djvu": {
+      "sha1": "2a06a842229787df640853edf6175bcc8718cd6c",
+      "uploaded": "2018-07-10T13:12:12Z"
+    },
+    "Bouquet - Recueil des Historiens des Gaules et de la France, 3.djvu": {
+      "sha1": "cbb0a68aefa157bd76eba3a14aa4424311f7ff91",
+      "uploaded": "2019-01-24T18:01:23Z"
+    },
+    "CSHB42 corpusscriptorum45niebuoft.pdf": {
+      "sha1": "6e5f6e36f98435703e98bbad19f91623b3f5c3cd",
+      "uploaded": "2024-03-25T11:37:37Z"
+    },
+    "CSHB48 corpusscriptorum30niebuoft.pdf": {
+      "sha1": "38a1943ab5b0b33107dec6a8afe5e4214376f00a",
+      "uploaded": "2024-03-25T10:13:28Z"
+    },
+    "Campanella, Tommaso – Lettere, 1927 – BEIC 1776819.djvu": {
+      "sha1": "3a064bc0ecb6cced6a1759b79c44466f3fa1be13",
+      "uploaded": "2018-06-18T20:11:15Z"
+    },
+    "Campanella, Tommaso – Poesie, 1915 – BEIC 1777758.djvu": {
+      "sha1": "ed9b48eb4c93100f1af1f5e185870567f542d261",
+      "uploaded": "2018-05-10T21:43:23Z"
+    },
+    "Centurio.djvu": {
+      "sha1": "aa36bd6829beaae54b4444f5d06cd20452206aef",
+      "uploaded": "2011-06-28T17:17:52Z"
+    },
+    "Cicéron - Œuvres complètes, Lefèvre, 1821, tome 28.djvu": {
+      "sha1": "bf83d7f092a5685904168ac215278152f7e236da",
+      "uploaded": "2024-02-19T22:18:05Z"
+    },
+    "Clüver - Germania antiqua, 1616.pdf": {
+      "sha1": "b815465a5b6ed1cb61e5c908b83302f377ce3cde",
+      "uploaded": "2022-04-12T21:31:28Z"
+    },
+    "Codex Amiatinus novum testamentum latine (1854).djvu": {
+      "sha1": "dc6a94c67fbbc457b4843c259f3b43f7cebcc3ce",
+      "uploaded": "2020-04-19T03:12:38Z"
+    },
+    "Columellae opera.djvu": {
+      "sha1": "2a8d8987f08687d76ecb1501c8e5e050489d286d",
+      "uploaded": "2015-02-25T17:42:58Z"
+    },
+    "Cornelia Mima Maxey.pdf": {
+      "sha1": "af6052c9bff76724e052129ed648da834fc9b255",
+      "uploaded": "2022-08-12T10:47:09Z"
+    },
+    "Cornelii Taciti - Agricola.djvu": {
+      "sha1": "5c555a07224651464627e4f9333eecd026537095",
+      "uploaded": "2010-04-28T13:46:25Z"
+    },
+    "Cothvrnvlvs three short Latin historical plays for the use of beginners.djvu": {
+      "sha1": "a6f4cffa3f6c89dac5143c9b60007df2a619b8c3",
+      "uploaded": "2020-02-23T18:06:14Z"
+    },
+    "Cuerpo del derecho civil romano a doble texto (IA cuerpodelderechocivilromanoP1T1).pdf": {
+      "sha1": "173266359a27bc6149fb5bbf6a27f9dffcc08921",
+      "uploaded": "2025-08-16T17:21:48Z"
+    },
+    "DELITIAE SAPIENTIAE DE AMORE CONJUGIALI.djvu": {
+      "sha1": "362abd2aa00c75ae884978465ee8dcb7225a54b2",
+      "uploaded": "2015-07-09T05:49:54Z"
+    },
+    "De bello rustico Valentino.pdf": {
+      "sha1": "b94c322278646bdcba7e4ae1d7e983327ae5f0c2",
+      "uploaded": "2020-12-10T16:39:29Z"
+    },
+    "De motibus aeris.pdf": {
+      "sha1": "d5c63bfaa6e596816a7fefacbf8024af27c7d8fb",
+      "uploaded": "2020-11-12T18:09:03Z"
+    },
+    "Dialogues of Roman Life.djvu": {
+      "sha1": "c6acffa949b90f13dd25d3228228b15845e7479d",
+      "uploaded": "2020-04-27T17:22:21Z"
+    },
+    "Dictionarium latinogallicum - Estienne, 1552, A-Ins.djvu": {
+      "sha1": "daf3fd2b0e7ae8c568c097e3142514b4c99e436b",
+      "uploaded": "2013-07-10T09:29:43Z"
+    },
+    "Dimitrie Cantemir - Operele Principelui Demetriu Cantemiru, typărite de Societatea Academică Română. Volumul 6 - Istoria ieroglifică (Operă orig.pdf": {
+      "sha1": "c89d49adf8d73c54e09059a5a68e08da852edf9c",
+      "uploaded": "2013-02-24T01:08:03Z"
+    },
+    "Easy Latin Stories.djvu": {
+      "sha1": "20ba06ec531a91f160ca3bf486e15607cd5e5b36",
+      "uploaded": "2020-04-11T10:20:52Z"
+    },
+    "Eclogae latinae.djvu": {
+      "sha1": "18276b98db485b65836bc3d82f0803c7dff655d7",
+      "uploaded": "2018-10-25T18:18:09Z"
+    },
+    "Erasmi Colloquia Familiaria Et Encomium Moriae.djvu": {
+      "sha1": "b2d487c0f049edc69c499e47743dbd32cac08f17",
+      "uploaded": "2020-02-23T17:31:01Z"
+    },
+    "Erycius Puteanus, Bruxella, incomparabili exemplo Septenari, 1646.djvu": {
+      "sha1": "7350b88b05bfb341c76a681a8564bfb2527935d4",
+      "uploaded": "2026-06-26T11:37:30Z"
+    },
+    "Exercises on Latin syntax, adapted to Zumpt's grammar; to which are added extracts from the writings of Muretus.djvu": {
+      "sha1": "1294fe525122fc2fbe715b4cc6efc1ded8558655",
+      "uploaded": "2018-01-08T21:07:27Z"
+    },
+    "Francisci Xaverii Alegre Homeri Ilias Latina.pdf": {
+      "sha1": "a1dfd1a59c373f7c283257ec320547f8736b9d70",
+      "uploaded": "2026-01-13T21:54:27Z"
+    },
+    "Frontin - Les Stratagèmes - Aqueducs de la ville de Rome, trad Bailly, 1848.djvu": {
+      "sha1": "24762390a0019dbb39a70178de06989537ebd96f",
+      "uploaded": "2016-12-09T18:10:26Z"
+    },
+    "Galilei - Discorsi e dimostrazioni matematiche intorno a due nuove scienze - 1638.djvu": {
+      "sha1": "89ace242f87663039f8c8fea91f243bd420130bc",
+      "uploaded": "2023-11-06T11:58:26Z"
+    },
+    "Gallia Christiana, 1715, T1.djvu": {
+      "sha1": "37bccfcda811ed6cc80a4169d925fc8cb74044c7",
+      "uploaded": "2019-03-19T18:02:41Z"
+    },
+    "Gallia Christiana, 1720, T2.djvu": {
+      "sha1": "9f1e84096fa6aa58a9e4356e2eaf5ad38f6741ae",
+      "uploaded": "2019-02-10T18:01:12Z"
+    },
+    "Gauss, Carl Friedrich - Werke (1870).djvu": {
+      "sha1": "0d9c24bd6533223e468a876a3cb04f5b06bf2071",
+      "uploaded": "2010-05-20T13:57:10Z"
+    },
+    "Gesta Romanorum - Oesterley 1872.djvu": {
+      "sha1": "cce80a3829374db7e74ceb74a6a4dcad431c821b",
+      "uploaded": "2016-07-12T04:27:44Z"
+    },
+    "Grammatica Fennica.pdf": {
+      "sha1": "d7fda450cede92581bdcf91fa1c47e31e35d0c51",
+      "uploaded": "2020-05-11T05:57:36Z"
+    },
+    "Gravina, Gianvincenzo – Scritti critici e teorici, 1973 – BEIC 1839108.djvu": {
+      "sha1": "3a336c027df100f390212c43519b35587b63c7d2",
+      "uploaded": "2018-09-21T13:12:16Z"
+    },
+    "Hermetis Trismegisti Poemander (1854).djvu": {
+      "sha1": "c545fbae0284bdd91bf752d172cb86ee2e4246e9",
+      "uploaded": "2017-07-29T19:48:38Z"
+    },
+    "Hesiodus Zamagna.pdf": {
+      "sha1": "1deca3e71ef0b3c56a6141d54644f23d69f2fde6",
+      "uploaded": "2026-01-26T08:10:48Z"
+    },
+    "Histoire anonyme de la première croisade, trad. Bréhier, 1924.djvu": {
+      "sha1": "d513a6e43a50ca5a4af412c011f277b7b17723b6",
+      "uploaded": "2023-11-16T13:51:06Z"
+    },
+    "Historia diplomatica Friderici secundi 1-1.djvu": {
+      "sha1": "fd59aa4cccff04bd225499a7d0b2e22c38cee657",
+      "uploaded": "2017-07-31T15:23:08Z"
+    },
+    "Horace - Œuvres, trad. Leconte de Lisle, I.djvu": {
+      "sha1": "9fa33fe9db3039bbff1515c7c76301a0fe05f34f",
+      "uploaded": "2010-05-15T14:21:29Z"
+    },
+    "Horace - Œuvres, trad. Leconte de Lisle, II.djvu": {
+      "sha1": "b56720d84de45439be7700159e2f009e0a244108",
+      "uploaded": "2010-05-15T14:22:43Z"
+    },
+    "Hortus Malabaricus Volume 1.pdf": {
+      "sha1": "de01cd2d2c2a46c2c8c38852a2c6ea20f45adbd2",
+      "uploaded": "2013-03-26T17:51:01Z"
+    },
+    "Hymni Ecclesiae.djvu": {
+      "sha1": "cdf220870c5b3cfd81ba6c895da9cf9475ec6a12",
+      "uploaded": "2008-06-29T08:38:40Z"
+    },
+    "Hymnus in Romam.djvu": {
+      "sha1": "bff8ac0670cc3eaee06f1f187884389e8a15112c",
+      "uploaded": "2010-04-06T20:53:04Z"
+    },
+    "I dialogi ad Petrum Histrum, Livorno 1889.pdf": {
+      "sha1": "8efa85613e3e4a48c30f2ccb8a84e2f70c3917d6",
+      "uploaded": "2024-03-17T16:52:56Z"
+    },
+    "Insecta musei Graecensis.pdf": {
+      "sha1": "3a3c6f8bcd2be6b8b7d5a0b84dc33a010efa588b",
+      "uploaded": "2023-01-04T19:47:21Z"
+    },
+    "Ioannes Baptista a Vico - Opera latina tomus I - Mediolani, 1835.djvu": {
+      "sha1": "2a067fd58e2afaef90503694b6e5080ac90569c6",
+      "uploaded": "2020-01-30T15:12:18Z"
+    },
+    "Johannes Kepler - Harmonices Mundi Libri V.pdf": {
+      "sha1": "45917ed25321be618f14c77e01d544c89d8bdf62",
+      "uploaded": "2014-01-10T09:43:02Z"
+    },
+    "Joseph Piechowski De ironia Iliadis.pdf": {
+      "sha1": "7b24bad790f00d308040b83b2fb9585093377b50",
+      "uploaded": "2025-12-31T22:00:52Z"
+    },
+    "Josephi Rodrigues de Mello De rusticis Brasiliae rebus Prudentii Amaralii De sacchari opificio carmen.pdf": {
+      "sha1": "98de0d49bf2fedd3d7dab68de792f5328d6f6c88",
+      "uploaded": "2026-01-12T00:25:01Z"
+    },
+    "Krueger, Studemund - Gai Institutiones, Berolini, 1877.djvu": {
+      "sha1": "da51696061cb4813743fac92470aa683fbade481",
+      "uploaded": "2023-03-16T07:39:30Z"
+    },
+    "Le opere di Galileo Galilei I.djvu": {
+      "sha1": "5c59adb3c085407f25c2d806c958a2229f38c57d",
+      "uploaded": "2013-11-11T23:32:59Z"
+    },
+    "Le opere di Galileo Galilei II.djvu": {
+      "sha1": "34b4fd0efdbe23794c1b431b444f548aeee74f3c",
+      "uploaded": "2013-11-12T00:07:53Z"
+    },
+    "Le opere di Galileo Galilei III.djvu": {
+      "sha1": "e60c5b4c21940603cdc713690962b1851b20a435",
+      "uploaded": "2013-11-18T21:43:12Z"
+    },
+    "Leibniz - Réfutation inédite de Spinoza.djvu": {
+      "sha1": "932fa3ad5f68638f0a03da839439d821394f3c75",
+      "uploaded": "2012-12-25T18:30:13Z"
+    },
+    "Les cinquante livres du Digeste ou des Pandectes de l'Empereur Justinien, Tome 1, trad Hulot, 1805.pdf": {
+      "sha1": "49d3d1dedb0d595de1f753f448b9d8b59648b090",
+      "uploaded": "2024-10-23T02:20:44Z"
+    },
+    "Leçons latines modernes de littérature et de morale vol 1.djvu": {
+      "sha1": "edea55c15331009ff6b1a3c58b2111611845be82",
+      "uploaded": "2019-06-12T21:03:26Z"
+    },
+    "Malleus maleficarum (ed. II) - pars prima.djvu": {
+      "sha1": "f29e06aa247d9d35bf045c8b01718543d5676f5b",
+      "uploaded": "2017-12-04T17:28:37Z"
+    },
+    "Marcus Terentius Varro - De Lingua Latina - ex Typographeo Adami Sartorii - 1605.djvu": {
+      "sha1": "de30e27e9084df55f5349d1198f61cca8708ee55",
+      "uploaded": "2019-05-09T07:08:43Z"
+    },
+    "Nicolai Klimii Iter Subterraneum.djvu": {
+      "sha1": "2f7178cd552498765a0028e07c6cb917fe43cf00",
+      "uploaded": "2017-02-22T15:30:00Z"
+    },
+    "Nicolaus Machiavellus De Principe.pdf": {
+      "sha1": "462a6c422c0b7e4db86f9b21f597f5f2fc4f5183",
+      "uploaded": "2024-12-14T17:39:38Z"
+    },
+    "Nos in schola latine loquimur - Ars latine loquendi.pdf": {
+      "sha1": "2ff07d1dc659508e19849a36ad12111b139633ac",
+      "uploaded": "2025-09-05T16:36:03Z"
+    },
+    "Notitia utriusque Vasconiae tum Ibericae tum Aquitanicae.pdf": {
+      "sha1": "ee60286348d38e4ba9f23507000812e3ae98dc0f",
+      "uploaded": "2024-08-26T20:12:59Z"
+    },
+    "Opera Latine Conscripta, Volume 2 (Bruno).djvu": {
+      "sha1": "32547d292f463d843a01c4a2e16f3c9e32b50538",
+      "uploaded": "2025-10-31T20:20:27Z"
+    },
+    "Ora Maritima.djvu": {
+      "sha1": "cc097de44e6d3bd8f498d84f495ee4d2632e51fd",
+      "uploaded": "2020-08-27T14:14:54Z"
+    },
+    "P. Terenti Afri Comoediae (Kauer-Lindsay 1926).djvu": {
+      "sha1": "8d9fa473c5c3595e313f9c3158b838533d7c5d8f",
+      "uploaded": "2024-04-02T12:32:09Z"
+    },
+    "PRAETORIUS, Michael - Syntagma musicum 1.djvu": {
+      "sha1": "a6c32979124660795e867e2c08cbae3083e81121",
+      "uploaded": "2026-02-25T20:15:00Z"
+    },
+    "Patrologia Latina Vol. 54.pdf": {
+      "sha1": "6ad2c13f8193eaef0f6b079d27fd604fe7fb28ad",
+      "uploaded": "2018-04-05T10:42:29Z"
+    },
+    "Pindari carmina plena Heyne 1823.pdf": {
+      "sha1": "ef4bc5ceeb5d578942562957aaeeadc04371e04f",
+      "uploaded": "2026-03-14T16:20:15Z"
+    },
+    "Pline l'ancien - Histoire naturelle, Littré, T1 - 1848.djvu": {
+      "sha1": "9f8c2a43650c4ec122b5543388434ee8534bae76",
+      "uploaded": "2023-10-30T21:09:57Z"
+    },
+    "Poesie italiane.djvu": {
+      "sha1": "da01c9945a1a73bb92170d23744755c77662fa65",
+      "uploaded": "2011-08-29T15:59:52Z"
+    },
+    "Poetae Latini aevi Carolini I.pdf": {
+      "sha1": "0198a009a79cf22b9d7f90be0cbff37d978099d3",
+      "uploaded": "2025-07-16T11:08:29Z"
+    },
+    "Principia newton la.djvu": {
+      "sha1": "98ceadacb07846adc2a36116728a28dd26d3e128",
+      "uploaded": "2011-12-17T08:11:51Z"
+    },
+    "Prisciani Institutionum grammaticarum libri II (v. 1, ed Hertz).djvu": {
+      "sha1": "489557bc59d5f7127d09b303a1ede79936444cc5",
+      "uploaded": "2026-04-17T15:39:26Z"
+    },
+    "Pro Patria A Latin Story for Beginners.pdf": {
+      "sha1": "885fe6f58ce745141a06062f757421f71456c27c",
+      "uploaded": "2022-08-12T10:53:36Z"
+    },
+    "Recueil des Historiens des Gaules et de la France, tome1.djvu": {
+      "sha1": "d33219bf989230e96499ab5c8945d0145270c891",
+      "uploaded": "2019-01-08T22:29:29Z"
+    },
+    "Ribbeck - Scaenicae Romanorum Poesis Fragmenta, Vol 1, 1897.djvu": {
+      "sha1": "54dbbeded44f4f0b27ae44a303540191dee86b09",
+      "uploaded": "2012-12-10T22:59:26Z"
+    },
+    "Rivista italiana di numismatica 1898.djvu": {
+      "sha1": "a94a92cb0a841bef972715642650f8b79f7756dc",
+      "uploaded": "2020-01-05T09:19:14Z"
+    },
+    "Sal Terrae, sive Apologia pro Ministerio Evangelico.pdf": {
+      "sha1": "835f109f97cc5fc5f96e2a5f42ebcd7a0578b940",
+      "uploaded": "2025-11-01T17:01:24Z"
+    },
+    "Salimbene de Adam – Cronica, Vol. I, 1942 – BEIC 1910163.djvu": {
+      "sha1": "18c054ad16a922839d436f854bef6ca7cca2113e",
+      "uploaded": "2018-09-14T11:07:39Z"
+    },
+    "Salimbene de Adam – Cronica, Vol. II, 1942 – BEIC 1912533.djvu": {
+      "sha1": "bb422f02b6eeea63ad09d3b5e27a5d1f24f5643b",
+      "uploaded": "2018-09-14T11:07:40Z"
+    },
+    "Satire (Giovenale).djvu": {
+      "sha1": "f0c2f256c0061ada40a6a56ee1c42af22406344f",
+      "uploaded": "2011-09-15T12:46:58Z"
+    },
+    "Satire (Persio).djvu": {
+      "sha1": "cb9e7620b00b9f0086dbd25d5e72bc30fd1ecf8b",
+      "uploaded": "2026-05-21T15:00:34Z"
+    },
+    "Scopoli-1777 Introductio ad historiam naturalem.pdf": {
+      "sha1": "994aea6b83fc163fe3e10a9d4935d5e98279e5de",
+      "uploaded": "2018-11-01T03:19:47Z"
+    },
+    "Scriptores Minores Historiae Danicae Medii Aevi vol 1.djvu": {
+      "sha1": "abea94140a691fb0d32d27e265d1549a8f037355",
+      "uploaded": "2011-08-06T00:45:14Z"
+    },
+    "Select epodes and Ars poetica.pdf": {
+      "sha1": "9f3d6eb41e3568794fb970c0e22c3c5e6a3e3c6b",
+      "uploaded": "2025-10-20T04:40:10Z"
+    },
+    "Sixtus V - Aeternus Ille.djvu": {
+      "sha1": "c8cd5e279bf5d27b3b551aa3b51983222591f114",
+      "uploaded": "2019-08-17T02:27:25Z"
+    },
+    "Spinoza - Éthique, trad. Appuhn, 1913.djvu": {
+      "sha1": "3b6ae91947effd7d776eb266dd32e076a3ee6dc3",
+      "uploaded": "2011-06-12T21:14:52Z"
+    },
+    "T. Macci Plauti Comoediae, I.djvu": {
+      "sha1": "36f1120f338363ea7d67873782c7321e1fcf9020",
+      "uploaded": "2009-02-17T09:49:18Z"
+    },
+    "The poems of Gaius Valerius Catullus - Francis Warre Cornish.djvu": {
+      "sha1": "00f60f29f9277b8e3e7f6ca8092fb686e958c5cc",
+      "uploaded": "2011-01-18T16:41:36Z"
+    },
+    "The seven great hymns of the mediaeval church - 1902.djvu": {
+      "sha1": "f2e6acf32f5e9bad9f37bbd85bd234d5d2d5ba26",
+      "uploaded": "2008-11-12T00:04:19Z"
+    },
+    "Thomae Vallaurii Epitome historiae Romanae.djvu": {
+      "sha1": "f804fef449f477feb52cbe3902ea215f0262b4ad",
+      "uploaded": "2023-01-21T07:19:33Z"
+    },
+    "Vico, Giambattista – Il diritto universale, Vol. I, 1936 – BEIC 1960672.djvu": {
+      "sha1": "1fc1b3fe5cb08379f4a9e841995d1e1e8379577d",
+      "uploaded": "2018-08-22T09:50:15Z"
+    },
+    "Vico, Giambattista – Il diritto universale, Vol. II, 1936 – BEIC 1961223.djvu": {
+      "sha1": "e6facc8a314e9f7d657645019b9eafa7b2766751",
+      "uploaded": "2021-10-07T22:33:11Z"
+    },
+    "Vico, Giambattista – Il diritto universale, Vol. III, 1936 – BEIC 1961890.djvu": {
+      "sha1": "2574ea3214127ff9bf77d76fdbb416db9b23282b",
+      "uploaded": "2018-08-22T09:50:22Z"
+    },
+    "Virgile - Géorgiques, traduction Desportes, 1846, 1.djvu": {
+      "sha1": "c31bceee75074c77deba9d0e9e2aa1a17c8f451b",
+      "uploaded": "2012-06-13T14:09:33Z"
+    },
+    "Virgile - Géorgiques, traduction Desportes, 1846, 2.djvu": {
+      "sha1": "7e7c27bf6bf442493104690048682173a99bd595",
+      "uploaded": "2012-06-13T14:13:43Z"
+    },
+    "Virgile - Géorgiques, traduction Desportes, 1846, 3.djvu": {
+      "sha1": "296070c5955a26b863fc5f66a8cea368747c85f5",
+      "uploaded": "2012-06-13T14:17:09Z"
+    },
+    "Virgile - Géorgiques, traduction Desportes, 1846, 4.djvu": {
+      "sha1": "74c8f3a9e976b57070fa6eea50066b956a3c9311",
+      "uploaded": "2019-03-15T19:07:56Z"
+    },
+    "Vita Sancti Severini.djvu": {
+      "sha1": "5b0ea7fb9b40d89857de64f845a45106e8868f52",
+      "uploaded": "2012-01-28T13:12:38Z"
+    },
+    "Werkecarlf02gausrich.djvu": {
+      "sha1": "918f9515450efbc6f0e384d9effaaf24ccd2d45c",
+      "uploaded": "2024-01-21T19:43:11Z"
+    },
+    "Werkecarlf03gausrich.djvu": {
+      "sha1": "546e51073dff675ff5c3c4d639a7084de6ec6819",
+      "uploaded": "2023-12-03T15:08:43Z"
+    },
+    "Œuvres philosophiques de Leibniz, Alcan, 1900, tome 1.djvu": {
+      "sha1": "946c675ecb5dea2db6cbd1dfda971253e2097e9c",
+      "uploaded": "2011-12-28T21:51:30Z"
+    },
+    "Петрушевский Д.М. (ред.). Памятники истории Англии XI-XIII вв. 1936.djvu": {
+      "sha1": "8332b281b468ef69246aeaa58a83bdd7702da51d",
+      "uploaded": "2015-05-08T11:43:39Z"
+    }
+  },
+  "seed": 20260917,
+  "sha256": {
+    "dev": "05b146989fdc8b7a",
+    "test": "1670c425e6f0387c"
+  },
+  "shingle": 8,
+  "width": 60
+}
