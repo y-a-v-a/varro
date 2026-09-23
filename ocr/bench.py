@@ -305,11 +305,17 @@ def cmd_build(args) -> int:
 # Run
 # ---------------------------------------------------------------------------
 
+IA_SPLITS = ("current", "then", "now")
+
+
 def load_split(corpus: str, split: str, tier: int = 1) -> Tuple[List[Dict[str, Any]], str]:
     """A split and its hash, refused if it is not the one the lock records."""
     if tier == 2:
         path, lock, how = OUT / f"bench-tier2.{split}.jsonl", HERE / "tier2.lock.json", \
             "python ocr/tier2.py build"
+    elif tier == 3:
+        path, lock, how = OUT / f"bench-ia.{split}.jsonl", HERE / "ia.lock.json", \
+            "python ocr/ia.py build"
     else:
         path, lock, how = OUT / f"bench-{corpus}.{split}.jsonl", LOCK, \
             "python ocr/bench.py build"
@@ -505,7 +511,12 @@ def cmd_run(args) -> int:
     # A repairer learns its channel from the dev split OF THE TIER IT IS RUN
     # ON. A channel fitted to Tier 1's invented noise and carried to real
     # scans would be answering a question about the wrong scanner.
-    dev, _ = load_split(args.corpus, "dev", args.tier)
+    # Tier 3 (archive.org, ocr/ia.py) is never tuned on: it runs under Tier
+    # 2's rules and learns its channel from Tier 2's dev split.
+    tuned_on = 2 if args.tier == 3 else args.tier
+    if args.tier == 3 and args.split not in IA_SPLITS:
+        sys.exit(f"tier 3 splits are {', '.join(IA_SPLITS)}")
+    dev, _ = load_split(args.corpus, "dev", tuned_on)
     rows, digest = load_split(args.corpus, args.split, args.tier)
     if args.limit:
         rows = rows[:args.limit]
@@ -517,7 +528,7 @@ def cmd_run(args) -> int:
 
     results = []
     for spec in args.system:
-        system = make(spec, tuned=not args.untuned, tier=args.tier)
+        system = make(spec, tuned=not args.untuned, tier=tuned_on)
         system.fit(pairs, lex, caps)
         print(f"  {system.name}: {len(rows)} passages from {args.split}", file=sys.stderr)
         results.append(judge(system, rows, known, not args.quiet))
@@ -547,7 +558,7 @@ def cmd_run(args) -> int:
             r_system = r.pop("_system", None)
             r["per_passage"] = pack(tallies)
             slug = re.sub(r"[^a-z0-9]+", "-", r["system"].lower()).strip("-")
-            stem = "ocr-" if args.tier == 1 else "ocr-t2-"
+            stem = {1: "ocr-", 2: "ocr-t2-", 3: "ocr-ia-"}[args.tier]
             path = write_report(f"{stem}{slug}-{args.split}", {
                 "benchmark": {"tier": args.tier, "split": args.split, "sha256": digest,
                               "passages": len(tallies), "limit": args.limit or None,
@@ -584,11 +595,12 @@ def main() -> int:
                    help="identity | unigram | lii | lii-left | fim, with optional "
                         ":checkpoint and @right-context-words")
     r.add_argument("--corpus", default="corpus-b")
-    r.add_argument("--split", choices=("dev", "test", "clean"), default="dev")
+    r.add_argument("--split", choices=("dev", "test", "clean") + IA_SPLITS, default="dev")
     r.add_argument("--untuned", action="store_true",
                    help="ignore ocr/rules.json; decide on the raw sum")
-    r.add_argument("--tier", type=int, choices=(1, 2), default=1,
-                   help="1: synthetic damage. 2: real scans (ocr/tier2.py build)")
+    r.add_argument("--tier", type=int, choices=(1, 2, 3), default=1,
+                   help="1: synthetic damage. 2: real scans (ocr/tier2.py build). "
+                        "3: archive.org's OCR of the same kind of pages (ocr/ia.py build)")
     r.add_argument("--limit", type=int, help="first N passages only; a smoke test")
     r.add_argument("--no-report", action="store_true")
     r.add_argument("--quiet", action="store_true")

@@ -1,0 +1,464 @@
+[
+ {
+  "book": "Horace - Œuvres, trad. Leconte de Lisle, I.djvu",
+  "status": "same reading",
+  "tier2": null,
+  "passages": 240,
+  "in_corpus": 240
+ },
+ {
+  "book": "Horace - Œuvres, trad. Leconte de Lisle, II.djvu",
+  "status": "same reading",
+  "tier2": null,
+  "passages": 267,
+  "in_corpus": 267
+ },
+ {
+  "book": "Satire (Giovenale).djvu",
+  "status": "same reading",
+  "tier2": null,
+  "passages": 51,
+  "in_corpus": 51
+ },
+ {
+  "book": "Nicolai Klimii Iter Subterraneum.djvu",
+  "status": "same reading",
+  "tier2": null,
+  "passages": 201,
+  "in_corpus": 201
+ },
+ {
+  "book": "Ivashkovskiy Rossiysko-Latinskie Razgovory 1831.pdf",
+  "status": "read again",
+  "tier2": null,
+  "passages": 1,
+  "in_corpus": 1
+ },
+ {
+  "book": "Sixtus V - Aeternus Ille.djvu",
+  "status": "same reading",
+  "tier2": null,
+  "passages": 56,
+  "in_corpus": 56
+ },
+ {
+  "book": "Caesar - De Bello Gallico, 1908.djvu",
+  "status": "no Commons text",
+  "tier2": null,
+  "passages": 265,
+  "in_corpus": 265
+ },
+ {
+  "book": "Histoire anonyme de la première croisade, trad. Bréhier, 1924.djvu",
+  "status": "same reading",
+  "tier2": null,
+  "passages": 271,
+  "in_corpus": 271
+ },
+ {
+  "book": "Virgile - Géorgiques, traduction Desportes, 1846, 4.djvu",
+  "status": "same reading",
+  "tier2": null,
+  "passages": 51,
+  "in_corpus": 51
+ },
+ {
+  "book": "Prisciani Institutionum grammaticarum libri II (v. 1, ed Hertz).djvu",
+  "status": "same reading",
+  "tier2": null,
+  "passages": 763,
+  "in_corpus": 762
+ },
+ {
+  "book": "Columellae opera.djvu",
+  "status": "same reading",
+  "tier2": null,
+  "passages": 1637,
+  "in_corpus": 1618
+ },
+ {
+  "book": "Alighieri, Giuliani - Opere latine vol I - 1878.djvu",
+  "status": "same reading",
+  "tier2": "dev",
+  "passages": 293,
+  "in_corpus": 289
+ },
+ {
+  "book": "Cuerpo del derecho civil romano a doble texto (IA cuerpodelderechocivilromanoP1T1).pdf",
+  "status": "read again",
+  "tier2": null,
+  "passages": 3216,
+  "in_corpus": 3142
+ },
+ {
+  "book": "Opera Latine Conscripta, Volume 2 (Bruno).djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 517,
+  "in_corpus": 500
+ },
+ {
+  "book": "Marcus Terentius Varro - De Lingua Latina - ex Typographeo Adami Sartorii - 1605.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 412,
+  "in_corpus": 392
+ },
+ {
+  "book": "Malleus maleficarum (ed. II) - pars prima.djvu",
+  "status": "fetch failed (HTTP Error 500: Internal Server Error)",
+  "tier2": "test",
+  "passages": 789,
+  "in_corpus": 747
+ },
+ {
+  "book": "Codex Amiatinus novum testamentum latine (1854).djvu",
+  "status": "same reading",
+  "tier2": "dev",
+  "passages": 1104,
+  "in_corpus": 980
+ },
+ {
+  "book": "The seven great hymns of the mediaeval church - 1902.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 15,
+  "in_corpus": 13
+ },
+ {
+  "book": "Thomae Vallaurii Epitome historiae Romanae.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 41,
+  "in_corpus": 31
+ },
+ {
+  "book": "S Anselmi Cantuariensis libri duo Cur De.pdf",
+  "status": "read again",
+  "tier2": null,
+  "passages": 84,
+  "in_corpus": 59
+ },
+ {
+  "book": "Historia diplomatica Friderici secundi 1-1.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 94,
+  "in_corpus": 60
+ },
+ {
+  "book": "Ribbeck - Scaenicae Romanorum Poesis Fragmenta, Vol 1, 1897.djvu",
+  "status": "same reading",
+  "tier2": "dev",
+  "passages": 553,
+  "in_corpus": 343
+ },
+ {
+  "book": "Ecclesiam a Iesu Christo.djvu",
+  "status": "no Commons text",
+  "tier2": null,
+  "passages": 17,
+  "in_corpus": 10
+ },
+ {
+  "book": "The poems of Gaius Valerius Catullus - Francis Warre Cornish.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 152,
+  "in_corpus": 87
+ },
+ {
+  "book": "Satire (Persio).djvu",
+  "status": "same reading",
+  "tier2": "dev",
+  "passages": 60,
+  "in_corpus": 32
+ },
+ {
+  "book": "P. Terenti Afri Comoediae (Kauer-Lindsay 1926).djvu",
+  "status": "read again",
+  "tier2": "test",
+  "passages": 27,
+  "in_corpus": 10
+ },
+ {
+  "book": "Hymnus in Romam.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 22,
+  "in_corpus": 7
+ },
+ {
+  "book": "Epitome historiæ sacræ (IA epitomehistoris00irongoog).pdf",
+  "status": "no Commons text",
+  "tier2": null,
+  "passages": 95,
+  "in_corpus": 29
+ },
+ {
+  "book": "Werkecarlf03gausrich.djvu",
+  "status": "same reading",
+  "tier2": "dev",
+  "passages": 550,
+  "in_corpus": 136
+ },
+ {
+  "book": "Cornelii Taciti - Agricola.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 562,
+  "in_corpus": 135
+ },
+ {
+  "book": "Leçons latines modernes de littérature et de morale vol 1.djvu",
+  "status": "same reading",
+  "tier2": "dev",
+  "passages": 196,
+  "in_corpus": 47
+ },
+ {
+  "book": "Hymni Ecclesiae.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 52,
+  "in_corpus": 10
+ },
+ {
+  "book": "Gauss, Carl Friedrich - Werke (1870).djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 625,
+  "in_corpus": 119
+ },
+ {
+  "book": "Gesta Romanorum - Oesterley 1872.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 2022,
+  "in_corpus": 346
+ },
+ {
+  "book": "PRAETORIUS, Michael - Syntagma musicum 1.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 1675,
+  "in_corpus": 253
+ },
+ {
+  "book": "Erasmi Colloquia Familiaria Et Encomium Moriae.djvu",
+  "status": "same reading",
+  "tier2": "dev",
+  "passages": 2788,
+  "in_corpus": 416
+ },
+ {
+  "book": "APPLETON – Ludi Persici.pdf",
+  "status": "no Commons text",
+  "tier2": null,
+  "passages": 141,
+  "in_corpus": 10
+ },
+ {
+  "book": "Athanasius Kircher - Turris Babel - 1679.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 1362,
+  "in_corpus": 90
+ },
+ {
+  "book": "Arra aeternae salutis (1495) by Lambsheim.pdf",
+  "status": "read again",
+  "tier2": "test",
+  "passages": 17,
+  "in_corpus": 1
+ },
+ {
+  "book": "Agricola De re metallica.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 87,
+  "in_corpus": 4
+ },
+ {
+  "book": "Ad Alpes.djvu",
+  "status": "no Commons text",
+  "tier2": null,
+  "passages": 561,
+  "in_corpus": 25
+ },
+ {
+  "book": "Eclogae latinae.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 495,
+  "in_corpus": 19
+ },
+ {
+  "book": "Exercises on Latin syntax, adapted to Zumpt's grammar; to which are added extracts from the writings of Muretus.djvu",
+  "status": "same reading",
+  "tier2": "dev",
+  "passages": 54,
+  "in_corpus": 2
+ },
+ {
+  "book": "Polygamia Triumphatrix.pdf",
+  "status": "no OCR",
+  "tier2": null,
+  "passages": 345,
+  "in_corpus": 10
+ },
+ {
+  "book": "Sal Terrae, sive Apologia pro Ministerio Evangelico.pdf",
+  "status": "read again",
+  "tier2": "test",
+  "passages": 36,
+  "in_corpus": 1
+ },
+ {
+  "book": "Foenix. Domini Petri Ravennatis memoriae magistri - (Petrus) (IA hin-wel-all-00002799-001).pdf",
+  "status": "no Commons text",
+  "tier2": null,
+  "passages": 141,
+  "in_corpus": 3
+ },
+ {
+  "book": "Ora Maritima.djvu",
+  "status": "same reading",
+  "tier2": "dev",
+  "passages": 61,
+  "in_corpus": 1
+ },
+ {
+  "book": "Rivista italiana di numismatica 1898.djvu",
+  "status": "same reading",
+  "tier2": "dev",
+  "passages": 64,
+  "in_corpus": 1
+ },
+ {
+  "book": "Nos in schola latine loquimur - Ars latine loquendi.pdf",
+  "status": "read again",
+  "tier2": "test",
+  "passages": 700,
+  "in_corpus": 10
+ },
+ {
+  "book": "Easy Latin Stories.djvu",
+  "status": "same reading",
+  "tier2": "dev",
+  "passages": 365,
+  "in_corpus": 5
+ },
+ {
+  "book": "Cothvrnvlvs three short Latin historical plays for the use of beginners.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 94,
+  "in_corpus": 1
+ },
+ {
+  "book": "A First Latin Reader.pdf",
+  "status": "read again",
+  "tier2": "dev",
+  "passages": 137,
+  "in_corpus": 1
+ },
+ {
+  "book": "Pro Patria A Latin Story for Beginners.pdf",
+  "status": "read again",
+  "tier2": "test",
+  "passages": 139,
+  "in_corpus": 1
+ },
+ {
+  "book": "Ioannes Baptista a Vico - Opera latina tomus I - Mediolani, 1835.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 1338,
+  "in_corpus": 9
+ },
+ {
+  "book": "Centurio.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 12,
+  "in_corpus": 0
+ },
+ {
+  "book": "Omaggio del Capitolo e del Seminario di Acqui a Giuseppe Marello.djvu",
+  "status": "no Commons text",
+  "tier2": null,
+  "passages": 24,
+  "in_corpus": 0
+ },
+ {
+  "book": "Scriptores Minores Historiae Danicae Medii Aevi vol 1.djvu",
+  "status": "fetch failed (HTTP Error 500: Internal Server Error)",
+  "tier2": "test",
+  "passages": 71,
+  "in_corpus": 0
+ },
+ {
+  "book": "Poesie italiane.djvu",
+  "status": "same reading",
+  "tier2": "test",
+  "passages": 44,
+  "in_corpus": 0
+ },
+ {
+  "book": "Johannes Kepler - Harmonices Mundi Libri V.pdf",
+  "status": "read again",
+  "tier2": "test",
+  "passages": 140,
+  "in_corpus": 0
+ },
+ {
+  "book": "Easy Latin Plays.pdf",
+  "status": "read again",
+  "tier2": null,
+  "passages": 13,
+  "in_corpus": 0
+ },
+ {
+  "book": "Marjorie Fay - Carolus Et Maria.pdf",
+  "status": "missing",
+  "tier2": null,
+  "passages": 168,
+  "in_corpus": 0
+ },
+ {
+  "book": "MAXEY, Mima; FAY, Marjorie - A New Latin Primer (1933).pdf",
+  "status": "no Commons text",
+  "tier2": null,
+  "passages": 206,
+  "in_corpus": 0
+ },
+ {
+  "book": "Vitrioli - Epigrammi latini, G. Nobile, 1871.djvu",
+  "status": "no Commons text",
+  "tier2": null,
+  "passages": 54,
+  "in_corpus": 0
+ },
+ {
+  "book": "Werkecarlf02gausrich.djvu",
+  "status": "read again",
+  "tier2": "dev",
+  "passages": 529,
+  "in_corpus": 0
+ },
+ {
+  "book": "CSHB42 corpusscriptorum45niebuoft.pdf",
+  "status": "read again",
+  "tier2": "test",
+  "passages": 55,
+  "in_corpus": 0
+ },
+ {
+  "book": "Logonomia anglica qua gentis sermo facilius addiscitur.djvu",
+  "status": "same reading",
+  "tier2": null,
+  "passages": 56,
+  "in_corpus": 0
+ }
+]

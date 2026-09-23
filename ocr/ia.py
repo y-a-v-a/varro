@@ -4,6 +4,8 @@
     python ocr/ia.py find       # which Tier 2 scans came from archive.org -> ia-candidates.json
     python ocr/ia.py fetch      # each item's current OCR, page by page -> data/raw/
     python ocr/ia.py compare    # old (Commons) vs current (archive.org) OCR, same passages
+    python ocr/ia.py build      # -> bench-ia.{current,then,now}.jsonl, locked
+    python ocr/bench.py run identity unigram fim --tier 3 --split current
 
 WHY
     The goal is archive.org text in the corpus. Before repairing any of it,
@@ -34,9 +36,32 @@ COMPARE
 
     No model runs here. Nothing is tuned on these books; several are in
     Tier 2's test split.
+
+BUILD: A BENCHMARK THE MODEL MAY BE RUN ON
+    Three splits, cut and located as tier2.py cuts and locates:
+
+      current  archive.org's OCR as it is served today, every usable book
+      then     the older reading (the Commons layer), books archive.org has
+               since read again, passages found in both readings
+      now      the same passages as `then`, in archive.org's current reading
+
+    `then` against `now` is re-reading; each against itself repaired is
+    repair; `now` repaired is both. `current` is the wider question: how
+    much does repair add to archive.org text as it can be downloaded.
+
+    What keeps it honest:
+      - Tier 2's TEST books are left out whole. Seeing the model's score on
+        an exam book before the exam is sat is sitting it early.
+      - Passages Tier 2's dev split holds are left out; the rules were tuned
+        on them.
+      - Contamination is checked as tier2.py checks it.
+      - Nothing is tuned here: bench.py runs tier 3 under Tier 2's rules and
+        Tier 2's fitted channel. That channel was learned from older OCR, so
+        on Tesseract's errors it is, if anything, a handicap.
 """
 
 import argparse
+import hashlib
 import html
 import json
 import random
@@ -74,6 +99,8 @@ SAMPLE = 15            # pages checked for "same reading"
 RUN = 8                # words in each checked run
 WINDOW = 12            # archive.org pages searched either side of the expected one
 MIN_OVERLAP = 0.3      # word overlap below which a page was not found
+PER_BOOK = 40          # passages any one book may give the benchmark
+LOCK = HERE / "ia.lock.json"
 
 
 def get(url: str, timeout: int = 120) -> bytes:
@@ -354,6 +381,142 @@ def cmd_compare(args) -> int:
     return 0
 
 
+# ---------------------------------------------------------------------------
+# build
+# ---------------------------------------------------------------------------
+
+def tier2_ids() -> Dict[str, str]:
+    """Passage id -> Tier 2 split, and book -> split, for everything Tier 2 holds."""
+    held: Dict[str, str] = {}
+    for s in ("dev", "test"):
+        with (bench.OUT / f"bench-tier2.{s}.jsonl").open(encoding="utf-8") as fh:
+            for line in fh:
+                p = json.loads(line)
+                held[p["id"]] = s
+                held.setdefault(p["doc"], s)
+    return held
+
+
+def reading(pages: List[str]) -> List[str]:
+    return [" ".join(tier2.tidy(normalize(p or "")).split()) for p in pages]
+
+
+def cmd_build(args) -> int:
+    lex = set(bench.lexicon(args.corpus))
+    held = tier2_ids()
+    truth_pages: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    with tier2.PAGES.open(encoding="utf-8") as fh:
+        for line in fh:
+            row = json.loads(line)
+            truth_pages[row["book"]].append(row)
+
+    found: List[Dict[str, Any]] = []
+    why: Counter = Counter()
+    for row in candidates():
+        path = raw_path(row["ia"])
+        if not path.exists() or row["status"] not in (
+                "same reading", "read again", "no Commons text"):
+            continue
+        if held.get(row["book"]) == "test":
+            why["book is in Tier 2's test split"] += 1
+            continue
+        now = reading(json.loads(path.read_text(encoding="utf-8"))["pages"])
+        now_bags = [set(words(p)) for p in now]
+        layer = commons_layer(row["book"])
+        then = reading([layer.get(str(k)) for k in range(
+            max((int(k) for k in layer), default=-1) + 1)])
+        then_bags = [set(words(p)) for p in then]
+        scale = len(now) / max(1, len(then) or len(now))
+        pages = sorted(truth_pages[row["book"]], key=lambda p: (
+            -p["level"], bench._order(args.seed, f"{row['book']}/{p['page']}")))
+        took = 0
+        for page in pages:
+            if took >= 4 * PER_BOOK:
+                break
+            truth = " ".join(tier2.tidy(normalize(tier2.clean_wikitext(page["wikitext"]))).split())
+            at = best_page(truth, now_bags, int((page["page"] - 1) * scale))
+            if at is None:
+                why["page not found in archive.org's reading"] += 1
+                continue
+            got, reasons = tier2.passages_of(truth, now[at], lex)
+            why.update(reasons)
+            old: Dict[str, Dict[str, Any]] = {}
+            if row["status"] == "read again" and then:
+                back = best_page(truth, then_bags, page["page"] - 1)
+                if back is not None:
+                    old = {p["truth"]: p for p in tier2.passages_of(truth, then[back], lex)[0]}
+            for g in got:
+                pid = f"{row['book']}/{page['page']}#{g.pop('slot')}"
+                if pid in held:
+                    why["passage is in Tier 2"] += 1
+                    continue
+                g.update({"id": pid, "doc": row["book"], "author": row["book"],
+                          "ia": row["ia"], "status": row["status"],
+                          "engine": row.get("engine"), "quality": page["level"],
+                          "source": "archive-org-ocr", "license": "CC-BY-SA-4.0",
+                          "period": None, "classes": None})
+                if g["truth"] in old:
+                    g["then"] = old[g["truth"]]["noisy"]
+                    g["then_cer"] = old[g["truth"]]["cer"]
+                found.append(g)
+                took += 1
+        print(f"  {took:>5} passages  {row['status']:<15} {row['book'][:60]}", flush=True)
+
+    print(f"\n{len(found):,} passages located; checking them against "
+          f"{args.corpus}.train ...", flush=True)
+    dirty = tier2.contaminated(found, args.corpus)
+    found = [p for p in found if p["id"] not in dirty]
+    why[f"shares {tier2.SHINGLE} words running with the training split"] = len(dirty)
+
+    found.sort(key=lambda p: bench._order(args.seed, p["id"]))
+    seen: Counter = Counter()
+    kept = []
+    for p in found:
+        if seen[p["doc"]] < PER_BOOK:
+            seen[p["doc"]] += 1
+            kept.append(p)
+    why["over the per-book cap"] = len(found) - len(kept)
+
+    def as_split(p: Dict[str, Any], name: str, noisy: str, cer: float) -> Dict[str, Any]:
+        q = {k: v for k, v in p.items() if k not in ("then", "then_cer")}
+        q.update({"noisy": noisy, "cer": cer, "split": name, "level": tier2.band(cer)})
+        return q
+
+    splits = {
+        "current": [as_split(p, "current", p["noisy"], p["cer"]) for p in kept],
+        "then": [as_split(p, "then", p["then"], p["then_cer"]) for p in kept if "then" in p],
+        "now": [as_split(p, "now", p["noisy"], p["cer"]) for p in kept if "then" in p],
+    }
+    hashes = {}
+    for name, rows in splits.items():
+        body = "".join(json.dumps(p, ensure_ascii=False, sort_keys=True) + "\n" for p in rows)
+        hashes[name] = hashlib.sha256(body.encode()).hexdigest()[:16]
+        (bench.OUT / f"bench-ia.{name}.jsonl").write_text(body, encoding="utf-8")
+
+    print("\n  dropped, and why:")
+    for reason, n in why.most_common():
+        print(f"    {n:>6,}  {reason}")
+    for name, rows in splits.items():
+        chars = sum(len(p["truth"]) for p in rows) or 1
+        cer = sum(p["cer"] * len(p["truth"]) for p in rows) / chars
+        print(f"\n  {name}: {len(rows)} passages from {len({p['doc'] for p in rows})} books, "
+              f"CER {cer:.2%}, sha256 {hashes[name]}")
+
+    lock = {"corpus": args.corpus, "seed": args.seed, "per_book": PER_BOOK,
+            "sha256": hashes, "passages": {s: len(r) for s, r in splits.items()},
+            "dropped": dict(why), "candidates": hashlib.sha256(
+                CANDIDATES.read_bytes()).hexdigest()[:16]}
+    if LOCK.exists() and not args.relock:
+        old = json.loads(LOCK.read_text(encoding="utf-8")).get("sha256")
+        if old != hashes:
+            sys.exit(f"\nthis build does not match {LOCK.relative_to(ROOT)} "
+                     f"({old} locked, {hashes} built); --relock if that is meant")
+    LOCK.write_text(json.dumps(lock, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+                    encoding="utf-8")
+    print(f"\nwrote {LOCK.relative_to(ROOT)}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -364,8 +527,12 @@ def main() -> int:
     c = sub.add_parser("compare")
     c.add_argument("--corpus", default="corpus-b")
     c.add_argument("--pages", type=int, default=40, help="proofread pages sampled per book")
+    b = sub.add_parser("build")
+    b.add_argument("--corpus", default="corpus-b")
+    b.add_argument("--relock", action="store_true")
     args = ap.parse_args()
-    return {"find": cmd_find, "fetch": cmd_fetch, "compare": cmd_compare}[args.cmd](args)
+    return {"find": cmd_find, "fetch": cmd_fetch, "compare": cmd_compare,
+            "build": cmd_build}[args.cmd](args)
 
 
 if __name__ == "__main__":

@@ -240,6 +240,63 @@
     dl.gloss dd { margin-bottom: .6rem; }
     .prop-row { grid-template-columns: 5.5rem 1fr auto; }
   }
+
+  /* ---- part 2: charts ---- */
+  :root { --c-before: #c0692e; --c-after: #1a6fa3; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --c-before: #c7773d; --c-after: #3f97c4; }
+  }
+  :root[data-theme="dark"] { --c-before: #c7773d; --c-after: #3f97c4; }
+
+  .part { display: flex; flex-direction: column; gap: .6rem; padding-top: 1rem; border-top: 2px solid var(--ink); }
+  .part .label { color: var(--ink); }
+  .done { text-decoration: line-through; text-decoration-color: var(--muted); }
+
+  .db { display: flex; flex-direction: column; gap: .45rem; }
+  .db-row { display: grid; grid-template-columns: minmax(9rem, 15rem) 1fr 7.2rem; gap: .8rem; align-items: center; }
+  .db-row .who { font-family: var(--mono); font-size: .74rem; color: var(--ink-soft); line-height: 1.3; }
+  .db-row .amt { font-family: var(--mono); font-size: .74rem; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .db-track {
+    position: relative; height: 18px;
+    background: repeating-linear-gradient(to right, var(--rule-soft) 0 1px, transparent 1px 25%);
+    border-left: 1px solid var(--rule); border-right: 1px solid var(--rule-soft);
+  }
+  .db-line { position: absolute; top: 8px; height: 2px; background: var(--rule); }
+  .db-dot { position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%; transform: translate(-50%, -50%); }
+  .db-dot.before { background: var(--surface); border: 2px solid var(--c-before); }
+  .db-dot.after  { background: var(--c-after); box-shadow: 0 0 0 2px var(--surface); }
+  .db-thr { position: absolute; top: -4px; bottom: -4px; border-left: 1px dashed var(--muted); }
+  .db-row:hover .who, .db-row:hover .amt { color: var(--ink); }
+  .db-row:hover .db-track { background-color: var(--sunken); }
+  .db-axis { display: grid; grid-template-columns: minmax(9rem, 15rem) 1fr 7.2rem; gap: .8rem; }
+  .db-axis .ticks { position: relative; height: 1rem; font-family: var(--mono); font-size: .66rem; color: var(--muted); }
+  .db-axis .ticks span { position: absolute; transform: translateX(-50%); }
+  .db-axis .ticks span:first-child { transform: none; }
+  .db-axis .ticks span:last-child { transform: translateX(-100%); }
+  .legend { display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; font-family: var(--mono); font-size: .72rem; color: var(--ink-soft); }
+  .legend .key { display: inline-flex; align-items: center; gap: .45rem; }
+  .legend .sw-before { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--c-before); background: var(--surface); }
+  .legend .sw-after { width: 11px; height: 11px; border-radius: 50%; background: var(--c-after); }
+  .legend .sw-thr { width: 0; height: 12px; border-left: 1px dashed var(--muted); }
+
+  details { font-size: .9rem; }
+  details summary { cursor: pointer; font-family: var(--mono); font-size: .74rem; color: var(--blue); }
+  details[open] summary { margin-bottom: .6rem; }
+  .prop.long .prop-row { grid-template-columns: minmax(9rem, 15rem) 1fr 3rem; }
+  .prop-row .fill.alt { background: var(--c-before); }
+  .four .prop-row { grid-template-columns: minmax(9rem, 15rem) 1fr 4rem; }
+
+  @media (max-width: 720px) {
+    .db-axis .ticks span:nth-child(2), .db-axis .ticks span:nth-child(4) { display: none; }
+  }
+  @media (max-width: 560px) {
+    .db-row, .db-axis { grid-template-columns: 1fr 4.8rem; row-gap: .15rem; }
+    .db-row .who { grid-column: 1 / -1; }
+    .db-axis > div:first-child { display: none; }
+    .db-row .amt { font-size: .68rem; }
+    .prop.long .prop-row, .four .prop-row { grid-template-columns: 1fr 3.4rem; }
+    .prop.long .prop-row .who, .four .prop-row .who { grid-column: 1 / -1; }
+  }
 </style>
 
 <div class="page">
@@ -253,33 +310,65 @@
       <code>Ioue</code>, <code>femen</code> for <code>semen</code>) that a lot of
       digitised Latin is quietly damaged. The question here is whether LATIN-LII,
       which has read 134 million words of Latin, can put some of that right without
-      breaking the text that was already correct.
+      breaking the text that was already correct — and, since 23 September, whether
+      that makes archive.org's scanned Latin good enough to train the next model on.
     </p>
     <p class="lede">
-      Short answer: <b>yes, measurably better than simple word counting — but on real
-      scans it repairs about a quarter of the damage</b>, and every number below is
-      from the practice set. The final exam has not been sat yet.
+      Short answer: <b>the model repairs better than simple word counting, but only a
+      fifth to a quarter of the damage on real scans.</b> For archive.org the bigger
+      levers turned out to be elsewhere: <b>getting a fresh OCR reading</b> of a book
+      halves its errors where repair takes off a seventh, and <b>almost half</b> of what
+      we looked at is text the corpus already has.
     </p>
-    <div class="subtitle">branch ocr/evaluation · state of 23 September 2026 · from HANDOVER.md and reports/ocr-*.json</div>
+    <div class="subtitle">branch ocr/evaluation · 23–24 September 2026 · from HANDOVER.md and reports/ocr-*.json · Part 1: the repair benchmark · Part 2: archive.org</div>
   </header>
 
   <div class="figure-row" aria-label="Headline figures">
     <div class="figure">
-      <div class="v num">27%</div>
+      <div class="v num">21–27%</div>
       <div class="k">of real-scan damage repaired ↑</div>
     </div>
     <div class="figure">
-      <div class="v num">1.2</div>
+      <div class="v num">~1</div>
       <div class="k">correct words broken per 1,000 ↓</div>
     </div>
     <div class="figure">
-      <div class="v num">16.9 → 12.4%</div>
-      <div class="k">words wrong, before → after ↓</div>
+      <div class="v num">11.2 → 5.0%</div>
+      <div class="k">chars wrong, old OCR → archive.org re-read ↓</div>
+    </div>
+    <div class="figure">
+      <div class="v num">45%</div>
+      <div class="k">of sampled archive.org Latin already in the corpus</div>
     </div>
     <div class="figure">
       <div class="v warn">Not run</div>
       <div class="k">The test split</div>
     </div>
+  </div>
+
+  <section>
+    <div class="label">Words used on this page</div>
+    <h2>A small glossary</h2>
+    <dl class="gloss">
+      <dt>characters wrong ↓</dt><dd>Also “character error rate” or CER: the share of letters, spaces and punctuation that differ from the proofread text. 5% means about one slip every 20 characters — roughly two per line.</dd>
+      <dt>words wrong ↓</dt><dd>The share of words not exactly right, punctuation included. Always much higher than characters wrong, because one bad letter spoils a whole word.</dd>
+      <dt>recall ↑</dt><dd>Of the words the scan got wrong, the share the system put right.</dd>
+      <dt>precision ↑</dt><dd>Of the changes the system made, the share that were correct.</dd>
+      <dt>broken / 1,000 ↓</dt><dd>Correct words the system damaged, per thousand it left standing. The harm limit is 2.</dd>
+      <dt>non-word error</dt><dd>The OCR produced something that isn't Latin (<code>Almafalutiferam</code>). Easy to spot.</dd>
+      <dt>real-word error</dt><dd>The OCR produced a <em>different real word</em> (<code>femen</code>/<code>semen</code> from a long-s). Only context can catch it.</dd>
+      <dt>proposer</dt><dd>The step that lists possible corrections for a word. If the right one isn't on the list, no judge can pick it.</dd>
+      <dt>ceiling</dt><dd>Recall if a perfect judge always picked the right candidate from the list. The limit the proposer sets.</dd>
+      <dt>re-read</dt><dd>The same page images put through OCR again, usually by a newer engine. archive.org has done this to many older scans with Tesseract.</dd>
+      <dt>Tier 1 / 2 / 3</dt><dd>Tier 1: clean text with damage <em>simulated</em> by a noise table. Tier 2: real OCR from scans on Wikimedia Commons, against the proofread Wikisource transcription of the same page. Tier 3 (new): archive.org's OCR of the same kind of pages.</dd>
+      <dt>dev / test</dt><dd>Practice set, used for all tuning; exam set, run once at the end so the tuning can't have leaked into it.</dd>
+      <dt>already in the corpus</dt><dd>A passage shares a run of 8 consecutive words with the training text — the model has probably read it, in this or another edition.</dd>
+    </dl>
+  </section>
+
+  <div class="part">
+    <div class="label">Part 1</div>
+    <h2>The repair benchmark</h2>
   </div>
 
   <section>
@@ -313,29 +402,13 @@
   </section>
 
   <section>
-    <div class="label">Words used on this page</div>
-    <h2>A small glossary</h2>
-    <dl class="gloss">
-      <dt>recall ↑</dt><dd>Of the words the scan got wrong, the share the system put right.</dd>
-      <dt>precision ↑</dt><dd>Of the changes the system made, the share that were correct.</dd>
-      <dt>broken / 1,000 ↓</dt><dd>Correct words the system damaged, per thousand it left standing. The harm limit is 2.</dd>
-      <dt>non-word error</dt><dd>The OCR produced something that isn't Latin (<code>Almafalutiferam</code>). Easy to spot.</dd>
-      <dt>real-word error</dt><dd>The OCR produced a <em>different real word</em> (<code>femen</code>/<code>semen</code> from a long-s). Only context can catch it.</dd>
-      <dt>proposer</dt><dd>The step that lists possible corrections for a word. If the right one isn't on the list, no judge can pick it.</dd>
-      <dt>ceiling</dt><dd>Recall if a perfect judge always picked the right candidate from the list. The limit the proposer sets.</dd>
-      <dt>Tier 1 / Tier 2</dt><dd>Tier 1: clean text with damage <em>simulated</em> by a noise table. Tier 2: real OCR output from scans on Wikimedia Commons, against the checked Wikisource transcription of the same page.</dd>
-      <dt>dev / test</dt><dd>Practice set, used for all tuning; exam set, run once at the end so the tuning can't have leaked into it.</dd>
-    </dl>
-  </section>
-
-  <section>
     <div class="label">Results · practice set, all under the harm limit</div>
     <h2>Context wins clearly on invented damage, modestly on real scans</h2>
     <p class="prose">
       On simulated damage the model repairs two-thirds of the errors; the
       frequency count under half. On real scans everything drops by roughly 2.5×,
       and the model's lead narrows to 6–8 points. Real OCR is harder than any noise
-      table anyone writes by hand, which is why only Tier 2 figures should ever be
+      table anyone writes by hand, which is why only real-scan figures should ever be
       quoted as “OCR performance”.
     </p>
 
@@ -358,7 +431,7 @@
     <div class="tablewrap">
       <table>
         <thead>
-          <tr><th>System</th><th class="n">Recall <span class="dir">↑</span></th><th class="n">Real-word <span class="dir">↑</span></th><th class="n">Non-word <span class="dir">↑</span></th><th class="n">Precision <span class="dir">↑</span></th><th class="n">Broken /1,000 <span class="dir">↓</span></th><th class="n">Char. errors <span class="dir">↓</span></th></tr>
+          <tr><th>System</th><th class="n">Recall <span class="dir">↑</span></th><th class="n">Real-word <span class="dir">↑</span></th><th class="n">Non-word <span class="dir">↑</span></th><th class="n">Precision <span class="dir">↑</span></th><th class="n">Broken /1,000 <span class="dir">↓</span></th><th class="n">Chars wrong <span class="dir">↓</span></th></tr>
         </thead>
         <tbody>
           <tr><td class="f">identity</td><td class="n">0.0%</td><td class="n">0.0%</td><td class="n">0.0%</td><td class="n">—</td><td class="n">0</td><td class="n">5.20%</td></tr>
@@ -368,7 +441,7 @@
         </tbody>
       </table>
     </div>
-    <p class="legend-line">↑ higher is better · ↓ lower is better · “Char. errors” = share of characters wrong after repair; the scans start at 5.20%.</p>
+    <p class="legend-line">↑ higher is better · ↓ lower is better · “Chars wrong” is after repair; the scans start at 5.20%.</p>
 
     <h3>Tier 1 — simulated damage, 240 passages</h3>
     <div class="tablewrap">
@@ -407,10 +480,10 @@
     </p>
     <div class="panel">
       <div class="stack" role="img" aria-label="Fixed 27%, offered but declined 24%, offered but wrong pick or other 6%, never offered 43%">
-        <div class="s-fixed" style="width:27.3%"></div>
-        <div class="s-decl"  style="width:24.0%"></div>
-        <div class="s-other" style="width:6.1%"></div>
-        <div class="s-none"  style="width:42.6%"></div>
+        <div class="s-fixed" style="width:27.3%" title="Repaired: 27.3%"></div>
+        <div class="s-decl"  style="width:24.0%" title="Right answer offered, declined: 24% (1,756 words)"></div>
+        <div class="s-other" style="width:6.1%" title="Offered, but a wrong candidate won or otherwise missed: ~6%"></div>
+        <div class="s-none"  style="width:42.6%" title="Right answer never offered: 42.6%"></div>
       </div>
       <div class="stack-key">
         <div class="k"><span class="sw s-fixed"></span><span><b>27%</b> repaired</span></div>
@@ -432,7 +505,7 @@
       table.
     </p>
     <div class="note">
-      <b>This is the most important thing on the page.</b> Relaxed to a lower margin,
+      <b>Still the biggest lever inside the repairer.</b> Relaxed to a lower margin,
       the same system reaches <b>40.5%</b> recall while breaking 1.02 per 1,000 of the
       words the lexicon recognises. That is a bigger gain than all the proposer work
       combined — and it costs a decision, not engineering. But “~35 of 48 were the
@@ -442,7 +515,7 @@
 
   <section>
     <div class="label">What was learned</div>
-    <h2>Nine findings, in the order they arrived</h2>
+    <h2>Nine findings about the repairer</h2>
     <ul class="prose" style="max-width:40em">
       <li><b>Safety comes from the decision rule, not the model.</b> Picking the most
         likely candidate broke 6 words per 1,000; a rule that asks for more evidence the
@@ -467,120 +540,515 @@
     </ul>
   </section>
 
+  <div class="part">
+    <div class="label">Part 2 · added 23–24 September</div>
+    <h2>archive.org: can its Latin be made fit for the corpus?</h2>
+    <p class="prose">
+      The goal behind the whole sub-project: download OCR text from archive.org,
+      correct it well enough, and add it to the training corpus. Before any of that is
+      worth building, four things need knowing — does the Tier 2 result hold for
+      archive.org's text; does a fresh OCR reading beat repair; how much of it is new
+      to the corpus; and how clean does it end up.
+    </p>
+  </div>
+
   <section>
-    <div class="label">Next steps · honestly rated</div>
+    <div class="label">Finding 1</div>
+    <h2>Tier 2 was already measuring archive.org</h2>
+    <p class="prose">
+      Many of the scans Wikisource volunteers proofread were uploaded to Wikimedia
+      Commons <em>from</em> archive.org. The Commons file pages of the Tier 2 books cite
+      66 archive.org items. For each, fifteen random pages were checked: does an 8-word
+      run from the Commons OCR appear, letter for letter, in archive.org's current text?
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>What archive.org holds today</th><th class="n">Items</th><th>What it means</th></tr></thead>
+        <tbody>
+          <tr><td>The same reading as Commons</td><td class="n">40</td><td>The Commons file <em>is</em> archive.org's scan with its OCR. Tier 2's numbers are archive.org numbers for these.</td></tr>
+          <tr><td>A newer reading</td><td class="n">13</td><td>archive.org has put the scan through OCR again since. Same pages, same proofread truth, two readings: a natural experiment.</td></tr>
+          <tr><td>Only archive.org has text</td><td class="n">9</td><td>The Commons copy has no text layer, so these books never reached Tier 2 — fresh ground.</td></tr>
+          <tr><td>Missing, failed, or no OCR</td><td class="n">4</td><td>Item deleted, archive.org server errors, or a scan with no text at all.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose">
+      <b>So the Tier 2 figures largely carry over</b> — they were measured on
+      archive.org OCR — whatever reading archive.org had when the file was
+      copied, often ABBYY FineReader 8–11. Finding 4 confirms it
+      directly.
+    </p>
+  </section>
+
+  <section>
+    <div class="label">Finding 2 · no model involved</div>
+    <h2>A fresh reading beats repair — on books printed in the last 150 years</h2>
+    <p class="prose">
+      For each book, proofread passages were located in both readings and scored on
+      exactly the same text. The 39 books whose reading had not changed are the
+      control: both sides should score the same, and they do (5.34% against 5.21% of
+      characters wrong; 34 of 39 books within 1%). For the books archive.org re-read:
+    </p>
+    <div class="panel">
+      <div class="legend" aria-hidden="true">
+        <span class="key"><span class="sw-before"></span>old OCR (the Commons layer)</span>
+        <span class="key"><span class="sw-after"></span>archive.org's current reading</span>
+      </div>
+      <div class="db" role="img" aria-label="Characters wrong, old OCR against archive.org's current reading, per re-read book. Table below.">
+<div class="db-row" title="Ars latine loquendi (1909): 124 passages; old OCR 8.26%, archive.org now 0.95%"><div class="who">Ars latine loquendi (1909)</div><div class="db-track"><span class="db-line" style="left:4.77%;width:36.55%"></span><span class="db-dot before" style="left:41.32%"></span><span class="db-dot after" style="left:4.77%"></span></div><div class="amt">8.3 → 1.0%</div></div>
+<div class="db-row" title="A First Latin Reader (1912): 26 passages; old OCR 15.86%, archive.org now 3.14%"><div class="who">A First Latin Reader (1912)</div><div class="db-track"><span class="db-line" style="left:15.68%;width:63.62%"></span><span class="db-dot before" style="left:79.30%"></span><span class="db-dot after" style="left:15.68%"></span></div><div class="amt">15.9 → 3.1%</div></div>
+<div class="db-row" title="Pro Patria (1910): 58 passages; old OCR 14.29%, archive.org now 4.04%"><div class="who">Pro Patria (1910)</div><div class="db-track"><span class="db-line" style="left:20.19%;width:51.25%"></span><span class="db-dot before" style="left:71.44%"></span><span class="db-dot after" style="left:20.19%"></span></div><div class="amt">14.3 → 4.0%</div></div>
+<div class="db-row" title="Cuerpo del derecho civil romano (1889): 71 passages; old OCR 10.66%, archive.org now 3.06%"><div class="who">Cuerpo del derecho civil romano (1889)</div><div class="db-track"><span class="db-line" style="left:15.32%;width:37.97%"></span><span class="db-dot before" style="left:53.29%"></span><span class="db-dot after" style="left:15.32%"></span></div><div class="amt">10.7 → 3.1%</div></div>
+<div class="db-row" title="Kepler, Harmonices Mundi (1619): 52 passages; old OCR 18.36%, archive.org now 14.93%"><div class="who">Kepler, Harmonices Mundi (1619)</div><div class="db-track"><span class="db-line" style="left:74.66%;width:17.14%"></span><span class="db-dot before" style="left:91.80%"></span><span class="db-dot after" style="left:74.66%"></span></div><div class="amt">18.4 → 14.9%</div></div>
+<div class="db-row" title="Gauss, Werke vol. 2 (1870): 38 passages; old OCR 4.43%, archive.org now 3.67%"><div class="who">Gauss, Werke vol. 2 (1870)</div><div class="db-track"><span class="db-line" style="left:18.37%;width:3.80%"></span><span class="db-dot before" style="left:22.17%"></span><span class="db-dot after" style="left:18.37%"></span></div><div class="amt">4.4 → 3.7%</div></div>
+<div class="db-row" title="Terence, Kauer–Lindsay (1926): 19 passages; old OCR 4.45%, archive.org now 3.72%"><div class="who">Terence, Kauer–Lindsay (1926)</div><div class="db-track"><span class="db-line" style="left:18.61%;width:3.63%"></span><span class="db-dot before" style="left:22.24%"></span><span class="db-dot after" style="left:18.61%"></span></div><div class="amt">4.4 → 3.7%</div></div>
+<div class="db-row" title="Arra aeternae salutis (1495): 13 passages; old OCR 18.47%, archive.org now 16.49%"><div class="who">Arra aeternae salutis (1495)</div><div class="db-track"><span class="db-line" style="left:82.45%;width:9.89%"></span><span class="db-dot before" style="left:92.33%"></span><span class="db-dot after" style="left:82.45%"></span></div><div class="amt">18.5 → 16.5%</div></div>
+<div class="db-row" title="Sal Terrae (1658): 19 passages; old OCR 12.08%, archive.org now 13.64%"><div class="who">Sal Terrae (1658)</div><div class="db-track"><span class="db-line" style="left:60.40%;width:7.79%"></span><span class="db-dot before" style="left:60.40%"></span><span class="db-dot after" style="left:68.18%"></span></div><div class="amt">12.1 → 13.6%</div></div>
+      </div>
+      <div class="db-axis" aria-hidden="true"><div></div><div class="ticks"><span style="left:0">0%</span><span style="left:25%">5%</span><span style="left:50%">10%</span><span style="left:75%">15%</span><span style="left:100%">20%</span></div><div></div></div>
+      <div class="legend-line">Characters wrong ↓ (left is better) · year = publication date in archive.org's metadata · hover a row for passage counts</div>
+      <details>
+        <summary>Show as a table</summary>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Book</th><th class="n">Passages</th><th class="n">Old OCR <span class="dir">↓</span></th><th class="n">Now <span class="dir">↓</span></th><th class="n">Change <span class="dir">↓</span></th><th>Engine now</th><th>Tier 2 split</th></tr></thead>
+            <tbody>
+<tr><td>Ars latine loquendi (1909)</td><td class='n'>124</td><td class='n'>8.26%</td><td class='n'>0.95%</td><td class='n'>-88%</td><td>tesseract 5.3.0-6-g76ae</td><td>test</td></tr>
+<tr><td>A First Latin Reader (1912)</td><td class='n'>26</td><td class='n'>15.86%</td><td class='n'>3.14%</td><td class='n'>-80%</td><td>archive.org module 0.0.21</td><td>dev</td></tr>
+<tr><td>Pro Patria (1910)</td><td class='n'>58</td><td class='n'>14.29%</td><td class='n'>4.04%</td><td class='n'>-72%</td><td>ABBYY FineReader 8.0</td><td>test</td></tr>
+<tr><td>Cuerpo del derecho civil romano (1889)</td><td class='n'>71</td><td class='n'>10.66%</td><td class='n'>3.06%</td><td class='n'>-71%</td><td>tesseract 5.3.0-6-g76ae</td><td>—</td></tr>
+<tr><td>Kepler, Harmonices Mundi (1619)</td><td class='n'>52</td><td class='n'>18.36%</td><td class='n'>14.93%</td><td class='n'>-19%</td><td>archive.org module 0.0.21</td><td>test</td></tr>
+<tr><td>Gauss, Werke vol. 2 (1870)</td><td class='n'>38</td><td class='n'>4.43%</td><td class='n'>3.67%</td><td class='n'>-17%</td><td>tesseract 5.0.0-rc2-1-gf788</td><td>dev</td></tr>
+<tr><td>Terence, Kauer–Lindsay (1926)</td><td class='n'>19</td><td class='n'>4.45%</td><td class='n'>3.72%</td><td class='n'>-16%</td><td>archive.org module 0.0.21</td><td>test</td></tr>
+<tr><td>Arra aeternae salutis (1495)</td><td class='n'>13</td><td class='n'>18.47%</td><td class='n'>16.49%</td><td class='n'>-11%</td><td>tesseract 5.3.0-3-g9920</td><td>test</td></tr>
+<tr><td>Sal Terrae (1658)</td><td class='n'>19</td><td class='n'>12.08%</td><td class='n'>13.64%</td><td class='n'>+13%</td><td>tesseract 5.3.0-6-g76ae</td><td>test</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+    <p class="prose">
+      Pooled, the nine books fall from 11.2% to 5.0% of characters wrong. But the
+      pooled figure is carried by four books printed 1889–1912, whose old OCR was bad
+      on a clean modern typeface: there the new reading removes <b>70–90%</b> of the
+      errors. Books whose old reading was already decent (Terence 1926, Gauss) gain
+      16–17%. The books from 1495 and 1619 improve by 11–19% and stay at 15–16%
+      wrong, and the one from 1658 gets worse. The median book improves by 19%.
+    </p>
+    <div class="note">
+      <b>Compare with repair:</b> on the same kind of text the best repairer removes
+      14–17% of character errors. For a book printed after about 1850 with an old
+      reading, <b>getting a fresh OCR reading is worth four or five times what repair
+      is worth</b> — and it can't break correct words the way a repairer can. For books
+      from before about 1700, neither helps much.
+    </div>
+  </section>
+
+  <section>
+    <div class="label">Finding 3 · no model involved</div>
+    <h2>Almost half of it is text the corpus already has</h2>
+    <p class="prose">
+      Every proofread page of these books was cut into 60-word passages (27,089 in the
+      56 books with at least 40) and checked against the training text. <b>44.8% share
+      a run of 8 words with it.</b> The split is stark: 15 books are 90–100% already
+      present, 30 are at most 20%, and only 11 sit between.
+    </p>
+    <div class="panel">
+      <div class="prop long" role="img" aria-label="Share of each book's passages already in the training corpus, 56 books. Hover a row for counts.">
+<div class="prop-row" title="Horace, Œuvres I: 240 of 240 passages share an 8-word run with the training corpus"><div class="who">Horace, Œuvres I</div><div class="track"><div class="fill" style="width:100.0%"></div></div><div class="amt">100%</div></div>
+<div class="prop-row" title="Horace, Œuvres II: 267 of 267 passages share an 8-word run with the training corpus"><div class="who">Horace, Œuvres II</div><div class="track"><div class="fill" style="width:100.0%"></div></div><div class="amt">100%</div></div>
+<div class="prop-row" title="Juvenal, Satire (1875): 51 of 51 passages share an 8-word run with the training corpus"><div class="who">Juvenal, Satire (1875)</div><div class="track"><div class="fill" style="width:100.0%"></div></div><div class="amt">100%</div></div>
+<div class="prop-row" title="Holberg, Iter subterraneum (1754): 201 of 201 passages share an 8-word run with the training corpus"><div class="who">Holberg, Iter subterraneum (1754)</div><div class="track"><div class="fill" style="width:100.0%"></div></div><div class="amt">100%</div></div>
+<div class="prop-row" title="Sixtus V, Aeternus ille (1590): 56 of 56 passages share an 8-word run with the training corpus"><div class="who">Sixtus V, Aeternus ille (1590)</div><div class="track"><div class="fill" style="width:100.0%"></div></div><div class="amt">100%</div></div>
+<div class="prop-row" title="Caesar, De bello Gallico (1903): 265 of 265 passages share an 8-word run with the training corpus"><div class="who">Caesar, De bello Gallico (1903)</div><div class="track"><div class="fill" style="width:100.0%"></div></div><div class="amt">100%</div></div>
+<div class="prop-row" title="Gesta Francorum (Bréhier) (1924): 271 of 271 passages share an 8-word run with the training corpus"><div class="who">Gesta Francorum (Bréhier) (1924)</div><div class="track"><div class="fill" style="width:100.0%"></div></div><div class="amt">100%</div></div>
+<div class="prop-row" title="Virgil, Georgics IV (1853): 51 of 51 passages share an 8-word run with the training corpus"><div class="who">Virgil, Georgics IV (1853)</div><div class="track"><div class="fill" style="width:100.0%"></div></div><div class="amt">100%</div></div>
+<div class="prop-row" title="Priscian, Institutiones: 762 of 763 passages share an 8-word run with the training corpus"><div class="who">Priscian, Institutiones</div><div class="track"><div class="fill" style="width:99.9%"></div></div><div class="amt">100%</div></div>
+<div class="prop-row" title="Columella, Opera (1787): 1618 of 1637 passages share an 8-word run with the training corpus"><div class="who">Columella, Opera (1787)</div><div class="track"><div class="fill" style="width:98.8%"></div></div><div class="amt">99%</div></div>
+<div class="prop-row" title="Dante, Opere latine (1878): 289 of 293 passages share an 8-word run with the training corpus"><div class="who">Dante, Opere latine (1878)</div><div class="track"><div class="fill" style="width:98.6%"></div></div><div class="amt">99%</div></div>
+<div class="prop-row" title="Cuerpo del derecho civil romano (1889): 3142 of 3216 passages share an 8-word run with the training corpus"><div class="who">Cuerpo del derecho civil romano (1889)</div><div class="track"><div class="fill" style="width:97.7%"></div></div><div class="amt">98%</div></div>
+<div class="prop-row" title="Bruno, Opera latine II (1879): 500 of 517 passages share an 8-word run with the training corpus"><div class="who">Bruno, Opera latine II (1879)</div><div class="track"><div class="fill" style="width:96.7%"></div></div><div class="amt">97%</div></div>
+<div class="prop-row" title="Varro, De lingua Latina (1605): 392 of 412 passages share an 8-word run with the training corpus"><div class="who">Varro, De lingua Latina (1605)</div><div class="track"><div class="fill" style="width:95.1%"></div></div><div class="amt">95%</div></div>
+<div class="prop-row" title="Malleus maleficarum (1882): 747 of 789 passages share an 8-word run with the training corpus"><div class="who">Malleus maleficarum (1882)</div><div class="track"><div class="fill" style="width:94.7%"></div></div><div class="amt">95%</div></div>
+<div class="prop-row" title="Codex Amiatinus NT (1854): 980 of 1104 passages share an 8-word run with the training corpus"><div class="who">Codex Amiatinus NT (1854)</div><div class="track"><div class="fill" style="width:88.8%"></div></div><div class="amt">89%</div></div>
+<div class="prop-row" title="Vallauri, Epitome hist. Rom. (1871): 31 of 41 passages share an 8-word run with the training corpus"><div class="who">Vallauri, Epitome hist. Rom. (1871)</div><div class="track"><div class="fill" style="width:75.6%"></div></div><div class="amt">76%</div></div>
+<div class="prop-row" title="Anselm, Cur Deus homo (1857): 59 of 84 passages share an 8-word run with the training corpus"><div class="who">Anselm, Cur Deus homo (1857)</div><div class="track"><div class="fill" style="width:70.2%"></div></div><div class="amt">70%</div></div>
+<div class="prop-row" title="Historia diplomatica Friderici II (1852): 60 of 94 passages share an 8-word run with the training corpus"><div class="who">Historia diplomatica Friderici II (1852)</div><div class="track"><div class="fill" style="width:63.8%"></div></div><div class="amt">64%</div></div>
+<div class="prop-row" title="Ribbeck, Fragmenta (1897): 343 of 553 passages share an 8-word run with the training corpus"><div class="who">Ribbeck, Fragmenta (1897)</div><div class="track"><div class="fill" style="width:62.0%"></div></div><div class="amt">62%</div></div>
+<div class="prop-row" title="Catullus (Cornish) (1904): 87 of 152 passages share an 8-word run with the training corpus"><div class="who">Catullus (Cornish) (1904)</div><div class="track"><div class="fill" style="width:57.2%"></div></div><div class="amt">57%</div></div>
+<div class="prop-row" title="Persius, Satire (1803): 32 of 60 passages share an 8-word run with the training corpus"><div class="who">Persius, Satire (1803)</div><div class="track"><div class="fill" style="width:53.3%"></div></div><div class="amt">53%</div></div>
+<div class="prop-row" title="Epitome historiae sacrae (1856): 29 of 95 passages share an 8-word run with the training corpus"><div class="who">Epitome historiae sacrae (1856)</div><div class="track"><div class="fill" style="width:30.5%"></div></div><div class="amt">31%</div></div>
+<div class="prop-row" title="Gauss, Werke vol. 3 (1870): 136 of 550 passages share an 8-word run with the training corpus"><div class="who">Gauss, Werke vol. 3 (1870)</div><div class="track"><div class="fill" style="width:24.7%"></div></div><div class="amt">25%</div></div>
+<div class="prop-row" title="Tacitus, Agricola (1876): 135 of 562 passages share an 8-word run with the training corpus"><div class="who">Tacitus, Agricola (1876)</div><div class="track"><div class="fill" style="width:24.0%"></div></div><div class="amt">24%</div></div>
+<div class="prop-row" title="Leçons latines modernes (1836): 47 of 196 passages share an 8-word run with the training corpus"><div class="who">Leçons latines modernes (1836)</div><div class="track"><div class="fill" style="width:24.0%"></div></div><div class="amt">24%</div></div>
+<div class="prop-row" title="Hymni Ecclesiae (1865): 10 of 52 passages share an 8-word run with the training corpus"><div class="who">Hymni Ecclesiae (1865)</div><div class="track"><div class="fill" style="width:19.2%"></div></div><div class="amt">19%</div></div>
+<div class="prop-row" title="Gauss, Werke vol. 1 (1870): 119 of 625 passages share an 8-word run with the training corpus"><div class="who">Gauss, Werke vol. 1 (1870)</div><div class="track"><div class="fill" style="width:19.0%"></div></div><div class="amt">19%</div></div>
+<div class="prop-row" title="Gesta Romanorum (1872): 346 of 2022 passages share an 8-word run with the training corpus"><div class="who">Gesta Romanorum (1872)</div><div class="track"><div class="fill" style="width:17.1%"></div></div><div class="amt">17%</div></div>
+<div class="prop-row" title="Praetorius, Syntagma musicum: 253 of 1675 passages share an 8-word run with the training corpus"><div class="who">Praetorius, Syntagma musicum</div><div class="track"><div class="fill" style="width:15.1%"></div></div><div class="amt">15%</div></div>
+<div class="prop-row" title="Erasmus, Colloquia (1888): 416 of 2788 passages share an 8-word run with the training corpus"><div class="who">Erasmus, Colloquia (1888)</div><div class="track"><div class="fill" style="width:14.9%"></div></div><div class="amt">15%</div></div>
+<div class="prop-row" title="Appleton, Ludi Persici (1921): 10 of 141 passages share an 8-word run with the training corpus"><div class="who">Appleton, Ludi Persici (1921)</div><div class="track"><div class="fill" style="width:7.1%"></div></div><div class="amt">7%</div></div>
+<div class="prop-row" title="Kircher, Turris Babel (1679): 90 of 1362 passages share an 8-word run with the training corpus"><div class="who">Kircher, Turris Babel (1679)</div><div class="track"><div class="fill" style="width:6.6%"></div></div><div class="amt">7%</div></div>
+<div class="prop-row" title="Agricola, De re metallica (1556): 4 of 87 passages share an 8-word run with the training corpus"><div class="who">Agricola, De re metallica (1556)</div><div class="track"><div class="fill" style="width:4.6%"></div></div><div class="amt">5%</div></div>
+<div class="prop-row" title="Ad Alpes (1923): 25 of 561 passages share an 8-word run with the training corpus"><div class="who">Ad Alpes (1923)</div><div class="track"><div class="fill" style="width:4.5%"></div></div><div class="amt">4%</div></div>
+<div class="prop-row" title="Eclogae latinae (1885): 19 of 495 passages share an 8-word run with the training corpus"><div class="who">Eclogae latinae (1885)</div><div class="track"><div class="fill" style="width:3.8%"></div></div><div class="amt">4%</div></div>
+<div class="prop-row" title="Exercises on Latin syntax (1830): 2 of 54 passages share an 8-word run with the training corpus"><div class="who">Exercises on Latin syntax (1830)</div><div class="track"><div class="fill" style="width:3.7%"></div></div><div class="amt">4%</div></div>
+<div class="prop-row" title="Polygamia triumphatrix (1682): 10 of 345 passages share an 8-word run with the training corpus"><div class="who">Polygamia triumphatrix (1682)</div><div class="track"><div class="fill" style="width:2.9%"></div></div><div class="amt">3%</div></div>
+<div class="prop-row" title="Petrus Ravennas, Foenix (1533): 3 of 141 passages share an 8-word run with the training corpus"><div class="who">Petrus Ravennas, Foenix (1533)</div><div class="track"><div class="fill" style="width:2.1%"></div></div><div class="amt">2%</div></div>
+<div class="prop-row" title="Ora Maritima (1909): 1 of 61 passages share an 8-word run with the training corpus"><div class="who">Ora Maritima (1909)</div><div class="track"><div class="fill" style="width:1.6%"></div></div><div class="amt">2%</div></div>
+<div class="prop-row" title="Rivista di numismatica (1888): 1 of 64 passages share an 8-word run with the training corpus"><div class="who">Rivista di numismatica (1888)</div><div class="track"><div class="fill" style="width:1.6%"></div></div><div class="amt">2%</div></div>
+<div class="prop-row" title="Ars latine loquendi (1909): 10 of 700 passages share an 8-word run with the training corpus"><div class="who">Ars latine loquendi (1909)</div><div class="track"><div class="fill" style="width:1.4%"></div></div><div class="amt">1%</div></div>
+<div class="prop-row" title="Easy Latin Stories (1878): 5 of 365 passages share an 8-word run with the training corpus"><div class="who">Easy Latin Stories (1878)</div><div class="track"><div class="fill" style="width:1.4%"></div></div><div class="amt">1%</div></div>
+<div class="prop-row" title="Cothurnulus (1912): 1 of 94 passages share an 8-word run with the training corpus"><div class="who">Cothurnulus (1912)</div><div class="track"><div class="fill" style="width:1.1%"></div></div><div class="amt">1%</div></div>
+<div class="prop-row" title="A First Latin Reader (1912): 1 of 137 passages share an 8-word run with the training corpus"><div class="who">A First Latin Reader (1912)</div><div class="track"><div class="fill" style="width:0.7%"></div></div><div class="amt">1%</div></div>
+<div class="prop-row" title="Pro Patria (1910): 1 of 139 passages share an 8-word run with the training corpus"><div class="who">Pro Patria (1910)</div><div class="track"><div class="fill" style="width:0.7%"></div></div><div class="amt">1%</div></div>
+<div class="prop-row" title="Vico, Opera latina I (1835): 9 of 1338 passages share an 8-word run with the training corpus"><div class="who">Vico, Opera latina I (1835)</div><div class="track"><div class="fill" style="width:0.7%"></div></div><div class="amt">1%</div></div>
+<div class="prop-row" title="Scriptores minores hist. Danicae (1917): 0 of 71 passages share an 8-word run with the training corpus"><div class="who">Scriptores minores hist. Danicae (1917)</div><div class="track"><div class="fill" style="width:0.0%"></div></div><div class="amt">0%</div></div>
+<div class="prop-row" title="Poesie italiane (1795): 0 of 44 passages share an 8-word run with the training corpus"><div class="who">Poesie italiane (1795)</div><div class="track"><div class="fill" style="width:0.0%"></div></div><div class="amt">0%</div></div>
+<div class="prop-row" title="Kepler, Harmonices Mundi (1619): 0 of 140 passages share an 8-word run with the training corpus"><div class="who">Kepler, Harmonices Mundi (1619)</div><div class="track"><div class="fill" style="width:0.0%"></div></div><div class="amt">0%</div></div>
+<div class="prop-row" title="Carolus et Maria: 0 of 168 passages share an 8-word run with the training corpus"><div class="who">Carolus et Maria</div><div class="track"><div class="fill" style="width:0.0%"></div></div><div class="amt">0%</div></div>
+<div class="prop-row" title="A New Latin Primer (1933): 0 of 206 passages share an 8-word run with the training corpus"><div class="who">A New Latin Primer (1933)</div><div class="track"><div class="fill" style="width:0.0%"></div></div><div class="amt">0%</div></div>
+<div class="prop-row" title="Vitrioli, Epigrammi (1871): 0 of 54 passages share an 8-word run with the training corpus"><div class="who">Vitrioli, Epigrammi (1871)</div><div class="track"><div class="fill" style="width:0.0%"></div></div><div class="amt">0%</div></div>
+<div class="prop-row" title="Gauss, Werke vol. 2 (1870): 0 of 529 passages share an 8-word run with the training corpus"><div class="who">Gauss, Werke vol. 2 (1870)</div><div class="track"><div class="fill" style="width:0.0%"></div></div><div class="amt">0%</div></div>
+<div class="prop-row" title="Corpus script. hist. Byz. 42 (1828): 0 of 55 passages share an 8-word run with the training corpus"><div class="who">Corpus script. hist. Byz. 42 (1828)</div><div class="track"><div class="fill" style="width:0.0%"></div></div><div class="amt">0%</div></div>
+<div class="prop-row" title="Logonomia anglica (1621): 0 of 56 passages share an 8-word run with the training corpus"><div class="who">Logonomia anglica (1621)</div><div class="track"><div class="fill" style="width:0.0%"></div></div><div class="amt">0%</div></div>
+      </div>
+      <div class="legend-line">Share of the book's passages already in the training corpus · bar out of 100% · hover a row for passage counts</div>
+    </div>
+    <p class="prose">
+      At the top are the texts every Latin library has — Horace, Caesar, Juvenal,
+      Priscian, Columella, Varro, the Vulgate New Testament. At the bottom: Kepler,
+      Vico, Kircher, Erasmus, Praetorius, school readers and plays. <b>What is new falls
+      into two groups:</b> Latin written or printed for teaching and modern use (<i>Ora
+      Maritima</i>, <i>Ars latine loquendi</i>, readers and primers, 1878–1933) — new, and
+      cleanly printed; and early-modern neo-Latin (Kepler 1619, Kircher 1679, the 1533
+      <i>Foenix</i>) — new, but in the old print where Finding 2 says OCR stays poor.
+    </p>
+  </section>
+
+  <section>
+    <div class="label">Finding 4 · Tier 3, the model run</div>
+    <h2>Repair on archive.org text as it can be downloaded today</h2>
+    <p class="prose">
+      A third benchmark (<code>ocr/ia.py build</code>): archive.org's <em>current</em> OCR
+      against the proofread pages, 728 passages from 25 books. Three guards: Tier 2's
+      <b>test books are left out entirely</b> (seeing the model's score on an exam book is
+      sitting the exam early), passages Tier 2 tuned on are left out, and anything
+      already in the corpus is dropped. Nothing was tuned here — every system runs
+      under the rules and the noise model it was given on Tier 2.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>System</th><th class="n">Chars wrong after <span class="dir">↓</span></th><th class="n">Words wrong after <span class="dir">↓</span></th><th class="n">Recall <span class="dir">↑</span></th><th class="n">Real-word <span class="dir">↑</span></th><th class="n">Non-word <span class="dir">↑</span></th><th class="n">Precision <span class="dir">↑</span></th><th class="n">Broken /1,000 <span class="dir">↓</span></th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="f">identity</td><td class="n">4.71%</td><td class="n">16.0%</td><td class="n">0.0%</td><td class="n">0.0%</td><td class="n">0.0%</td><td class="n">—</td><td class="n">0</td></tr>
+          <tr><td class="f">unigram</td><td class="n">4.38%</td><td class="n">14.3%</td><td class="n">11.5%</td><td class="n">10.3%</td><td class="n">12.0%</td><td class="n">61.7%</td><td class="n">1.55</td></tr>
+          <tr><td class="f">lii</td><td class="n">4.12%</td><td class="n">13.1%</td><td class="n">19.1%</td><td class="n">7.3%</td><td class="n">24.5%</td><td class="n">90.2%</td><td class="n">0.95</td></tr>
+          <tr class="best"><td class="f">fim</td><td class="n">4.05%</td><td class="n">12.7%</td><td class="n">21.2%</td><td class="n">9.3%</td><td class="n">26.6%</td><td class="n">89.2%</td><td class="n">1.01</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="legend-line">↑ higher is better · ↓ lower is better · 728 passages, 25 books · identity's row is the text as downloaded</p>
+    <ul class="prose" style="max-width:40em">
+      <li><b>The Tier 2 result carries over, a little weaker.</b> Recall 21% here against
+        27% on Tier 2; character errors cut by 14% against 17%. The model still leads
+        word counting on non-words by 12–17 points (paired 95% interval) and ties it on
+        real-word errors (−2.8 to +1.1).</li>
+      <li><b>The model is also the safer repairer.</b> It breaks fewer correct words than
+        word counting (difference −1.10 to −0.05 per 1,000), and word counting's
+        precision collapses to 62% — four of every ten changes it makes are wrong.</li>
+      <li><b>Still about one word in eight wrong after repair.</b> That is the honest
+        headline for archive.org text taken as a whole: 16.0% of words wrong before,
+        12.7% after.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="label">Finding 5 · a small, clean comparison</div>
+    <h2>Re-reading first, then repair: both help, re-reading far more</h2>
+    <p class="prose">
+      The strongest test is the same passages four ways: the old reading, the old
+      reading repaired, the new reading, the new reading repaired. With Tier 2's test
+      books excluded only two re-read books qualify (<i>A First Latin Reader</i>, 1912,
+      and Gauss's <i>Werke</i> vol. 2) — 70 passages. Treat it as an illustration, not a
+      measurement.
+    </p>
+    <div class="panel four">
+      <div class="group">
+        <h3>Characters wrong ↓</h3>
+        <div class="prop">
+          <div class="prop-row" title="Old reading, as downloaded: 9.30%"><div class="who">old reading</div><div class="track"><div class="fill alt" style="width:46.5%"></div></div><div class="amt">9.30%</div></div>
+          <div class="prop-row" title="Old reading after fim repair: 8.81%"><div class="who">old + repair</div><div class="track"><div class="fill alt" style="width:44.05%"></div></div><div class="amt">8.81%</div></div>
+          <div class="prop-row" title="archive.org's new reading: 4.44%"><div class="who">new reading</div><div class="track"><div class="fill" style="width:22.2%"></div></div><div class="amt">4.44%</div></div>
+          <div class="prop-row" title="New reading after fim repair: 3.99%"><div class="who">new + repair</div><div class="track"><div class="fill" style="width:19.95%"></div></div><div class="amt">3.99%</div></div>
+        </div>
+      </div>
+      <div class="group">
+        <h3>Words wrong ↓</h3>
+        <div class="prop">
+          <div class="prop-row"><div class="who">old reading</div><div class="track"><div class="fill alt" style="width:89.05%"></div></div><div class="amt">17.8%</div></div>
+          <div class="prop-row"><div class="who">old + repair</div><div class="track"><div class="fill alt" style="width:75.7%"></div></div><div class="amt">15.1%</div></div>
+          <div class="prop-row"><div class="who">new reading</div><div class="track"><div class="fill" style="width:63.95%"></div></div><div class="amt">12.8%</div></div>
+          <div class="prop-row"><div class="who">new + repair</div><div class="track"><div class="fill" style="width:50.35%"></div></div><div class="amt">10.1%</div></div>
+        </div>
+      </div>
+      <div class="legend-line">orange = old reading · blue = archive.org's new reading · bars out of 20% · 70 passages, 2 books · repair = fim under Tier 2's rules</div>
+    </div>
+    <p class="prose">
+      Re-reading halves the character errors; repair on top takes off another tenth.
+      One more detail worth following up: the model repaired <em>more</em> of the damage on
+      the cleaner new reading (21% of damaged words) than on the old one (15%) —
+      plausibly because it reads the context around each error, and cleaner context
+      helps. It broke nothing on either, but 70 passages is too few to say much about harm.
+    </p>
+  </section>
+
+  <section>
+    <div class="label">Finding 6 · book by book</div>
+    <h2>Where each book ends up after repair</h2>
+    <p class="prose">
+      The Tier 3 result per book: characters wrong as downloaded, and after the best
+      repairer. The dashed line marks 2% — about one slip every fifty characters — a
+      placeholder for “clean enough for the corpus” until you choose a real threshold.
+    </p>
+    <div class="panel">
+      <div class="legend" aria-hidden="true">
+        <span class="key"><span class="sw-before"></span>as downloaded</span>
+        <span class="key"><span class="sw-after"></span>after repair (fim)</span>
+        <span class="key"><span class="sw-thr"></span>2% placeholder threshold</span>
+      </div>
+      <div class="db" role="img" aria-label="Characters wrong per book before and after repair, 25 books. Table below.">
+<div class="db-row" title="A New Latin Primer (1933): 40 passages; 0.53% → 0.47% characters wrong; repaired 14% of damaged words; broke 0.00 per 1,000"><div class="who">A New Latin Primer (1933)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:2.33%;width:0.33%"></span><span class="db-dot before" style="left:2.66%"></span><span class="db-dot after" style="left:2.33%"></span></div><div class="amt">0.5 → 0.5%</div></div>
+<div class="db-row" title="Rivista di numismatica (1888): 39 passages; 0.65% → 0.71% characters wrong; repaired 7% of damaged words; broke 5.19 per 1,000"><div class="who">Rivista di numismatica (1888)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:3.23%;width:0.29%"></span><span class="db-dot before" style="left:3.23%"></span><span class="db-dot after" style="left:3.53%"></span></div><div class="amt">0.6 → 0.7%</div></div>
+<div class="db-row" title="Codex Amiatinus NT (1854): 27 passages; 1.47% → 0.84% characters wrong; repaired 41% of damaged words; broke 5.29 per 1,000"><div class="who">Codex Amiatinus NT (1854)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:4.21%;width:3.11%"></span><span class="db-dot before" style="left:7.33%"></span><span class="db-dot after" style="left:4.21%"></span></div><div class="amt">1.5 → 0.8%</div></div>
+<div class="db-row" title="Exercises on Latin syntax (1830): 28 passages; 1.14% → 0.87% characters wrong; repaired 39% of damaged words; broke 2.46 per 1,000"><div class="who">Exercises on Latin syntax (1830)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:4.37%;width:1.33%"></span><span class="db-dot before" style="left:5.70%"></span><span class="db-dot after" style="left:4.37%"></span></div><div class="amt">1.1 → 0.9%</div></div>
+<div class="db-row" title="Pius VII, Ecclesiam (1821): 7 passages; 1.22% → 1.19% characters wrong; repaired 5% of damaged words; broke 0.00 per 1,000"><div class="who">Pius VII, Ecclesiam (1821)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:5.93%;width:0.16%"></span><span class="db-dot before" style="left:6.09%"></span><span class="db-dot after" style="left:5.93%"></span></div><div class="amt">1.2 → 1.2%</div></div>
+<div class="db-row" title="Leçons latines modernes (1836): 40 passages; 2.30% → 1.60% characters wrong; repaired 45% of damaged words; broke 3.75 per 1,000"><div class="who">Leçons latines modernes (1836)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:8.02%;width:3.48%"></span><span class="db-dot before" style="left:11.51%"></span><span class="db-dot after" style="left:8.02%"></span></div><div class="amt">2.3 → 1.6%</div></div>
+<div class="db-row" title="Ad Alpes (1923): 40 passages; 2.13% → 1.69% characters wrong; repaired 44% of damaged words; broke 0.00 per 1,000"><div class="who">Ad Alpes (1923)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:8.45%;width:2.18%"></span><span class="db-dot before" style="left:10.63%"></span><span class="db-dot after" style="left:8.45%"></span></div><div class="amt">2.1 → 1.7%</div></div>
+<div class="db-row" title="Easy Latin Stories (1878): 40 passages; 2.17% → 1.69% characters wrong; repaired 23% of damaged words; broke 0.46 per 1,000"><div class="who">Easy Latin Stories (1878)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:8.47%;width:2.36%"></span><span class="db-dot before" style="left:10.83%"></span><span class="db-dot after" style="left:8.47%"></span></div><div class="amt">2.2 → 1.7%</div></div>
+<div class="db-row" title="Columella, Opera (1787): 2 passages; 3.55% → 1.72% characters wrong; repaired 50% of damaged words; broke 0.00 per 1,000"><div class="who">Columella, Opera (1787)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:8.59%;width:9.16%"></span><span class="db-dot before" style="left:17.75%"></span><span class="db-dot after" style="left:8.59%"></span></div><div class="amt">3.6 → 1.7%</div></div>
+<div class="db-row" title="A First Latin Reader (1912): 40 passages; 2.59% → 1.76% characters wrong; repaired 51% of damaged words; broke 0.00 per 1,000"><div class="who">A First Latin Reader (1912)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:8.78%;width:4.16%"></span><span class="db-dot before" style="left:12.94%"></span><span class="db-dot after" style="left:8.78%"></span></div><div class="amt">2.6 → 1.8%</div></div>
+<div class="db-row" title="Omaggio a G. Marello (1889): 24 passages; 1.86% → 1.80% characters wrong; repaired 5% of damaged words; broke 1.50 per 1,000"><div class="who">Omaggio a G. Marello (1889)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:9.02%;width:0.28%"></span><span class="db-dot before" style="left:9.30%"></span><span class="db-dot after" style="left:9.02%"></span></div><div class="amt">1.9 → 1.8%</div></div>
+<div class="db-row" title="Anselm, Cur Deus homo (1857): 25 passages; 2.73% → 2.01% characters wrong; repaired 29% of damaged words; broke 0.00 per 1,000"><div class="who">Anselm, Cur Deus homo (1857)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:10.06%;width:3.58%"></span><span class="db-dot before" style="left:13.64%"></span><span class="db-dot after" style="left:10.06%"></span></div><div class="amt">2.7 → 2.0%</div></div>
+<div class="db-row" title="Appleton, Ludi Persici (1921): 40 passages; 2.59% → 2.36% characters wrong; repaired 15% of damaged words; broke 0.00 per 1,000"><div class="who">Appleton, Ludi Persici (1921)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:11.78%;width:1.15%"></span><span class="db-dot before" style="left:12.93%"></span><span class="db-dot after" style="left:11.78%"></span></div><div class="amt">2.6 → 2.4%</div></div>
+<div class="db-row" title="Vitrioli, Epigrammi (1871): 40 passages; 3.66% → 3.51% characters wrong; repaired 6% of damaged words; broke 0.00 per 1,000"><div class="who">Vitrioli, Epigrammi (1871)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:17.54%;width:0.78%"></span><span class="db-dot before" style="left:18.31%"></span><span class="db-dot after" style="left:17.54%"></span></div><div class="amt">3.7 → 3.5%</div></div>
+<div class="db-row" title="Epitome historiae sacrae (1856): 40 passages; 5.12% → 3.70% characters wrong; repaired 32% of damaged words; broke 0.00 per 1,000"><div class="who">Epitome historiae sacrae (1856)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:18.48%;width:7.15%"></span><span class="db-dot before" style="left:25.62%"></span><span class="db-dot after" style="left:18.48%"></span></div><div class="amt">5.1 → 3.7%</div></div>
+<div class="db-row" title="Dante, Opere latine (1878): 2 passages; 4.51% → 4.05% characters wrong; repaired 11% of damaged words; broke 0.00 per 1,000"><div class="who">Dante, Opere latine (1878)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:20.23%;width:2.31%"></span><span class="db-dot before" style="left:22.54%"></span><span class="db-dot after" style="left:20.23%"></span></div><div class="amt">4.5 → 4.0%</div></div>
+<div class="db-row" title="Erasmus, Colloquia (1888): 40 passages; 5.01% → 4.09% characters wrong; repaired 23% of damaged words; broke 0.00 per 1,000"><div class="who">Erasmus, Colloquia (1888)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:20.46%;width:4.57%"></span><span class="db-dot before" style="left:25.03%"></span><span class="db-dot after" style="left:20.46%"></span></div><div class="amt">5.0 → 4.1%</div></div>
+<div class="db-row" title="Ora Maritima (1909): 36 passages; 7.27% → 4.56% characters wrong; repaired 50% of damaged words; broke 0.00 per 1,000"><div class="who">Ora Maritima (1909)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:22.78%;width:13.55%"></span><span class="db-dot before" style="left:36.33%"></span><span class="db-dot after" style="left:22.78%"></span></div><div class="amt">7.3 → 4.6%</div></div>
+<div class="db-row" title="Gauss, Werke vol. 2 (1870): 40 passages; 5.79% → 5.72% characters wrong; repaired 3% of damaged words; broke 0.00 per 1,000"><div class="who">Gauss, Werke vol. 2 (1870)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:28.62%;width:0.31%"></span><span class="db-dot before" style="left:28.93%"></span><span class="db-dot after" style="left:28.62%"></span></div><div class="amt">5.8 → 5.7%</div></div>
+<div class="db-row" title="Persius, Satire (1803): 4 passages; 6.94% → 5.78% characters wrong; repaired 18% of damaged words; broke 0.00 per 1,000"><div class="who">Persius, Satire (1803)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:28.88%;width:5.84%"></span><span class="db-dot before" style="left:34.72%"></span><span class="db-dot after" style="left:28.88%"></span></div><div class="amt">6.9 → 5.8%</div></div>
+<div class="db-row" title="Easy Latin Plays (1913): 13 passages; 7.94% → 5.81% characters wrong; repaired 30% of damaged words; broke 0.00 per 1,000"><div class="who">Easy Latin Plays (1913)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:29.07%;width:10.63%"></span><span class="db-dot before" style="left:39.70%"></span><span class="db-dot after" style="left:29.07%"></span></div><div class="amt">7.9 → 5.8%</div></div>
+<div class="db-row" title="Ribbeck, Fragmenta (1897): 40 passages; 8.89% → 8.58% characters wrong; repaired 6% of damaged words; broke 0.00 per 1,000"><div class="who">Ribbeck, Fragmenta (1897)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:42.92%;width:1.52%"></span><span class="db-dot before" style="left:44.44%"></span><span class="db-dot after" style="left:42.92%"></span></div><div class="amt">8.9 → 8.6%</div></div>
+<div class="db-row" title="Gauss, Werke vol. 3 (1870): 30 passages; 8.81% → 8.67% characters wrong; repaired 7% of damaged words; broke 0.63 per 1,000"><div class="who">Gauss, Werke vol. 3 (1870)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:43.36%;width:0.70%"></span><span class="db-dot before" style="left:44.06%"></span><span class="db-dot after" style="left:43.36%"></span></div><div class="amt">8.8 → 8.7%</div></div>
+<div class="db-row" title="Logonomia anglica (1621): 22 passages; 17.75% → 16.83% characters wrong; repaired 6% of damaged words; broke 0.00 per 1,000"><div class="who">Logonomia anglica (1621)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:84.15%;width:4.63%"></span><span class="db-dot before" style="left:88.77%"></span><span class="db-dot after" style="left:84.15%"></span></div><div class="amt">17.8 → 16.8%</div></div>
+<div class="db-row" title="Petrus Ravennas, Foenix (1533): 29 passages; 18.94% → 17.09% characters wrong; repaired 11% of damaged words; broke 1.79 per 1,000"><div class="who">Petrus Ravennas, Foenix (1533)</div><div class="db-track"><span class="db-thr" style="left:10.00%"></span><span class="db-line" style="left:85.43%;width:9.29%"></span><span class="db-dot before" style="left:94.72%"></span><span class="db-dot after" style="left:85.43%"></span></div><div class="amt">18.9 → 17.1%</div></div>
+      </div>
+      <div class="db-axis" aria-hidden="true"><div></div><div class="ticks"><span style="left:0">0%</span><span style="left:25%">5%</span><span style="left:50%">10%</span><span style="left:75%">15%</span><span style="left:100%">20%</span></div><div></div></div>
+      <div class="legend-line">Characters wrong ↓ (left is better) · sorted by the result after repair · hover a row for recall and harm</div>
+      <details>
+        <summary>Show as a table</summary>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Book</th><th>archive.org reading</th><th class="n">Passages</th><th class="n">Before <span class="dir">↓</span></th><th class="n">After <span class="dir">↓</span></th><th class="n">Recall <span class="dir">↑</span></th><th class="n">Broken /1,000 <span class="dir">↓</span></th></tr></thead>
+            <tbody>
+<tr><td>A New Latin Primer (1933)</td><td>archive.org only</td><td class='n'>40</td><td class='n'>0.53%</td><td class='n'>0.47%</td><td class='n'>14%</td><td class='n'>0.00</td></tr>
+<tr><td>Rivista di numismatica (1888)</td><td>same as Commons</td><td class='n'>39</td><td class='n'>0.65%</td><td class='n'>0.71%</td><td class='n'>7%</td><td class='n'>5.19</td></tr>
+<tr><td>Codex Amiatinus NT (1854)</td><td>same as Commons</td><td class='n'>27</td><td class='n'>1.47%</td><td class='n'>0.84%</td><td class='n'>41%</td><td class='n'>5.29</td></tr>
+<tr><td>Exercises on Latin syntax (1830)</td><td>same as Commons</td><td class='n'>28</td><td class='n'>1.14%</td><td class='n'>0.87%</td><td class='n'>39%</td><td class='n'>2.46</td></tr>
+<tr><td>Pius VII, Ecclesiam (1821)</td><td>archive.org only</td><td class='n'>7</td><td class='n'>1.22%</td><td class='n'>1.19%</td><td class='n'>5%</td><td class='n'>0.00</td></tr>
+<tr><td>Leçons latines modernes (1836)</td><td>same as Commons</td><td class='n'>40</td><td class='n'>2.30%</td><td class='n'>1.60%</td><td class='n'>45%</td><td class='n'>3.75</td></tr>
+<tr><td>Ad Alpes (1923)</td><td>archive.org only</td><td class='n'>40</td><td class='n'>2.13%</td><td class='n'>1.69%</td><td class='n'>44%</td><td class='n'>0.00</td></tr>
+<tr><td>Easy Latin Stories (1878)</td><td>same as Commons</td><td class='n'>40</td><td class='n'>2.17%</td><td class='n'>1.69%</td><td class='n'>23%</td><td class='n'>0.46</td></tr>
+<tr><td>Columella, Opera (1787)</td><td>same as Commons</td><td class='n'>2</td><td class='n'>3.55%</td><td class='n'>1.72%</td><td class='n'>50%</td><td class='n'>0.00</td></tr>
+<tr><td>A First Latin Reader (1912)</td><td>re-read</td><td class='n'>40</td><td class='n'>2.59%</td><td class='n'>1.76%</td><td class='n'>51%</td><td class='n'>0.00</td></tr>
+<tr><td>Omaggio a G. Marello (1889)</td><td>archive.org only</td><td class='n'>24</td><td class='n'>1.86%</td><td class='n'>1.80%</td><td class='n'>5%</td><td class='n'>1.50</td></tr>
+<tr><td>Anselm, Cur Deus homo (1857)</td><td>re-read</td><td class='n'>25</td><td class='n'>2.73%</td><td class='n'>2.01%</td><td class='n'>29%</td><td class='n'>0.00</td></tr>
+<tr><td>Appleton, Ludi Persici (1921)</td><td>archive.org only</td><td class='n'>40</td><td class='n'>2.59%</td><td class='n'>2.36%</td><td class='n'>15%</td><td class='n'>0.00</td></tr>
+<tr><td>Vitrioli, Epigrammi (1871)</td><td>archive.org only</td><td class='n'>40</td><td class='n'>3.66%</td><td class='n'>3.51%</td><td class='n'>6%</td><td class='n'>0.00</td></tr>
+<tr><td>Epitome historiae sacrae (1856)</td><td>archive.org only</td><td class='n'>40</td><td class='n'>5.12%</td><td class='n'>3.70%</td><td class='n'>32%</td><td class='n'>0.00</td></tr>
+<tr><td>Dante, Opere latine (1878)</td><td>same as Commons</td><td class='n'>2</td><td class='n'>4.51%</td><td class='n'>4.05%</td><td class='n'>11%</td><td class='n'>0.00</td></tr>
+<tr><td>Erasmus, Colloquia (1888)</td><td>same as Commons</td><td class='n'>40</td><td class='n'>5.01%</td><td class='n'>4.09%</td><td class='n'>23%</td><td class='n'>0.00</td></tr>
+<tr><td>Ora Maritima (1909)</td><td>same as Commons</td><td class='n'>36</td><td class='n'>7.27%</td><td class='n'>4.56%</td><td class='n'>50%</td><td class='n'>0.00</td></tr>
+<tr><td>Gauss, Werke vol. 2 (1870)</td><td>re-read</td><td class='n'>40</td><td class='n'>5.79%</td><td class='n'>5.72%</td><td class='n'>3%</td><td class='n'>0.00</td></tr>
+<tr><td>Persius, Satire (1803)</td><td>same as Commons</td><td class='n'>4</td><td class='n'>6.94%</td><td class='n'>5.78%</td><td class='n'>18%</td><td class='n'>0.00</td></tr>
+<tr><td>Easy Latin Plays (1913)</td><td>re-read</td><td class='n'>13</td><td class='n'>7.94%</td><td class='n'>5.81%</td><td class='n'>30%</td><td class='n'>0.00</td></tr>
+<tr><td>Ribbeck, Fragmenta (1897)</td><td>same as Commons</td><td class='n'>40</td><td class='n'>8.89%</td><td class='n'>8.58%</td><td class='n'>6%</td><td class='n'>0.00</td></tr>
+<tr><td>Gauss, Werke vol. 3 (1870)</td><td>same as Commons</td><td class='n'>30</td><td class='n'>8.81%</td><td class='n'>8.67%</td><td class='n'>7%</td><td class='n'>0.63</td></tr>
+<tr><td>Logonomia anglica (1621)</td><td>same as Commons</td><td class='n'>22</td><td class='n'>17.75%</td><td class='n'>16.83%</td><td class='n'>6%</td><td class='n'>0.00</td></tr>
+<tr><td>Petrus Ravennas, Foenix (1533)</td><td>archive.org only</td><td class='n'>29</td><td class='n'>18.94%</td><td class='n'>17.09%</td><td class='n'>11%</td><td class='n'>1.79</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+    <ul class="prose" style="max-width:40em">
+      <li><b>11 of 25 books end at or under 2%</b> (327 of 728 passages). They were
+        mostly clean already; repair takes them the last step.</li>
+      <li><b>7 books stay above 5%</b>, and repair barely moves them: a 1533 print, a 1621
+        English–Latin grammar, Ribbeck's fragments with their apparatus, two volumes of
+        Gauss's mathematics, <i>Easy Latin Plays</i>, and an 1803 Persius. Early type,
+        mixed languages, and text that isn't running Latin prose are where it fails.</li>
+      <li><b>Repair works best on running Latin in a modern edition</b> — around half the
+        damage fixed in <i>Ora Maritima</i>, <i>A First Latin Reader</i> and Columella (a text the model
+        has largely read, which flatters it).</li>
+      <li><b>Harm is uneven.</b> About 1 per 1,000 overall, but three books show 3.7–5.3,
+        from a handful of words each. None has been checked by hand; Part 1 suggests many
+        will be errors in the proofread text rather than the model's.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="label">Analysis</div>
+    <h2>Is archive.org's Latin “corrected enough” for the corpus?</h2>
+    <p class="prose">
+      <b>For some books, yes; for archive.org as a whole, not by repair alone.</b> The
+      evidence points to a pipeline in which the model is the last and smallest step:
+    </p>
+    <div class="steps panel">
+      <div class="step"><div class="what">1 · Deduplicate</div><div class="val" style="font-family:var(--body);font-size:1rem">Drop what the corpus already has. Cheap (no model), and removes about half of everything in this sample — nearly all of the classical texts.</div></div>
+      <div class="step"><div class="what">2 · Best reading</div><div class="val" style="font-family:var(--body);font-size:1rem">Use archive.org's current OCR, and get a fresh reading where it is still the old ABBYY output. For post-1850 print this is the largest single gain measured here.</div></div>
+      <div class="step"><div class="what">3 · Repair</div><div class="val" style="font-family:var(--body);font-size:1rem">Run <code>fim</code> under the Tier 2 rules: about a seventh of the remaining character errors, one word in five of the damaged ones, about one correct word broken per 1,000.</div></div>
+      <div class="step"><div class="what">4 · Gate</div><div class="val" style="font-family:var(--body);font-size:1rem">Admit a page or book only if its <em>estimated</em> error rate is under a threshold. Not built yet — and it decides more about corpus quality than steps 2 and 3 together.</div></div>
+      <div class="step"><div class="what">5 · Tag &amp; cap</div><div class="val" style="font-family:var(--body);font-size:1rem">Mark the text <code>ocr-repaired</code> and cap its share, as <code>build.py</code> already caps the OCR-derived CSEL text.</div></div>
+    </div>
+    <p class="prose">
+      Three honest caveats. <b>First</b>, much of what is new is early-modern neo-Latin
+      in old print, exactly where re-reading and repair help least; the books that come
+      out clean are mostly the ones that went in clean — which, usefully, includes much of
+      the modern teaching Latin that is also new. <b>Second</b>,
+      the worry that the model trains on its own corrections is real but small: it changes
+      about one correct word per 1,000 into something it finds plausible, while
+      leaving four-fifths of the OCR damage in place — the leftover OCR noise matters far
+      more than the model's fingerprints. <b>Third</b>, speed: Tier 3 took about 57 minutes
+      per model for 728 passages (~4.7 s per 60 words), so a 100,000-word book would take
+      about two hours. Batching the model calls is required before any real harvest.
+    </p>
+  </section>
+
+  <section>
+    <div class="label">Next steps · re-rated for the archive.org goal</div>
     <h2>What is worth doing, and what mostly isn't</h2>
     <p class="prose">
-      Rated by what each step would change about what you know or can do — not by how
-      interesting it is. Roughly in the order they should happen.
+      Rated by what each step would change about what you know or can do toward getting
+      clean new Latin into the corpus — not by how interesting it is. Roughly in the order
+      they should happen.
     </p>
 
     <div>
       <div class="stepcard">
+        <div class="no">✓</div>
+        <div class="body">
+          <div class="head"><h3 class="done">Commit the work</h3><span class="tag keep">Done</span><span class="meta">23 September</span></div>
+          <p>Committed and pushed on <code>ocr/evaluation</code>; the archive.org work is committed on top.</p>
+        </div>
+      </div>
+
+      <div class="stepcard">
         <div class="no">1</div>
         <div class="body">
-          <div class="head"><h3>Commit the work</h3><span class="tag keep">Do now</span><span class="meta">minutes</span></div>
-          <p>Everything since 17 September — the Tier 2 benchmark, the new proposer, the
-            tuner, the FIM training script and 52 tests — is uncommitted. Nothing here
-            is a research question; it's a week of work sitting in one working tree.</p>
+          <div class="head"><h3>Build and test the quality gate</h3><span class="tag keep">High value · new</span><span class="meta">a few days</span></div>
+          <p>Estimate each page's error rate <em>without</em> a proofread copy — from the share
+            of words the model flags as suspicious (it ranks damage well: average precision
+            ~62%), the share it doesn't know, and the OCR engine's own confidence where
+            archive.org provides it. Tier 3 has the truth to check the estimate against.</p>
+          <p class="verdict"><b>Honest take:</b> this decides what enters the corpus, so it
+            decides corpus quality more than any repair improvement could. The bar it must
+            clear: telling a 1% page from a 5% page reliably. Unknown whether it can.</p>
         </div>
       </div>
 
       <div class="stepcard">
         <div class="no">2</div>
         <div class="body">
-          <div class="head"><h3>Decide what “harm” means on real scans</h3><span class="tag keep">High value</span><span class="meta">a decision, plus an afternoon if you adjudicate</span></div>
-          <p>Three choices: keep counting every disagreement with the key as harm; apply
-            the 2‰ limit only to words the lexicon knows and report the rest separately
-            as an upper bound; or look at the ~50 “broken” words per run by hand and mark
-            which are the key's fault.</p>
-          <p class="verdict"><b>Honest take:</b> this is worth more recall (plausibly 27%
-            → ~40%) than any remaining engineering. The trap is choosing the definition
-            <em>because</em> it flatters the system. Hand-adjudicating one run is the only
-            option that turns “about 35 of 48” into a fact; I would do that first and let
-            it decide between the other two. Settle it before step 3, never after.</p>
+          <div class="head"><h3>Size the harvest before building for it</h3><span class="tag keep">High value · new</span><span class="meta">a day · no model</span></div>
+          <p>Search archive.org's ~180,000 Latin items (1450–1930), download plain text for
+            a sample of a few hundred, and measure three things per item: how much is already
+            in the corpus, which OCR engine read it, and its publication date.</p>
+          <p class="verdict"><b>Honest take:</b> cheap, and it answers the question
+            everything else depends on — how many words of genuinely new, recent-enough print
+            are there? If the answer is small, most of the steps below aren't worth it.</p>
         </div>
       </div>
 
       <div class="stepcard">
         <div class="no">3</div>
         <div class="body">
-          <div class="head"><h3>Freeze the rules, sit the exam once, fix the README</h3><span class="tag keep">High value</span><span class="meta">~1–2 h compute</span></div>
-          <p>Run <code>--split test</code> on both tiers with the tuned rules, then update
-            the <code>ocr/README.md</code> tables, which still show the numbers from before
-            the proposer rebuild.</p>
-          <p class="verdict"><b>Honest take:</b> until this happens, no number on this page
-            can be quoted outside the repo. It is cheap. It is also one-way — after it,
-            the hypotheses are frozen — which is exactly why step 2 goes first.</p>
+          <div class="head"><h3>Decide what “harm” means on real scans</h3><span class="tag keep">High value</span><span class="meta">a decision, plus an afternoon if you adjudicate</span></div>
+          <p>Three choices: keep counting every disagreement with the key as harm; apply
+            the 2‰ limit only to words the lexicon knows and report the rest separately
+            as an upper bound; or look at the ~50 “broken” words per run by hand and mark
+            which are the key's fault.</p>
+          <p class="verdict"><b>Honest take:</b> still the biggest lever inside the
+            repairer (plausibly 27% → ~40% recall). The trap is choosing the definition
+            <em>because</em> it flatters the system. Hand-adjudicate one run first. Settle it
+            before step 4, never after.</p>
         </div>
       </div>
 
       <div class="stepcard">
         <div class="no">4</div>
         <div class="body">
-          <div class="head"><h3>Decide what the repair is <em>for</em></h3><span class="tag keep">High value</span><span class="meta">a conversation</span></div>
-          <p>The sub-project has answered its research question: context helps, at equal
-            harm. It has not answered whether to <em>use</em> it. The obvious use is cleaning
-            the OCR-derived text in the training corpus (5.85% of corpus-b, from CSEL)
-            before the next model. At today's numbers that removes about one in six
-            character errors from that slice.</p>
-          <p class="verdict"><b>Honest take:</b> that is a real improvement to a small slice
-            of the corpus, and nobody knows yet whether it would change the next model at
-            all. If the answer to “what for?” is “the corpus”, step 5 (the ablation) becomes
-            the test of whether any of this matters; if it's “a tool people use on their
-            own scans”, steps 6 and 9 matter more. Worth deciding before investing further.</p>
+          <div class="head"><h3>Freeze the rules, sit the exam once, fix the README</h3><span class="tag keep">High value</span><span class="meta">~1–2 h compute</span></div>
+          <p>Run <code>--split test</code> on Tiers 1 and 2 with the tuned rules, then update
+            the <code>ocr/README.md</code> tables, which still show the numbers from before
+            the proposer rebuild. The re-read test books (<i>Ars latine loquendi</i>, <i>Pro
+            Patria</i>, Kepler…) can then join Tier 3's four-way comparison, which today rests
+            on two books.</p>
+          <p class="verdict"><b>Honest take:</b> until this happens no number here can be
+            quoted outside the repo. Cheap, and one-way — which is why step 3 goes first.</p>
         </div>
       </div>
 
       <div class="stepcard">
         <div class="no">5</div>
         <div class="body">
-          <div class="head"><h3>Ablation: train without the OCR-derived text</h3><span class="tag mid">Medium value</span><span class="meta">one retrain</span></div>
-          <p>Retrain with the CSEL OCR text left out and rerun both tiers. It tells you two
-            things: whether the model has learned some OCR mistakes <em>as Latin</em> (which
-            would make it reluctant to fix them), and whether that 5.85% of noisy text
-            hurts the model in general.</p>
-          <p class="verdict"><b>Honest take:</b> good hygiene and a credible answer to an
-            obvious reviewer question. If removing the text changes nothing, the case for
-            cleaning the corpus weakens considerably — which is itself worth knowing.</p>
+          <div class="head"><h3>Speed: score several words per model call</h3><span class="tag keep">Required for a harvest</span><span class="meta">a day of engineering</span></div>
+          <p>The model is asked about one word at a time: ~4.7 s per 60-word passage on
+            archive.org text, about two hours for a 100,000-word book.</p>
+          <p class="verdict"><b>Honest take:</b> changes no result, so it was “conditional”
+            before. With a harvest as the goal it is no longer optional — but do it after
+            step 2 has shown there is enough to harvest.</p>
         </div>
       </div>
 
       <div class="stepcard">
         <div class="no">6</div>
         <div class="body">
-          <div class="head"><h3>Speed: score several words per model call</h3><span class="tag mid">Conditional</span><span class="meta">a day of engineering</span></div>
-          <p>The model is currently asked about one word at a time; recording decisions
-            for 650 passages takes ~30 minutes.</p>
-          <p class="verdict"><b>Honest take:</b> changes no result. Worth it only if you
-            mean to run repair over a real corpus or iterate on the rule many more times.
-            Otherwise it's comfort.</p>
+          <div class="head"><h3>A modern OCR engine for early print</h3><span class="tag mid">Medium · uncertain</span><span class="meta">days · page images needed</span></div>
+          <p>archive.org's re-reading does little for books before 1700 (1495, 1619, 1658 above).
+            Engines with models trained on early modern print exist — Kraken and Calamari are
+            examples, as are vision-language models. Tier 2's early-print books (Kircher 1679,
+            Kepler 1619, the 1533 <i>Foenix</i>) give a ready benchmark: same pages, proofread
+            truth.</p>
+          <p class="verdict"><b>Honest take:</b> the only lever measured or proposed here that
+            could move 15% error rates on the neo-Latin that is actually new. Also the most
+            open-ended; time-box it to one engine and three books first.</p>
         </div>
       </div>
 
       <div class="stepcard">
         <div class="no">7</div>
         <div class="body">
-          <div class="head"><h3>Whole-page context</h3><span class="tag mid">Speculative</span><span class="meta">re-cut Tier 2 by page · re-lock</span></div>
-          <p>Not in the handover's list, but it follows from findings 7 and 8. The model's
-            weakest spot is long-s (<code>femen</code>/<code>semen</code>), and the way a
-            human proofreader settles those is by seeing the word printed correctly
-            elsewhere on the page. The code for that clue exists; the 60-word passages
-            starve it.</p>
-          <p class="verdict"><b>Honest take:</b> the only idea on this list aimed at the
-            model's actual weakness. Unproven, and re-cutting Tier 2 means re-locking it, so
-            it must happen before the exam in step 3 or become a second benchmark.</p>
+          <div class="head"><h3>Ablation: train without the OCR-derived text</h3><span class="tag mid">Medium value</span><span class="meta">one retrain</span></div>
+          <p>Retrain with the CSEL OCR text (5.85% of corpus-b) left out and rerun the tiers.</p>
+          <p class="verdict"><b>Honest take:</b> tells you whether OCR-grade text helps the
+            model at all. If leaving it out changes nothing, the case for harvesting more of it
+            weakens — worth knowing before step 5's engineering.</p>
         </div>
       </div>
 
       <div class="stepcard">
         <div class="no">8</div>
         <div class="body">
-          <div class="head"><h3>Replace Tier 1's noise table with the one learned from real scans</h3><span class="tag scaffold">Low value</span><span class="meta">re-locks Tier 1</span></div>
-          <p class="verdict"><b>Honest take:</b> it would make Tier 1 more realistic, and
-            change every Tier 1 number, in order to improve a benchmark that is no longer
-            the judge. Simpler to state plainly that Tier 1 is a development check and
-            quote only Tier 2.</p>
+          <div class="head"><h3>Whole-page context</h3><span class="tag mid">Speculative</span><span class="meta">re-cut the benchmarks by page</span></div>
+          <p>The model's weakest spot is long-s (<code>femen</code>/<code>semen</code>); a human
+            proofreader settles those by seeing the word printed correctly elsewhere on the
+            page. The code for that clue exists; the 60-word passages starve it. A harvest
+            works on whole pages anyway.</p>
+          <p class="verdict"><b>Honest take:</b> the one idea aimed at the model's actual
+            weakness. Unproven.</p>
         </div>
       </div>
 
@@ -588,35 +1056,32 @@
         <div class="no">9</div>
         <div class="body">
           <div class="head"><h3>Retrain fill-in-the-middle so it can generate</h3><span class="tag scaffold">Low value now</span><span class="meta">4+ h GPU · uncertain</span></div>
-          <p>Weight the training on the gap and on a proper “fill ends here” signal, so the
-            model can propose words the lexicon doesn't contain — mostly names, about 30%
-            of what is never offered.</p>
-          <p class="verdict"><b>Honest take:</b> it raises the ceiling, and the ceiling is
-            not what's binding — the system already declines a quarter of all damage it
-            <em>was</em> offered. At best ~13 points of ceiling, of which the harm limit would
-            let through a fraction. The first attempt failed at exactly this. Revisit after
-            step 2 changes the picture.</p>
+          <p class="verdict"><b>Honest take:</b> it would let the model propose names the
+            lexicon lacks, but the system already declines a quarter of the damage it
+            <em>was</em> offered; the ceiling is not what's binding. The first attempt failed at
+            exactly this.</p>
         </div>
       </div>
 
       <div class="stepcard">
         <div class="no">10</div>
         <div class="body">
-          <div class="head"><h3>Option 2: a model that rewrites the whole passage</h3><span class="tag warn">Not yet</span><span class="meta">large</span></div>
-          <p class="verdict"><b>Honest take:</b> the approach most likely to look impressive
-            in a demo and most likely to damage text silently — changing correct Latin into
-            other plausible Latin that no one catches. Only with Tier 2 as the judge, and only
-            once the cheaper routes are exhausted.</p>
+          <div class="head"><h3>Replace Tier 1's noise table with the one learned from real scans</h3><span class="tag scaffold">Low value</span><span class="meta">re-locks Tier 1</span></div>
+          <p class="verdict"><b>Honest take:</b> improves a benchmark that is no longer the
+            judge. State plainly that Tier 1 is a development check and quote Tiers 2 and 3.</p>
         </div>
       </div>
-    </div>
 
-    <div class="note">
-      <b>One thing this project hasn't measured:</b> how much of the damage a modern OCR
-      engine would avoid by simply re-reading the same scans. The Commons text layers
-      are whatever OCR produced them, often years ago. If a fresh OCR pass removes more
-      errors than repair does, that changes the value of every step above — and the
-      Tier 2 benchmark could answer the question in an afternoon.
+      <div class="stepcard">
+        <div class="no">11</div>
+        <div class="body">
+          <div class="head"><h3>Option 2: a model that rewrites the whole passage</h3><span class="tag warn">Not yet</span><span class="meta">large</span></div>
+          <p class="verdict"><b>Honest take:</b> the approach most likely to look impressive
+            in a demo and most likely to damage text silently — especially dangerous when the
+            output becomes training data. Only with Tiers 2 and 3 as judges, and only once the
+            cheaper routes are exhausted.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -625,19 +1090,20 @@
     <h2>Where it stands</h2>
     <p class="prose">
       The evaluation is sound and the scientific answer is in: reading context repairs
-      more scanned Latin than counting words, at the same strict harm limit, and the
-      fill-in-the-middle variant is the best of the three. On real scans that means
-      about a quarter of the damage fixed and one or two correct words broken per
-      thousand. The biggest remaining lever is not the model but how harm is counted
-      against an imperfect answer key. Commit, settle that, sit the exam once — and then
-      decide whether the goal is a cleaner corpus or a tool, because the right next
-      investment depends on which.
+      more scanned Latin than counting words, at the same strict harm limit, and it holds
+      on archive.org's text as it can be downloaded today — about a fifth of the damage
+      repaired, about one correct word broken per thousand. But for the real goal, repair
+      is the smallest lever. Nearly half of archive.org's Latin is already in the corpus;
+      a fresh OCR reading removes far more error than repair does on anything printed in
+      the last 150 years; and of the genuinely new Latin, the modern teaching texts come
+      out clean while the early-modern prints stay poor whatever is done to them. What decides corpus quality now is a gate that keeps bad pages out, and a
+      count of how much new, readable Latin there actually is.
     </p>
   </section>
 
   <footer>
     <div>Varro · an openly licensed Latin corpus, and a language model trained only on Latin.</div>
-    <div>Figures from HANDOVER.md and reports/ocr-*.json (dev splits), 23 September 2026. The test splits have not been run.</div>
+    <div>Part 1 from HANDOVER.md and reports/ocr-*.json, reports/ocr-t2-*.json (dev splits). Part 2 from reports/ocr-ia-compare.json, reports/ocr-ia-overlap.json and reports/ocr-ia-*-{current,then,now}.json, 23–24 September 2026. The test splits have not been run.</div>
   </footer>
 
 </div>

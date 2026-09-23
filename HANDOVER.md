@@ -1,9 +1,12 @@
 # HANDOVER — OCR repair with LATIN-LII
 
-State of the `ocr/evaluation` branch as of 2026-09-23, written for whoever
+State of the `ocr/evaluation` branch as of 2026-09-24, written for whoever
 picks this up next (including a future session of the assistant that built
 it). Everything here is on the **dev** (practice) splits. **The test splits
-have never been run.** Nothing after commit `7d1baf8` is committed.
+have never been run.** All work is committed on `ocr/evaluation` and pushed.
+
+The full, plain-words account — findings, charts, and next steps rated for
+value — is **`docs/ocr-explainer.html`**. This file stays high level.
 
 In every table: ↑ higher is better, ↓ lower is better.
 
@@ -19,6 +22,9 @@ In every table: ↑ higher is better, ↓ lower is better.
 4. *Fix the proposer.* → done 2026-09-18/19; measured.
 5. Standing preferences: mark ↑/↓ on every numeric column; gloss ML terms
    in plain words (Vincent is new to LLM building). Both saved to memory.
+6. *The goal behind it all* (2026-09-23): download OCR text from archive.org,
+   correct it well enough, and add it to the training corpus. → measured
+   2026-09-23/24; see *archive.org* below.
 
 ## The question, and the answer so far
 
@@ -43,10 +49,14 @@ are low, and the reason is now known and is not the model (see *Findings*).
 | `ocr/rules.json` | Tuned rule per system per tier, with what it measured when tuned. |
 | `ocr/bench.lock.json`, `ocr/tier2.lock.json` | Split hashes. `run` refuses a split that does not match. |
 | `src/fim.py` | Fill-in-the-middle continued training. Produced `checkpoints/latin-lii-fim.*` and `reports/train-latin-lii-fim.json`. |
-| `tests/test_ocr.py`, `tests/test_fim.py` | 45 + 7 tests, no model needed. Full suite: 583 pass. |
+| `ocr/ia.py` | archive.org: `find` / `fetch` / `compare` (old vs current OCR, no model) / `build` (Tier 3). |
+| `ocr/ia-candidates.json`, `ocr/ia.lock.json` | The 66 archive.org items behind Tier 2 books, and Tier 3's split hashes. |
+| `reports/ocr-ia-*.json` | `compare` (re-reading), `overlap` (already in corpus), and model runs on `current` / `then` / `now`. |
+| `tests/test_ocr.py`, `tests/test_fim.py` | 47 + 7 tests, no model needed. Full suite: 592 pass (2026-09-24). |
 | `manifest/sources.yaml` | New entry `wikisource-scan-ocr`, tier `eval`, `include: false`. |
 | `data/processed/ocr/` | Benchmarks, lexicon caches, traces (gitignored, rebuildable). |
 | `data/raw/wikisource-scan-ocr/` | 157 OCR layers, 122 MB, never edited. |
+| `data/raw/archive-org-ocr/` | 63 archive.org OCR texts, page by page, 39 MB, never edited. |
 
 ## Benchmarks
 
@@ -60,6 +70,14 @@ level ≥ 3) against the text layer of the scan they were made from. dev 652
 passages / 31 books, test 1,326 / 64 books, CER ~5–6%. 2,994 passages dropped
 for sharing 8 running words with training. Both sides normalised and tidied
 (`¬` line breaks, space before punctuation). Cap 24 passages per book. Locked.
+
+**Tier 3 — archive.org's own OCR** (`ocr/ia.py build`). Same proofread pages,
+archive.org's current text. Leaves out Tier 2's *test books* entirely and
+Tier 2's passages; drops anything already in the corpus; cap 40 per book.
+Splits: `current` 728 passages / 25 books; `then`/`now` 70 passages / 2
+books, the same passages in the old (Commons) and re-read OCR. Never tuned
+on: `bench.py --tier 3` uses Tier 2's rules and Tier 2's fitted channel.
+Locked.
 
 ## Systems (`ocr/repairers.py`)
 
@@ -141,6 +159,29 @@ Tier 2 48.1% → **57.4%** (+samples: 57.5%).
    inert at 60-word passage scale; they need whole-page context.
 9. A wider right context (12 words) does not help either scorer.
 
+## archive.org (2026-09-23/24) — high level
+
+Details, charts and per-book numbers: `docs/ocr-explainer.html`, Part 2.
+
+1. **Tier 2 was already measuring archive.org.** 40 of 66 archive.org items
+   behind Tier 2 books carry the same OCR as the Commons file; 13 have been
+   re-read by archive.org since; 9 exist only on archive.org.
+2. **A fresh OCR reading beats repair on post-1850 print.** Same passages, no
+   model: 9 re-read books 11.2% → 5.0% chars wrong (control: 39 unchanged
+   books 5.34% vs 5.21%). Books of 1889–1912 lose 70–90% of errors; 1495/1619
+   11–19%; 1658 gets worse. Median book −19%.
+3. **44.8% of the proofread text of these books is already in the corpus**
+   (8-word runs). Classical texts ~100%; neo-Latin and teaching Latin ~0%.
+4. **Repair carries over, a little weaker.** Tier 3 `current`, fim: chars
+   wrong 4.71% → 4.05%, words wrong 16.0% → 12.7%, recall 21.2%, broken
+   1.01/1,000 (Tier 2: 27.3% recall). fim vs unigram: non-word +12..+17,
+   real-word −2.8..+1.1, harm −1.10..−0.05 (fim breaks fewer).
+5. **Re-read then repair** (`then`/`now`, 2 books — illustrative only):
+   9.30% → old+repair 8.81% · re-read 4.44% → re-read+repair 3.99%.
+6. **Per book after repair:** 11 of 25 end ≤ 2% chars wrong; 7 stay > 5%
+   (early print, mixed languages, fragments, mathematics).
+7. **Speed:** ~4.7 s per 60-word passage per model system (57 min for 728).
+
 ## Open decisions (Vincent's)
 
 1. **What the harm limit is measured against on real scans**, given
@@ -153,9 +194,16 @@ Tier 2 48.1% → **57.4%** (+samples: 57.5%).
 3. Whether the rules in `rules.json` as tuned are what the test split runs
    under. After the first `--split test` run the hypotheses in the README
    are frozen.
-4. Commit the uncommitted work (list above).
+4. ~~Commit the uncommitted work.~~ Done 2026-09-23.
+5. **What "clean enough for the corpus" means** — a threshold on estimated
+   characters wrong per page or book (the explainer uses 2% as a placeholder).
 
 ## Suggested next steps, in order
+
+Re-rated for the archive.org goal in `docs/ocr-explainer.html`; in short:
+**quality gate** (estimate a page's error rate without a transcription) and
+**sizing the harvest** (how much new, recent-enough Latin archive.org has;
+no model needed) now come first, then the items below.
 
 1. Decide (1) above; re-tune; then run `--split test` once on both tiers.
 2. Update `ocr/README.md` §1, §2, §4 tables to the numbers in this file
@@ -182,6 +230,10 @@ python ocr/bench.py compare reports/ocr-t2-fim-latin-lii-fim-dev.json reports/oc
 python ocr/tune.py trace fim --tier 2 && python ocr/tune.py sweep fim:latin-lii-fim --tier 2 --frontier --save
 python ocr/tune.py ceiling unigram --tier 2         # proposer ceiling
 python ocr/bench.py run unigram lii fim --split test --tier 2   # NOT YET RUN — freezes the hypotheses
+python ocr/ia.py find && python ocr/ia.py fetch     # archive.org candidates + their OCR
+python ocr/ia.py compare                            # old vs current OCR, no model, ~15 min
+python ocr/ia.py build                              # Tier 3 splits, locked
+python ocr/bench.py run identity unigram lii fim --tier 3 --split current   # ~2 h
 ```
 
 ## Gotchas
@@ -195,5 +247,9 @@ python ocr/bench.py run unigram lii fim --split test --tier 2   # NOT YET RUN �
   on*; never carry a Tier 1 channel to Tier 2.
 - Disk on this machine was at 3.7 GB free at one point (swap); the traces
   and OCR layers are small, checkpoints are 200–400 MB each.
+- archive.org returns HTTP 500 for some items (3 here); `find` records it and
+  moves on. Item file names don't always match the identifier — `find` reads
+  them from the metadata.
+- Tier 3 must never include Tier 2 test books; `build` enforces it.
 - Wikisource "proofread" (level 3) pages still carry errors; level 4 is
   cleaner but only ~2,800 pages exist. Tier 2 truth noise is Finding 5.

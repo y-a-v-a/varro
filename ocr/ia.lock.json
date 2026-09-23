@@ -1,0 +1,27 @@
+{
+  "candidates": "0e73b8b19287a5d3",
+  "corpus": "corpus-b",
+  "dropped": {
+    "book is in Tier 2's test split": 25,
+    "markup left in the transcription": 646,
+    "not Latin enough": 29,
+    "not found in the OCR": 162,
+    "not running prose": 285,
+    "over the per-book cap": 769,
+    "page not found in archive.org's reading": 301,
+    "passage is in Tier 2": 222,
+    "shares 8 words running with the training split": 2067
+  },
+  "passages": {
+    "current": 728,
+    "now": 70,
+    "then": 70
+  },
+  "per_book": 40,
+  "seed": 20260923,
+  "sha256": {
+    "current": "ea8d9316c8d02813",
+    "now": "1993cebffd21f727",
+    "then": "de620ee7b6ae5d61"
+  }
+}
