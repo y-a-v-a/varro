@@ -5,6 +5,7 @@
     python ocr/ia.py fetch      # each item's current OCR, page by page -> data/raw/
     python ocr/ia.py compare    # old (Commons) vs current (archive.org) OCR, same passages
     python ocr/ia.py build      # -> bench-ia.{current,then,now}.jsonl, locked
+    python ocr/ia.py overlap    # how much of each book the corpus already has
     python ocr/bench.py run identity unigram fim --tier 3 --split current
 
 WHY
@@ -517,6 +518,48 @@ def cmd_build(args) -> int:
     return 0
 
 
+# ---------------------------------------------------------------------------
+# overlap
+# ---------------------------------------------------------------------------
+
+def cmd_overlap(args) -> int:
+    """Per book, the share of proofread passages already in the training split.
+
+    Every proofread page, cut into WIDTH-word passages -- no OCR involved --
+    and checked as tier2.contaminated checks: a run of SHINGLE words in
+    common means the model has probably read it. What is left is what
+    archive.org could add.
+    """
+    rows = {r["book"]: r for r in candidates()}
+    passages: List[Dict[str, Any]] = []
+    with tier2.PAGES.open(encoding="utf-8") as fh:
+        for line in fh:
+            page = json.loads(line)
+            if page["book"] not in rows:
+                continue
+            w = tier2.tidy(normalize(tier2.clean_wikitext(page["wikitext"]))).split()
+            for k in range(len(w) // tier2.WIDTH):
+                passages.append({"id": f"{page['book']}/{page['page']}#{k}",
+                                 "doc": page["book"],
+                                 "truth": " ".join(w[k * tier2.WIDTH:(k + 1) * tier2.WIDTH])})
+    dirty = tier2.contaminated(passages, args.corpus)
+    total = Counter(p["doc"] for p in passages)
+    seen = Counter(p["doc"] for p in passages if p["id"] in dirty)
+    out = []
+    for book in sorted(total, key=lambda b: -seen[b] / total[b]):
+        out.append({"book": book, "status": rows[book]["status"],
+                    "tier2": rows[book].get("tier2"), "passages": total[book],
+                    "in_corpus": seen[book]})
+        print(f"  {seen[book] / total[book]:6.0%} {total[book]:6}  {book[:60]}")
+    n, d = sum(total.values()), sum(seen.values())
+    print(f"\n  {d:,} of {n:,} passages ({d / n:.1%}) share {tier2.SHINGLE} words "
+          f"running with {args.corpus}.train")
+    path = ROOT / "reports" / "ocr-ia-overlap.json"
+    path.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
+    print(f"wrote {path.relative_to(ROOT)}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -530,9 +573,11 @@ def main() -> int:
     b = sub.add_parser("build")
     b.add_argument("--corpus", default="corpus-b")
     b.add_argument("--relock", action="store_true")
+    o = sub.add_parser("overlap")
+    o.add_argument("--corpus", default="corpus-b")
     args = ap.parse_args()
     return {"find": cmd_find, "fetch": cmd_fetch, "compare": cmd_compare,
-            "build": cmd_build}[args.cmd](args)
+            "build": cmd_build, "overlap": cmd_overlap}[args.cmd](args)
 
 
 if __name__ == "__main__":

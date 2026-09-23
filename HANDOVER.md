@@ -170,8 +170,9 @@ Details, charts and per-book numbers: `docs/ocr-explainer.html`, Part 2.
    model: 9 re-read books 11.2% → 5.0% chars wrong (control: 39 unchanged
    books 5.34% vs 5.21%). Books of 1889–1912 lose 70–90% of errors; 1495/1619
    11–19%; 1658 gets worse. Median book −19%.
-3. **44.8% of the proofread text of these books is already in the corpus**
-   (8-word runs). Classical texts ~100%; neo-Latin and teaching Latin ~0%.
+3. **~45% of the proofread text of these books is already in the corpus**
+   (8-word runs; 44.6% of all 27,273 passages, 44.8% over the 56 books with
+   ≥ 40, as charted). Classical texts ~100%; neo-Latin and teaching Latin ~0%.
 4. **Repair carries over, a little weaker.** Tier 3 `current`, fim: chars
    wrong 4.71% → 4.05%, words wrong 16.0% → 12.7%, recall 21.2%, broken
    1.01/1,000 (Tier 2: 27.3% recall). fim vs unigram: non-word +12..+17,
@@ -233,6 +234,7 @@ python ocr/bench.py run unigram lii fim --split test --tier 2   # NOT YET RUN �
 python ocr/ia.py find && python ocr/ia.py fetch     # archive.org candidates + their OCR
 python ocr/ia.py compare                            # old vs current OCR, no model, ~15 min
 python ocr/ia.py build                              # Tier 3 splits, locked
+python ocr/ia.py overlap                            # share of each book already in the corpus
 python ocr/bench.py run identity unigram lii fim --tier 3 --split current   # ~2 h
 ```
 
